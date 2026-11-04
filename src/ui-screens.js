@@ -589,7 +589,6 @@
     applyTheme();
     SND.setEnabled(App.prefs.sound);
     syncSoundBtn();
-    if (G.LoveBG) G.LoveBG.setEnabled(App.prefs.bg3d !== false);
     bindHeader();
     document.addEventListener('pointerdown', () => SND.unlock(), { once: true });
     show('scrHome');

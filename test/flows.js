@@ -1,8 +1,6 @@
 // Uji alur LOVEOPOLY 2.0 di browser: skenario terkontrol (dadu debug + state disiapkan).
 // node test/flows.js   (butuh dist/test.html dari npm run build)
 const { chromium } = require('playwright');
-const THREE_LOCAL = require('path').resolve(__dirname, 'vendor/three.min.js');
-const routeThree = ctx => ctx.route(/three(\.min)?\.js$/, r => r.fulfill({ path: THREE_LOCAL, contentType: 'application/javascript' }));
 const path = require('path');
 const fs = require('fs');
 const OUT = process.env.OUT || path.join(__dirname, 'out', 'flows');
@@ -12,7 +10,6 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
 (async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 860 } });
-  await routeThree(ctx);
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -296,6 +293,13 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   });
   ok('beranda: Online pertama & paling besar', home.ids[0] === 'hOnline' && home.on > home.ai * 1.5 && home.on > home.local * 1.5, JSON.stringify(home));
   await shot('24a-home');
+  await page.waitForTimeout(3500);
+  const bg = await page.evaluate(() => ({ three: !!window.THREE, canvas: document.querySelectorAll('.page-sky canvas').length, blobs: document.querySelectorAll('.page-sky i').length, anim: document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length }));
+  ok('latar: diam & ringan (tanpa Three.js, kanvas, atau animasi)', !bg.three && !bg.canvas && !bg.blobs && !bg.anim, JSON.stringify(bg));
+  await newGame('');
+  const gl = await page.evaluate(() => { const g = document.querySelector('#board .center .globe-2d'); const r = g && g.getBoundingClientRect(); return { has: !!g, w: r ? Math.round(r.width) : 0, three: !!window.THREE }; });
+  ok('tengah papan: globe diam tampil', gl.has && gl.w > 40 && !gl.three, JSON.stringify(gl));
+  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
 
   // 24b. Mode online: layanan tidak bisa dihubungi → petunjuk + Coba lagi
   await page.evaluate(() => { window.LoveUI.exitToHome(true); window.LoveBackend = { use: () => Promise.reject({ code: 'sdk-load', message: 'x' }), _reset() {}, _normErr: e => e }; });

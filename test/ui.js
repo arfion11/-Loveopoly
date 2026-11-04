@@ -1,8 +1,6 @@
 // Monkey test UI LOVEOPOLY 2.0: main lewat klik di beberapa ukuran layar, tangkap error & layar macet.
 // node test/ui.js   (ITER=jumlah aksi desktop, default 400)
 const { chromium } = require('playwright');
-const THREE_LOCAL = require('path').resolve(__dirname, 'vendor/three.min.js');
-const routeThree = ctx => ctx.route(/three(\.min)?\.js$/, r => r.fulfill({ path: THREE_LOCAL, contentType: 'application/javascript' }));
 const path = require('path');
 const fs = require('fs');
 const OUT = process.env.OUT || path.join(__dirname, 'out', 'shots');
@@ -57,7 +55,6 @@ const MONKEY = () => {
   const errors = [];
   async function newPage(viewport, scheme, label, extra) {
     const ctx = await browser.newContext(Object.assign({ viewport, colorScheme: scheme || 'light' }, extra || {}));
-    await routeThree(ctx);
     const page = await ctx.newPage();
     page.on('console', m => { if (m.type() === 'error') errors.push(label + ' console: ' + m.text()); });
     page.on('pageerror', e => errors.push(label + ' pageerror: ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 4).join('\n')));

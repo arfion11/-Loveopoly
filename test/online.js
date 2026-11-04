@@ -1,7 +1,5 @@
 // Uji online: dua tab (host & tamu) dengan mock window.LoveBackend (db/user, berbasis localStorage) meniru src/backend.js.
 const { chromium } = require('playwright');
-const THREE_LOCAL = require('path').resolve(__dirname, 'vendor/three.min.js');
-const routeThree = ctx => ctx.route(/three(\.min)?\.js$/, r => r.fulfill({ path: THREE_LOCAL, contentType: 'application/javascript' }));
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -98,7 +96,6 @@ const server = http.createServer((req, res) => {
 (async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 820 } });
-  await routeThree(ctx);
   await ctx.addInitScript(MOCK);
   const errors = [];
   const mkPage = async (u) => {

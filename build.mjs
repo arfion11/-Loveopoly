@@ -10,7 +10,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const src = join(root, 'src');
 
 // urutan penting: data -> engine -> ai -> aset -> UI -> online -> panduan -> layar
-export const ORDER = ['data.js', 'engine.js', 'ai.js', 'icons.js', 'art.js', 'audio.js', 'bg3d.js', 'ui-core.js', 'ui-modals.js', 'firebase-config.js', 'backend.js', 'net.js', 'guide.js', 'ui-screens.js'];
+export const ORDER = ['data.js', 'engine.js', 'ai.js', 'icons.js', 'art.js', 'audio.js', 'ui-core.js', 'ui-modals.js', 'firebase-config.js', 'backend.js', 'net.js', 'guide.js', 'ui-screens.js'];
 const FONTS = [['Fredoka', 'fredoka-latin-wght-normal.woff2', '300 700'], ['Nunito', 'nunito-latin-wght-normal.woff2', '200 1000']];
 const SKELETON = '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' +
   '<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>' +

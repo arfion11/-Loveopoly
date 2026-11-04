@@ -818,7 +818,6 @@
           '<div class="toggle-row"><div><b>Efek suara</b><div class="tiny muted">Dadu, koin, kartu, dan musik kecil.</div></div><button type="button" class="switch" role="switch" id="sSound" aria-checked="' + App.prefs.sound + '" aria-label="Efek suara"></button></div>' +
           '<div class="toggle-row"><div><b>Papan 3D</b><div class="tiny muted">Papan miring dengan ilustrasi berdiri seperti pop-up. Matikan untuk papan datar.</div></div><button type="button" class="switch" role="switch" id="sView3d" aria-checked="' + (App.prefs.view3d !== false) + '" aria-label="Papan 3D"></button></div>' +
           '<div class="toggle-row"><div><b>Sorot langkah (HP)</b><div class="tiny muted">Saat pion berjalan, papan mendekat mengikuti pion supaya nama & gambar petak besar, lalu kembali menampilkan seluruh papan.</div></div><button type="button" class="switch" role="switch" id="sWalkCam" aria-checked="' + (App.prefs.walkCam !== false) + '" aria-label="Sorot langkah (HP)"></button></div>' +
-          '<div class="toggle-row"><div><b>Latar 3D</b><div class="tiny muted">Hati, balon udara, awan, dan globe 3D yang bergerak. Matikan untuk hemat baterai.</div></div><button type="button" class="switch" role="switch" id="sBg3d" aria-checked="' + (App.prefs.bg3d !== false) + '" aria-label="Latar 3D"></button></div>' +
           '<div class="toggle-row"><div><b>Akhiri giliran otomatis</b><div class="tiny muted">Giliran selesai sendiri ±2 detik setelah semua beres. Sentuh layar untuk menahan.</div></div><button type="button" class="switch" role="switch" id="sAutoEnd" aria-checked="' + (App.prefs.autoEnd !== false) + '" aria-label="Akhiri giliran otomatis"></button></div>' +
           '<div class="opt"><span class="label">Kecepatan animasi</span>' + seg('sSpeed', [['normal', 'Normal'], ['fast', 'Cepat']], App.prefs.speed) + '</div>' +
           '<div class="opt"><span class="label">Kecepatan AI</span>' + seg('sAi', [['slow', 'Santai'], ['normal', 'Normal'], ['fast', 'Cepat']], App.prefs.aiSpeed) + '</div>' +
@@ -829,9 +828,8 @@
       mount: m => {
         on(m, '#sSound', () => { App.prefs.sound = !App.prefs.sound; SND.setEnabled(App.prefs.sound); UI.savePrefs(); UI.syncSoundBtn && UI.syncSoundBtn(); refreshModal(); });
         on(m, '#sAutoEnd', () => { App.prefs.autoEnd = App.prefs.autoEnd === false; UI.savePrefs(); refreshModal(); });
-        on(m, '#sView3d', () => { App.prefs.view3d = App.prefs.view3d === false; UI.savePrefs(); if (App.S) { UI.applyLayout(true); UI.renderTokens && UI.renderTokens(); UI.renderStage && UI.renderStage(); } if (G.LoveBG) G.LoveBG.refresh(); refreshModal(); });
+        on(m, '#sView3d', () => { App.prefs.view3d = App.prefs.view3d === false; UI.savePrefs(); if (App.S) { UI.applyLayout(true); UI.renderTokens && UI.renderTokens(); UI.renderStage && UI.renderStage(); } refreshModal(); });
         on(m, '#sWalkCam', () => { App.prefs.walkCam = App.prefs.walkCam === false; UI.savePrefs(); if (!App.prefs.walkCam && UI.camRelax) UI.camRelax(); refreshModal(); });
-        on(m, '#sBg3d', () => { App.prefs.bg3d = App.prefs.bg3d === false; UI.savePrefs(); if (G.LoveBG) G.LoveBG.setEnabled(App.prefs.bg3d); refreshModal(); });
         [['#sSpeed', 'speed'], ['#sAi', 'aiSpeed'], ['#sTheme', 'theme']].forEach(([sel, k]) => $$(sel + ' [data-v]', m).forEach(b => b.addEventListener('click', () => { App.prefs[k] = b.dataset.v; UI.savePrefs(); UI.applyTheme(); refreshModal(); })));
         on(m, '#sDone', () => closeModal());
       }

@@ -2,7 +2,7 @@
 
 Board game keliling dunia untuk pasangan LDR. Beli kota romantis, bangun sampai landmark, adakan festival, lalu menangkan lewat monopoli warna, jalur penuh, atau tempat wisata. Bisa main berdua di satu perangkat, lawan AI, atau online dengan kode room.
 
-Seluruh game dibangun menjadi **satu file HTML** (`dist/index.html`) yang dihosting gratis di **Firebase Hosting**. Mode online memakai Firestore + login anonim + Realtime Database (paket Spark, tanpa kartu kredit). Tidak ada framework atau bundler; pustaka luar hanya Three.js (latar & globe 3D) dan SDK Firebase (dimuat saat menu online dibuka).
+Seluruh game dibangun menjadi **satu file HTML** (`dist/index.html`) yang dihosting gratis di **Firebase Hosting**. Mode online memakai Firestore + login anonim + Realtime Database (paket Spark, tanpa kartu kredit). Tidak ada framework atau bundler; pustaka luar hanya SDK Firebase (dimuat saat menu online dibuka).
 
 ## Mulai cepat
 
@@ -43,7 +43,6 @@ src/
   engine.js      aturan murni: create(), dispatch(state, action) -> { ok, state }
   ai.js          AI easy / normal / hard
   icons.js art.js audio.js   ikon, ilustrasi SVG orisinal, suara (Web Audio)
-  bg3d.js        latar langit & globe 3D (Three.js r128, dimuat malas)
   ui-core.js     tata letak, papan & kamera 3D, pion, dadu, animasi, alur giliran
   ui-modals.js   dialog beli/bangun/tol, portofolio, pengaturan
   firebase-config.js  config web Firebase (publik; keamanan di aturan)
@@ -52,7 +51,7 @@ src/
   guide.js       Buku Panduan bergambar
   ui-screens.js  beranda, setup pemain, lobby online, tur pertama
 fonts/           Fredoka & Nunito (SIL OFL), disematkan saat build
-test/            sim.js, flows.js, online.js, ui.js, rules.js, backend.js, vendor/three.min.js
+test/            sim.js, flows.js, online.js, ui.js, rules.js, backend.js, smoke.js
 firestore.rules database.rules.json firebase.json   aturan & konfigurasi Firebase
 tools/serve.mjs  server pratinjau lokal
 build.mjs        skrip build
@@ -87,4 +86,4 @@ terhapus otomatis (ukurannya kecil); bisa dibersihkan manual dari Firebase Conso
 
 ## Lisensi aset
 
-Ilustrasi, ikon, dan maskot Merpi adalah karya orisinal proyek ini. Font Fredoka & Nunito berlisensi SIL Open Font License 1.1. Three.js berlisensi MIT.
+Ilustrasi, ikon, dan maskot Merpi adalah karya orisinal proyek ini. Font Fredoka & Nunito berlisensi SIL Open Font License 1.1.

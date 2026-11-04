@@ -70,22 +70,12 @@ p { margin: 0; }
 .grow { flex: 1 1 auto; min-width: 0; }
 svg.art { display: block; width: 100%; height: 100%; overflow: visible; }
 .coin-ic { display: inline-block; width: .95em; height: .95em; border-radius: 50%; flex: none; vertical-align: -0.12em; background: radial-gradient(circle at 35% 30%, #FFF1B0 0 18%, transparent 19%), radial-gradient(circle, #FFD54A 0 55%, #F2B416 56% 100%); box-shadow: inset 0 0 0 1.5px #C98D06; }
-.page-sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: radial-gradient(120% 80% at 10% 0%, var(--bg-2), transparent 60%), radial-gradient(90% 70% at 100% 100%, var(--brand-soft), transparent 70%), var(--bg); }
-.page-sky i { position: absolute; border-radius: 50%; filter: blur(2px); opacity: .55; background: radial-gradient(circle, var(--surface) 0 40%, transparent 70%); }
-.page-sky .s1 { width: 340px; height: 120px; top: 12%; left: -60px; animation: drift 38s linear infinite; }
-.page-sky .s2 { width: 260px; height: 90px; top: 64%; right: -40px; animation: drift 46s linear infinite reverse; }
-.page-sky .s3 { width: 200px; height: 70px; top: 34%; left: 52%; animation: drift 52s linear infinite; }
-/* dunia 3D (bg3d.js): kanvas transparan di atas gradasi langit; tanpa WebGL tetap latar CSS di atas */
-.page-sky .sky3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity 1.4s ease; }
-.page-sky .sky3d.on { opacity: 1; }
-.no-bg3d .page-sky .sky3d { display: none; }
-.globe-3d { position: absolute; left: 50%; top: 44%; width: 72cqmin; aspect-ratio: 1; translate: -50% -50%; pointer-events: none; opacity: 0; transition: opacity .9s ease; }
-.globe-3d.on { opacity: 1; }
-.globe-3d canvas { position: relative; display: block; width: 100%; height: 100%; }
-.globe-3d::before { content: ""; position: absolute; left: 31%; right: 31%; bottom: 14%; height: 6%; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--brand-d) 26%, transparent), transparent); }
-.center .cd-map { transition: opacity .6s; }
-.center.globe-on .cd-map { opacity: 0; }
-@keyframes drift { from { transform: translateX(-40px); } 50% { transform: translateX(40px); } to { transform: translateX(-40px); } }
+.page-sky { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(70% 60% at 0% 0%, color-mix(in srgb, var(--brand-soft) 85%, transparent), transparent 70%), radial-gradient(65% 55% at 100% 100%, color-mix(in srgb, var(--bg-2) 95%, transparent), transparent 72%), var(--bg); }
+/* globe ilustrasi diam di tengah papan (saat panel aksi ada di luar papan: kamera 3D & ponsel) */
+.globe-2d { display: none; position: absolute; left: 50%; top: 44%; width: 62cqmin; aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
+.globe-2d svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.game.v3d .globe-2d, .game.layout-compact .globe-2d, .game.layout-land .globe-2d { display: block; }
+.game.v3d .center .cd-map, .game.layout-compact .center .cd-map, .game.layout-land .center .cd-map { opacity: 0; }
 
 /* ---------- header ---------- */
 .hdr { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; height: var(--hdr); display: flex; align-items: center; gap: 12px; padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
@@ -471,8 +461,7 @@ main { position: relative; }
 .board.b3d .center { overflow: visible; transform-style: preserve-3d; }
 .board.b3d .center-deco { transform-style: preserve-3d; }
 /* globe berdiri di tengah papan seperti benda di atas meja (diputar balik sebesar kemiringan papan) */
-.board.b3d .globe-3d { top: auto; bottom: 30%; width: 40cqmin; translate: -50% 0; rotate: x calc(var(--tilt, 0deg) * -1); transform-origin: 50% 100%; }
-.board.b3d .globe-3d::before { bottom: 7%; }
+.board.b3d .globe-2d { top: auto; bottom: 30%; width: 36cqmin; translate: -50% 0; rotate: x calc(var(--tilt, 0deg) * -1); transform-origin: 50% 100%; }
 /* tablet tegak saat 3D: panel aksi menjadi dok di bawah papan */
 .game.v3d.layout-mid .board-col { position: relative; }
 .game.v3d.layout-mid .hud { display: block; position: absolute; left: 50%; bottom: 10px; z-index: 26; width: min(640px, calc(100% - 24px)); translate: -50% 0; }

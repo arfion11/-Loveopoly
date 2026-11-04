@@ -719,6 +719,14 @@
       '<path d="M340 92c-8-6-14-12-14-19a7 7 0 0 1 14-3 7 7 0 0 1 14 3c0 7-6 13-14 19z" fill="#7B61FF" stroke="#3A2B4A" stroke-width="2"/>' +
       (still ? '<g class="cd-plane" transform="translate(250 210) rotate(-40)">' + plane + '</g>' : '<g class="cd-plane">' + plane + '<animateMotion dur="9s" repeatCount="indefinite" rotate="auto"><mpath href="#cdRoute"/></animateMotion></g>') +
       '</svg><div class="cd-logo">Loveopoly</div><div class="cd-tag">Long Distance · One Destination</div>' +
+      '<div class="globe-2d"><svg viewBox="0 0 200 200"><defs><radialGradient id="glOcean" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient></defs>' +
+        '<ellipse cx="100" cy="186" rx="46" ry="7" fill="#2A1838" opacity=".14"/>' +
+        '<circle cx="100" cy="96" r="74" fill="url(#glOcean)" stroke="#3A2B4A" stroke-width="3"/>' +
+        '<g fill="#7FD9AE" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"><path d="M58 62c10-12 30-14 40-6 6 5 2 12-6 14-8 2-6 10 2 14 6 3 4 12-6 12-10 0-16 8-24 4-10-5-14-26-6-38z"/><path d="M118 44c14-2 28 6 34 18 3 7-4 9-10 6-7-4-14 0-12 8 2 7-6 10-12 4-6-6-14-6-14-16 0-10 6-18 14-20z"/><path d="M110 112c10-4 24 0 30 10 5 9-2 22-12 26-9 4-16-2-16-10 0-6-8-8-8-14 0-6 0-10 6-12z"/></g>' +
+        '<path d="M44 120c30 26 84 30 116 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9" opacity=".85"/>' +
+        '<path d="M128 22c-4-6-13-5-13 3 0 6 7 10 13 15 6-5 13-9 13-15 0-8-9-9-13-3z" fill="#FF4F8B" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"/>' +
+        '<path d="M128 40v10" stroke="#3A2B4A" stroke-width="2.5" stroke-linecap="round"/>' +
+        '<ellipse cx="74" cy="70" rx="16" ry="9" fill="#fff" opacity=".35" transform="rotate(-30 74 70)"/></svg></div>' +
       '<div class="deck" id="deck"><span class="dk dk3"></span><span class="dk dk2"></span><span class="dk dk1">' + ART.art('card') + '</span></div></div>';
     b.appendChild(c);
     const tk = document.createElement('div');

@@ -55,10 +55,12 @@
       '<p class="home-sub">Keliling dunia berdua: beli kota romantis, bangun sampai landmark, adakan festival, dan rebut kota pasanganmu. Menang dengan monopoli atau bikin lawan bangkrut!</p>' +
       resume +
       '<div class="home-actions">' +
-      '<button type="button" class="mode-card mc-ai" id="hAI"><span class="mc-art">' + ART.art('bot') + '</span><span class="mc-txt"><b>Lawan AI</b><span>Easy, Normal, atau Hard</span></span>' + ic('chevron') + '</button>' +
-      '<button type="button" class="mode-card mc-local" id="hLocal"><span class="mc-art">' + ART.art('festival') + '</span><span class="mc-txt"><b>Main Bareng</b><span>2–4 orang, satu perangkat</span></span>' + ic('chevron') + '</button>' +
-      '<button type="button" class="mode-card mc-online" id="hOnline"><span class="mc-art">' + ART.art('plane') + '</span><span class="mc-txt"><b>Online</b><span>Beda kota? Pakai kode room</span></span>' + ic('chevron') + '</button>' +
-      '</div>' +
+      // Online = kartu utama (paling atas & paling besar); dua mode lain lebih ringkas di bawahnya
+      '<button type="button" class="mode-card mc-online mc-hero" id="hOnline"><span class="mc-badge">' + ic('heart') + 'Paling seru buat LDR</span><span class="mc-art">' + ART.art('plane') + '</span><span class="mc-txt"><b>Main Online</b><span>Beda kota? Main bareng pasangan pakai kode room</span></span><span class="mc-go" aria-hidden="true"><span class="mc-go-t">Mulai</span>' + ic('chevron') + '</span></button>' +
+      '<div class="mc-row">' +
+      '<button type="button" class="mode-card mc-ai mc-sm" id="hAI"><span class="mc-art">' + ART.art('bot') + '</span><span class="mc-txt"><b>Lawan AI</b><span>Easy, Normal, atau Hard</span></span>' + ic('chevron') + '</button>' +
+      '<button type="button" class="mode-card mc-local mc-sm" id="hLocal"><span class="mc-art">' + ART.art('festival') + '</span><span class="mc-txt"><b>Main Bareng</b><span>2–4 orang, satu perangkat</span></span>' + ic('chevron') + '</button>' +
+      '</div></div>' +
       '<div class="home-secondary"><button type="button" class="btn soft" id="hHow">' + ic('book') + '<span>Buku Panduan</span></button><span class="tiny muted">' + TILES.length + ' petak · ' + TILES.filter(t => t.type === 'city').length + ' kota romantis · ' + TILES.filter(t => t.type === 'spot').length + ' wisata · ' + D.CARDS.length + ' Kartu Cinta · ' + D.CHALLENGES.length + ' tantangan pasangan</span></div>' +
       '</div></div>';
     const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };

@@ -287,6 +287,16 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   st = await S();
   ok('AI: menyelesaikan gilirannya', st.turn.p === 0, 'turn=' + st.turn.p);
 
+  // 24a. Beranda: Online jadi kartu utama (paling atas & paling besar)
+  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
+  const home = await page.evaluate(() => {
+    const ids = [...document.querySelectorAll('.home-actions .mode-card')].map(b => b.id);
+    const area = id => { const r = document.getElementById(id).getBoundingClientRect(); return r.width * r.height; };
+    return { ids, on: area('hOnline'), ai: area('hAI'), local: area('hLocal') };
+  });
+  ok('beranda: Online pertama & paling besar', home.ids[0] === 'hOnline' && home.on > home.ai * 1.5 && home.on > home.local * 1.5, JSON.stringify(home));
+  await shot('24a-home');
+
   // 24b. Mode online: layanan tidak bisa dihubungi → petunjuk + Coba lagi
   await page.evaluate(() => { window.LoveUI.exitToHome(true); window.LoveBackend = { use: () => Promise.reject({ code: 'sdk-load', message: 'x' }), _reset() {}, _normErr: e => e }; });
   await page.waitForTimeout(300);

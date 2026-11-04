@@ -163,5 +163,6 @@
     _reset() { if (!app) loading = null; authing = null; },
     _normErr: normErr
   };
-  G.LoveBackend = LoveBackend;
+  // backend yang sudah terpasang lebih dulu (mock uji online) tidak ditimpa
+  G.LoveBackend = G.LoveBackend || LoveBackend;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -287,6 +287,16 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   st = await S();
   ok('AI: menyelesaikan gilirannya', st.turn.p === 0, 'turn=' + st.turn.p);
 
+  // 24b. Mode online: layanan tidak bisa dihubungi → petunjuk + Coba lagi
+  await page.evaluate(() => { window.LoveUI.exitToHome(true); window.LoveBackend = { use: () => Promise.reject({ code: 'sdk-load', message: 'x' }), _reset() {}, _normErr: e => e }; });
+  await page.waitForTimeout(300);
+  await page.click('#hOnline');
+  await page.waitForSelector('#oRetry', { timeout: 8000 }).catch(() => {});
+  const offTxt = await page.evaluate(() => (document.querySelector('#scrOnline') || {}).textContent || '');
+  ok('online gagal: pesan koneksi + tombol Coba lagi', offTxt.includes('Layanan online tidak bisa dihubungi') && !!(await page.$('#oRetry')), offTxt.slice(0, 120));
+  await shot('24b-online-off');
+  await page.click('#oBack'); await page.waitForTimeout(300);
+
   // 25. Buku Panduan & tur
   await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
   await page.click('#hHow');

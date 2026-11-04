@@ -1,9 +1,10 @@
 /* LOVEOPOLY 2.0 — multiplayer online.
-   Arsitektur: host-authoritative di atas database real-time artifact.
+   Arsitektur: host-authoritative di atas Firestore (lewat src/backend.js: LoveBackend.use('db'|'user'|'room')).
    - rooms/<KODE>            : dokumen room (kursi, pengaturan, state game, ack). Hanya host yang menulis.
    - rooms/<KODE>/locks/host : lease host (satu penulis aktif, bisa diambil alih bila host hilang).
-   - lobby/<uid>             : permintaan gabung (aturan {self}: hanya pemilik uid yang bisa menulis).
-   - inbox/<uid>/intents/<id>: aksi pemain (aturan {self}: identitas pengirim dijamin platform).
+   - lobby/<uid>             : permintaan gabung (aturan: hanya pemilik uid yang bisa menulis).
+   - inbox/<uid>/intents/<id>: aksi pemain (aturan: identitas pengirim dijamin Firebase Auth).
+   Presence (online/offline) di Realtime Database presence/<KODE>/<uid>.
    Host memvalidasi setiap aksi dengan engine yang sama (giliran, saldo, kepemilikan), menolak data basi (baseSeq),
    dan mencatat ack per intent sehingga aksi ganda tidak pernah diterapkan dua kali. */
 (function (G) {
@@ -12,6 +13,11 @@
   const { App, D, E, toast, esc, ic, store, KEYS, fmt } = UI;
   const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const LEASE_MS = 45000, RENEW_MS = 15000, POLL_MS = 6000;
+  const MSG = {
+    offline: 'Layanan online tidak bisa dihubungi. Periksa koneksi internetmu, lalu coba lagi.',
+    auth: 'Gagal masuk ke server game. Coba lagi sebentar lagi.',
+    full: 'Server sedang penuh untuk hari ini. Coba lagi besok, ya.'
+  };
 
   const clientId = (() => {
     let id = store.get('loveopoly.v1.client', null);
@@ -31,28 +37,20 @@
       if (this.initDone) return this.avail;
       this.initDone = true;
       try {
-        if (!G.claude || typeof G.claude.use !== 'function') { this.initErr = 'Mode online hanya tersedia saat game dibuka sebagai artifact di Claude (bukan file lokal atau situs lain).'; return false; }
-        const [db, user] = await Promise.all([G.claude.use('db'), G.claude.use('user')]);
+        const B = G.LoveBackend;
+        if (!B || typeof B.use !== 'function') { this.initErr = MSG.offline; return false; }
+        const [db, user] = await Promise.all([B.use('db'), B.use('user')]);
         this.db = db; this.user = user;
-        if (!db || !user) {
-          // platform tidak menyediakan database di tampilan ini: tab mandiri (halaman tidak dibingkai claude.ai),
-          // pratinjau, atau belum login. Bedakan supaya pemain tahu harus membuka dari mana
-          let top = false;
-          try { top = G.self === G.top; } catch (e) { top = false; }
-          this.initErr = top
-            ? 'Game sedang dibuka di tab mandiri, jadi database Claude tidak aktif. Buka link artifact-nya di claude.ai (bukan "buka di tab baru"), dalam keadaan login.'
-            : 'Database real-time tidak tersedia di tampilan ini (misalnya pratinjau di chat, atau belum login). Buka link artifact di browser yang sudah login ke akun Claude.';
-          return false;
-        }
         this.uid = await user.id();
-        if (!this.uid) { this.initErr = 'Akunmu tidak punya identitas di halaman ini, jadi room online tidak bisa dipakai.'; return false; }
-        this.canWrite = await user.can('data.write');
-        if (this.canWrite === false) { this.initErr = 'Aksesmu ke artifact ini hanya untuk melihat. Minta pemilik membagikannya ke emailmu dengan akses Editor (Contributor cukup untuk satu organisasi), dan tanpa link publik.'; return false; }
-        G.claude.use('room').then(r => { this.room = r; }).catch(() => { this.room = null; });
+        if (!this.uid) { this.initErr = MSG.auth; return false; }
+        this.canWrite = true;
+        B.use('room').then(r => { this.room = r; }).catch(() => { this.room = null; });
         this.avail = true;
         return true;
       } catch (e) {
-        this.initErr = 'Gagal menyiapkan mode online: ' + (e && e.message ? e.message : 'tidak diketahui');
+        const code = e && e.code;
+        this.initErr = code === 'sdk-load' || code === 'unavailable' ? MSG.offline : code === 'auth' ? MSG.auth : code === 'resource-exhausted' ? MSG.full
+          : 'Gagal menyiapkan mode online: ' + (e && e.message ? e.message : 'tidak diketahui');
         return false;
       }
     },
@@ -148,6 +146,8 @@
       const code = e && e.code;
       if (code === 'revoked') { toast('Akses ke room dicabut.', { kind: 'err' }); return; }
       if (code === 'unavailable') { setTimeout(() => { if (where === 'room' && this.code) this.subscribeRoom(); }, 2000); return; }
+      if (code === 'permission-denied') { toast('Aksi ditolak server.', { kind: 'err' }); return; }
+      if (code === 'resource-exhausted') { toast(MSG.full, { kind: 'err' }); return; }
       toast('Koneksi room bermasalah (' + (code || 'error') + ').', { kind: 'err' });
     },
     onRoomSnap(s) {
@@ -191,7 +191,7 @@
     // ----- presence (opsional) -----
     async joinPresence() {
       let room = this.room;
-      if (!room) { try { room = await G.claude.use('room'); this.room = room; } catch (e) { room = null; } }
+      if (!room) { try { room = await G.LoveBackend.use('room'); this.room = room; } catch (e) { room = null; } }
       if (!room || !this.code) return;
       try {
         this.named = await room.join('lv-' + this.code.toLowerCase());

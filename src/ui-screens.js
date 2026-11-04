@@ -207,7 +207,7 @@
     onlineProfile = onlineProfile || profileDefault();
     onlineSettings = onlineSettings || { startCash: RULES.startCash, roundLimit: 25, rules: 'seru' };
     onlineErr = '';
-    $('#scrOnline').innerHTML = '<div class="empty big"><div class="spinner"></div><b>Menyiapkan koneksi online…</b><span>Memeriksa database real-time dan identitas akunmu.</span></div>';
+    $('#scrOnline').innerHTML = '<div class="empty big"><div class="spinner"></div><b>Menyiapkan koneksi online…</b><span>Menghubungkan ke server game.</span></div>';
     const ok = await Net.init();
     if (!ok) { renderOnlineUnavailable(); return; }
     const saved = store.get(KEYS.online, null);
@@ -221,13 +221,13 @@
   function renderOnlineUnavailable() {
     $('#scrOnline').innerHTML = '<div class="online"><div class="panel wide"><h3>' + ic('globe') + 'Mode online belum bisa dipakai</h3><p class="muted">' + esc(Net.initErr || 'Koneksi online tidak tersedia.') + '</p>' +
       '<div class="note">' + ic('info') + '<div><b>Cara main online</b><ol class="note-steps">' +
-      '<li>Buka link artifact di claude.ai lewat browser dalam keadaan login, bukan di pratinjau chat atau tab mandiri.</li>' +
-      '<li>Pemilik: di menu Share, matikan akses “Anyone with the link”, lalu undang email pasangan sebagai <b>Editor</b>. Selama link publik aktif, pasangan dari luar organisasi hanya bisa melihat.</li>' +
-      '<li>Pasangan login ke Claude dengan email itu dan membuka link yang sama.</li>' +
+      '<li>Pastikan internet kalian berdua aktif.</li>' +
+      '<li>Bagikan link game ini ke pasangan.</li>' +
       '<li>Satu orang membuat room, yang lain bergabung dengan kodenya.</li></ol></div></div>' +
-      '<div class="setup-foot"><button type="button" class="btn ghost" id="oBack">' + ic('back') + '<span>Kembali</span></button><button type="button" class="btn primary" id="oLocal">' + ic('users') + '<span>Main Bareng Saja</span></button></div></div></div>';
+      '<div class="setup-foot"><button type="button" class="btn ghost" id="oBack">' + ic('back') + '<span>Kembali</span></button><button type="button" class="btn ghost" id="oRetry">' + ic('globe') + '<span>Coba lagi</span></button><button type="button" class="btn primary" id="oLocal">' + ic('users') + '<span>Main Bareng Saja</span></button></div></div></div>';
     $('#oBack').onclick = () => { show('scrHome'); renderHome(); };
     $('#oLocal').onclick = () => openSetup('local');
+    $('#oRetry').onclick = () => { Net.initDone = false; if (G.LoveBackend && G.LoveBackend._reset) G.LoveBackend._reset(); openOnline(); };
   }
   function profileFields(prefix) {
     const p = onlineProfile;

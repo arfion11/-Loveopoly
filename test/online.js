@@ -1,4 +1,4 @@
-// Uji online: dua tab (host & tamu) dengan mock capability db/user yang meniru API artifact.
+// Uji online: dua tab (host & tamu) dengan mock window.LoveBackend (db/user, berbasis localStorage) meniru src/backend.js.
 const { chromium } = require('playwright');
 const THREE_LOCAL = require('path').resolve(__dirname, 'vendor/three.min.js');
 const routeThree = ctx => ctx.route(/three(\.min)?\.js$/, r => r.fulfill({ path: THREE_LOCAL, contentType: 'application/javascript' }));
@@ -82,7 +82,7 @@ const MOCK = () => {
   }
   const db = { doc: docRef, collection: colRef };
   const user = { async id() { return uid; }, async can() { return true; }, async isOwner() { return uid === 'u_host'; }, async canEdit() { return true }, async me() { return { id: uid, name: '', avatarUrl: '', color: '#888', email: null, isOwner: false, canEdit: true }; }, async profiles() { return {}; } };
-  window.claude = { use: async n => (n === 'db' ? db : n === 'user' ? user : null) };
+  window.LoveBackend = { use: async n => (n === 'db' ? db : n === 'user' ? user : null), _reset() {}, _normErr: e => e };
 };
 
 const server = http.createServer((req, res) => {

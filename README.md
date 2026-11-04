@@ -1,32 +1,35 @@
 # Loveopoly 💕
 
-Board game keliling dunia untuk pasangan LDR. Beli kota romantis, bangun sampai landmark, adakan festival, lalu menangkan lewat monopoli warna, jalur penuh, atau tempat wisata. Bisa main berdua di satu perangkat, lawan AI, atau online lewat Claude.
+Board game keliling dunia untuk pasangan LDR. Beli kota romantis, bangun sampai landmark, adakan festival, lalu menangkan lewat monopoli warna, jalur penuh, atau tempat wisata. Bisa main berdua di satu perangkat, lawan AI, atau online dengan kode room.
 
-Seluruh game dibangun menjadi **satu file HTML** (`dist/loveopoly.html`) yang dipublikasikan sebagai artifact di Claude. Tidak ada framework, bundler, atau dependensi runtime selain Three.js (dimuat dari CDN untuk latar & globe 3D).
+Seluruh game dibangun menjadi **satu file HTML** (`dist/index.html`) yang dihosting gratis di **Firebase Hosting**. Mode online memakai Firestore + login anonim + Realtime Database (paket Spark, tanpa kartu kredit). Tidak ada framework atau bundler; pustaka luar hanya Three.js (latar & globe 3D) dan SDK Firebase (dimuat saat menu online dibuka).
 
 ## Mulai cepat
 
 Butuh **Node.js 20+**. Python tidak diperlukan.
 
 ```bash
-npm install          # Playwright untuk uji otomatis
+npm install          # Playwright, firebase-tools & alat uji
 npm run setup        # unduh Chromium untuk Playwright (sekali saja)
 npm run dev          # build + pratinjau di http://localhost:5173 (rebuild & reload otomatis)
 ```
 
-Tanpa server: jalankan `npm run build`, lalu buka `dist/test.html` di browser.
+Tanpa server: jalankan `npm run build`, lalu buka `dist/index.html` di browser (mode online butuh `src/firebase-config.js` terisi).
 
 ## Perintah
 
 | Perintah | Fungsi |
 | --- | --- |
-| `npm run build` | Gabungkan `src/` → `dist/loveopoly.html` (untuk dipublikasikan) + `dist/test.html` (pratinjau & uji) |
+| `npm run build` | Gabungkan `src/` → `dist/index.html` (di-deploy) + `dist/test.html` (salinan untuk uji) |
 | `npm run dev` | Pratinjau lokal, build ulang & reload otomatis saat `src/` berubah |
 | `npm test` | Build + semua uji (berhenti di uji pertama yang gagal) |
 | `npm run test:sim` | 200 game AI vs AI + cek invariant engine (tanpa browser, ±15 detik) |
-| `npm run test:flows` | 48 skenario alur di browser (beli, bangun, tol, festival, World Tour, pulau, kartu, panduan) |
+| `npm run test:flows` | 49 skenario alur di browser (beli, bangun, tol, festival, World Tour, pulau, kartu, panduan) |
 | `npm run test:online` | Host & tamu di dua tab dengan mock database (room, aksi, keamanan, reconnect) |
 | `npm run test:ui` | Monkey test desktop, HP tegak & HP mendatar (klik acak, harus 0 error) |
+| `npm run test:rules` | Aturan keamanan Firestore & RTDB di Firebase Emulator (butuh Java 11+) |
+| `npm run test:backend` | Adapter `src/backend.js` sungguhan terhadap emulator (auth, dokumen, lease host, presence) |
+| `npm run deploy` | Build + deploy hosting & aturan ke project Firebase |
 
 Screenshot hasil uji tersimpan di `test/out/` (diabaikan git).
 
@@ -43,50 +46,44 @@ src/
   bg3d.js        latar langit & globe 3D (Three.js r128, dimuat malas)
   ui-core.js     tata letak, papan & kamera 3D, pion, dadu, animasi, alur giliran
   ui-modals.js   dialog beli/bangun/tol, portofolio, pengaturan
-  net.js         mode online (host-authoritative di atas database artifact)
+  firebase-config.js  config web Firebase (publik; keamanan di aturan)
+  backend.js     adapter Firebase: LoveBackend.use('db' | 'user' | 'room')
+  net.js         mode online (host-authoritative di atas Firestore)
   guide.js       Buku Panduan bergambar
   ui-screens.js  beranda, setup pemain, lobby online, tur pertama
 fonts/           Fredoka & Nunito (SIL OFL), disematkan saat build
-test/            sim.js, flows.js, online.js, ui.js, vendor/three.min.js (untuk uji offline)
+test/            sim.js, flows.js, online.js, ui.js, rules.js, backend.js, vendor/three.min.js
+firestore.rules database.rules.json firebase.json   aturan & konfigurasi Firebase
 tools/serve.mjs  server pratinjau lokal
 build.mjs        skrip build
 ```
 
 ## Mode online
 
-Online memakai **database real-time & room milik artifact Claude** (`window.claude.use('db' | 'room' | 'user')`), jadi hanya berjalan saat game dibuka **di halaman artifact claude.ai dalam keadaan login**.
+Satu orang membuat room, yang lain membuka link game yang sama dan bergabung dengan kode 6 hurufnya. Pemain masuk
+otomatis secara anonim (tanpa daftar akun); identitasnya tersimpan di browser, jadi pakai browser yang sama untuk
+kembali ke room.
 
-Tidak berjalan di: pratinjau lokal (`npm run dev` / file HTML), tab mandiri ("buka di tab baru"), pratinjau di chat, atau saat belum login. Di sana tombol **Main Online** menampilkan petunjuk.
+- `rooms/<KODE>`: room & state game, hanya ditulis host (pemegang lease `rooms/<KODE>/locks/host`).
+- `lobby/<uid>`, `inbox/<uid>/intents/<id>`: permintaan gabung & aksi pemain, hanya ditulis pemiliknya.
+- Realtime Database `presence/<KODE>/<uid>`: status online/offline.
 
-Agar pasangan bisa ikut main:
+Host memvalidasi setiap aksi dengan engine. Dokumen disimpan sebagai JSON di field `__j`.
 
-1. Pemilik artifact membuka menu **Share** → matikan akses **"Anyone with the link"**.
-2. Undang email pasangan sebagai **Editor**. Selama link publik aktif, orang dari luar organisasi hanya bisa melihat dan tidak bisa membuat/masuk room.
-3. Pasangan login ke Claude dengan email itu, lalu membuka link artifact yang sama.
-4. Satu orang membuat room, yang lain bergabung dengan kode 6 hurufnya.
+## Hosting di Firebase (sekali saja)
 
-Catatan: pengaturan organisasi (Team/Enterprise) bisa membatasi berbagi ke luar organisasi.
+1. Buka <https://console.firebase.google.com> → **Add project** (Analytics boleh dimatikan). Paket **Spark** (gratis).
+2. **Build → Authentication → Get started → Sign-in method → Anonymous → Enable**.
+3. **Build → Firestore Database → Create database** → lokasi `asia-southeast2` (Jakarta) → mode produksi.
+4. **Build → Realtime Database → Create database** → lokasi `asia-southeast1` (Singapura) → mode terkunci.
+5. **Project settings → Your apps → Web (`</>`)** → daftarkan app → salin `firebaseConfig` ke `src/firebase-config.js`
+   (termasuk `databaseURL`).
+6. Di terminal: `npx firebase login`, lalu tambahkan project ke `.firebaserc` sebagai alias `prod`.
 
-## Publikasi ke Claude
+Deploy: `npm run deploy -- --project prod` → game tersedia di `https://<project-id>.web.app`.
 
-Artifact: <https://claude.ai/artifact/7JH3PBqsqkvgzQ5r6mFFcH>
-
-1. `npm test` sampai semua lulus.
-2. Di sesi Claude yang memiliki artifact ini, lampirkan `dist/loveopoly.html` dan minta: *"perbarui artifact https://claude.ai/artifact/7JH3PBqsqkvgzQ5r6mFFcH dengan file ini"*.
-3. Kapabilitas runtime yang dipakai (sudah tersimpan di artifact; sertakan lagi hanya bila diminta):
-
-```json
-{
-  "db": { "rules": [
-    { "path": "lobby", "read": "view", "write": "owner" },
-    { "path": "lobby/{self}", "read": "view", "write": "interact" },
-    { "path": "inbox", "read": "view", "write": "owner" },
-    { "path": "inbox/{self}", "read": "view", "write": "interact" }
-  ] },
-  "room": {},
-  "user": {}
-}
-```
+Kuota gratis Spark (Firestore ±50 rb baca & 20 rb tulis per hari) jauh di atas pemakaian pribadi. Room lama tidak
+terhapus otomatis (ukurannya kecil); bisa dibersihkan manual dari Firebase Console bila perlu.
 
 ## Lisensi aset
 

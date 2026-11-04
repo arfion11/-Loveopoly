@@ -1,25 +1,26 @@
 # CLAUDE.md — Loveopoly
 
-Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung `build.mjs` menjadi satu file HTML yang dipublikasikan sebagai artifact Claude. JS biasa tanpa framework/bundler: tiap file IIFE yang memasang global `window.Love*` (`LoveEngine`, `LoveUI`, `LoveNet`, `LoveBG`, ...).
+Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung `build.mjs` menjadi satu file HTML (`dist/index.html`) yang dihosting di Firebase Hosting. JS biasa tanpa framework/bundler: tiap file IIFE yang memasang global `window.Love*` (`LoveEngine`, `LoveUI`, `LoveNet`, `LoveBG`, ...).
 
 ## Perintah
 
 - Build: `npm run build` (wajib setelah mengubah `src/`; uji membaca `dist/test.html`)
 - Pratinjau: `npm run dev` → http://localhost:5173
-- Uji: `npm test`, atau per bagian `npm run test:sim | test:flows | test:online | test:ui`
+- Uji: `npm test`, atau per bagian `npm run test:sim | test:flows | test:online | test:ui | test:rules | test:backend` (dua terakhir menjalankan Firebase Emulator, butuh Java 11+)
+- Deploy: `npm run deploy -- --project prod`
 - Sebelum menyatakan selesai: build + uji yang relevan harus lulus dan **tanpa error konsol**. Perubahan tampilan: cek juga screenshot di `test/out/`, minimal ukuran 1366×768, 820×1180, 390×844, 844×390, tema terang & gelap.
 
 ## Aturan produk
 
 - Semua teks UI Bahasa Indonesia, santai & hangat. Angka pakai format `id-ID` (`fmt()`).
 - Seni orisinal (SVG di `src/art.js`). Jangan meniru aset, karakter, atau branding Get Rich / game lain.
-- Satu file: jangan menambah dependensi runtime atau CDN baru. Pustaka luar satu-satunya: Three.js r128 (cdnjs, cadangan jsDelivr) di `bg3d.js`; uji memakai salinan `test/vendor/three.min.js`.
+- Satu file: jangan menambah dependensi runtime atau CDN baru. Pustaka luar hanya: Three.js r128 (cdnjs, cadangan jsDelivr) di `bg3d.js` (uji memakai `test/vendor/three.min.js`) dan SDK Firebase compat 10.14.1 (gstatic) yang dimuat malas oleh `backend.js` saat menu online dibuka (uji memakai `node_modules/firebase`).
 - Warna lewat token CSS di `:root` + dua blok tema gelap (media query & `[data-theme="dark"]`). Jangan menaruh warna literal yang hanya terbaca di satu tema.
 - Aksesibilitas: target axe WCAG 2.1 AA 0 pelanggaran; hormati `prefers-reduced-motion` (`reduceMotion()`); tombol punya label.
 
 ## Arsitektur
 
-- Urutan gabung: data → engine → ai → icons → art → audio → bg3d → ui-core → ui-modals → net → guide → ui-screens (`ORDER` di `build.mjs`).
+- Urutan gabung: data → engine → ai → icons → art → audio → bg3d → ui-core → ui-modals → firebase-config → backend → net → guide → ui-screens (`ORDER` di `build.mjs`).
 - `engine.js` murni & deterministik: `dispatch(state, action)` mengembalikan `{ ok, state | error }`. UI dan online hanya memanggil ini; aturan baru masuk ke engine + `test/sim.js`.
 - `SIDES` di `data.js` (petak 1–7, 9–15, 17–23, 25–31) dipakai syarat menang "jalur": papan harus tetap 7 petak per sisi (jangan ganti bentuk papan).
 - Tata letak (`computeLayout()` di `ui-core.js`): `wide` (desktop/tablet mendatar, panel aksi di kolom kanan saat 3D), `mid` (tablet tegak, dok bawah), `compact` (HP tegak), `land` (HP mendatar).
@@ -34,12 +35,13 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 - Mengangkat badge "ke atas layar" tanpa `transform` (supaya animasi tidak bentrok): `translate: x calc(L * -1 * cos(var(--tilt))) calc(L * sin(var(--tilt)))`.
 - Efek datar di bidang papan (riak, debu) diberi `translate: 0 0 3px` agar tidak tertutup muka petak.
 
-## Online (`net.js`)
+## Online (`net.js` + `backend.js`)
 
-- Host-authoritative di atas `db` artifact: `rooms/<KODE>` (hanya host menulis), `rooms/<KODE>/locks/host` (lease), `lobby/<uid>` & `inbox/<uid>/intents/<id>` (aturan `{self}`). Host memvalidasi setiap intent dengan engine, menolak `baseSeq` basi, mencatat ack.
-- Kapabilitas artifact: `db` (4 aturan, lihat README), `room`, `user`. Jangan diubah tanpa alasan kuat.
-- Di luar halaman artifact claude.ai tidak ada database: `Net.init()` mengisi `initErr` dan layar online menampilkan petunjuk. `test/online.js` memakai mock berbasis localStorage.
+- Host-authoritative di atas Firestore: `rooms/<KODE>` (hanya pemegang lease menulis), `rooms/<KODE>/locks/host` (lease `{uid, holder, exp}`, maks 60 detik), `lobby/<uid>` & `inbox/<uid>/intents/<id>` (hanya pemilik uid). Host memvalidasi setiap intent dengan engine, menolak `baseSeq` basi, mencatat ack.
+- `backend.js` = adapter `LoveBackend.use('db' | 'user' | 'room')` dengan API yang dipakai `net.js`. Dokumen disimpan `{ __j: JSON, ...kunci indeks }` (Firestore menolak array bersarang); kunci indeks `hostUid status room uid exp holder` dipakai `where` & aturan. Presence di RTDB `presence/<KODE>/<uid>`. Login anonim.
+- Aturan di `firestore.rules` & `database.rules.json`; setiap perubahan aturan wajib diikuti `npm run test:rules`.
+- `test/online.js` memakai mock `window.LoveBackend` berbasis localStorage (`backend.js` tidak menimpa backend yang sudah terpasang).
 
 ## Publikasi
 
-- Hasil publikasi: `dist/loveopoly.html` (tanpa `<!doctype>`; platform membungkusnya). Artifact: https://claude.ai/artifact/7JH3PBqsqkvgzQ5r6mFFcH (perbarui di URL yang sama).
+- `npm run deploy -- --project prod` (build + hosting + aturan). Config web di `src/firebase-config.js` (publik), project di `.firebaserc`. Langkah setup project ada di README.

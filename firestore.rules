@@ -11,17 +11,19 @@ service cloud.firestore {
     }
 
     match /rooms/{code} {
-      allow read: if authed();
+      // hanya baca per kode (get), bukan daftar (list): kode 6 huruf berfungsi sebagai rahasia room
+      allow get: if authed();
       // room baru: penulisnya harus host; sesudah itu hanya pemegang lease host yang masih berlaku
       allow create: if authed() && request.resource.data.hostUid == request.auth.uid;
       allow update, delete: if authed() && holdsLease(code);
 
       match /locks/host {
-        allow read: if authed();
+        allow get: if authed();
         allow create, update: if authed()
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.exp is int
-          && request.resource.data.exp <= request.time.toMillis() + 60000
+          // batas 5 menit (lease klien 45 detik) supaya jam HP yang sedikit cepat tetap bisa jadi host
+          && request.resource.data.exp <= request.time.toMillis() + 300000
           && (resource == null || resource.data.uid == request.auth.uid || resource.data.exp < request.time.toMillis());
         allow delete: if authed() && (resource.data.uid == request.auth.uid || resource.data.exp < request.time.toMillis());
       }

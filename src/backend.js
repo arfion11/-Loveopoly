@@ -12,6 +12,8 @@
   const INDEX_KEYS = ['hostUid', 'status', 'room', 'uid', 'exp', 'holder'];
 
   let loading = null, authing = null, app = null;
+  const loaded = new Set();
+  let tries = 0;
 
   function normErr(e) {
     let code = String((e && e.code) || 'unknown').replace(/^(firestore|auth|database)\//, '');
@@ -20,18 +22,27 @@
     return { code, message: (e && e.message) || code };
   }
 
+  // satu skrip SDK; koneksi macet (portal Wi-Fi, sinyal lemah) dibatasi waktu supaya layar tidak menunggu selamanya
   function loadScript(src) {
+    if (loaded.has(src)) return Promise.resolve();
+    const ms = (G.LOVE_FIREBASE && G.LOVE_FIREBASE.sdkTimeoutMs) || 15000;
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = src; s.async = false;
-      s.onload = resolve;
-      s.onerror = () => reject({ code: 'sdk-load', message: 'Gagal memuat ' + src });
+      const fail = () => { clearTimeout(t); s.remove(); reject({ code: 'sdk-load', message: 'Gagal memuat ' + src }); };
+      const t = setTimeout(fail, ms);
+      // percobaan ulang memakai URL berbeda: browser bisa menumpang ke permintaan lama yang masih menggantung
+      // async (bawaan): urutan sudah dijaga rantai Promise; async=false memakai antrean browser yang bisa
+      // tertahan selamanya oleh skrip lama yang menggantung
+      s.src = tries ? src + '?coba=' + tries : src;
+      s.onload = () => { clearTimeout(t); loaded.add(src); resolve(); };
+      s.onerror = fail;
       document.head.appendChild(s);
     });
   }
   function loadSdk() {
     if (!loading) {
-      loading = (G.firebase && G.firebase.firestore && G.firebase.database ? Promise.resolve() : Promise.all(SDK.map(loadScript)))
+      // berurutan: app harus ada sebelum modul lain; yang sudah termuat tidak disisipkan lagi saat Coba lagi
+      loading = SDK.reduce((p, src) => p.then(() => loadScript(src)), Promise.resolve())
         .then(() => {
           const cfg = G.LOVE_FIREBASE || {};
           if (!cfg.projectId) throw { code: 'sdk-load', message: 'Konfigurasi Firebase belum diisi.' };
@@ -45,7 +56,7 @@
           }
           fb.firestore().settings({ experimentalAutoDetectLongPolling: true, merge: true });
         })
-        .catch(e => { loading = null; throw e.code === 'sdk-load' ? e : normErr(e); });
+        .catch(e => { loading = null; tries++; throw e.code === 'sdk-load' ? e : normErr(e); });
     }
     return loading;
   }
@@ -59,7 +70,12 @@
         })
         .then(u => u || G.firebase.auth().signInAnonymously().then(c => c.user))
         .then(u => u.uid)
-        .catch(e => { authing = null; throw e.code === 'sdk-load' ? e : { code: 'auth', message: (e && e.message) || 'auth' }; });
+        .catch(e => {
+          authing = null;
+          if (e.code === 'sdk-load') throw e;
+          const n = normErr(e);
+          throw n.code === 'unavailable' ? n : { code: 'auth', message: n.message };
+        });
     }
     return authing;
   }

@@ -45,6 +45,11 @@
         if (!this.uid) { this.initErr = MSG.auth; return false; }
         this.canWrite = true;
         B.use('room').then(r => { this.room = r; }).catch(() => { this.room = null; });
+        // HP di latar menghentikan timer perpanjangan lease: perpanjang segera saat aplikasi terlihat lagi
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden || !this.isHost()) return;
+          this.renewLease().then(ok => { if (!ok && this.isHost()) this.stepDown('Host dipindahkan ke pemain lain.'); });
+        });
         this.avail = true;
         return true;
       } catch (e) {
@@ -254,6 +259,10 @@
       this.syncInboxSubs();
       return true;
     },
+    async renewLease() {
+      try { const r = await this.db.doc('rooms/' + this.code + '/locks/host').acquire({ holder: this.uid + ':' + clientId, ttlMs: LEASE_MS }); return !!(r && r.acquired); }
+      catch (e) { return false; }
+    },
     async verifyHostLease(d) {
       if (this.verifying) return;
       this.verifying = true;
@@ -372,6 +381,12 @@
             catch (e) {
               tries++;
               if (e && e.code === 'unavailable' && tries < 3) { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); continue; }
+              // aturan menolak: lease host lewat (mis. HP di latar). Ambil lagi lalu tulis ulang; gagal = host pindah
+              if (e && e.code === 'permission-denied' && tries < 3) {
+                if (await this.renewLease()) continue;
+                this.stepDown('Host dipindahkan ke pemain lain.');
+                break;
+              }
               toast('Gagal menyimpan room (' + (e && e.code ? e.code : 'error') + ').', { kind: 'err' });
               break;
             }

@@ -24,7 +24,11 @@ const MOCK = () => {
     return {
       id: p.split('/').pop(), path: p,
       async get() { return mk(p.split('/').pop(), read(p)); },
-      async set(data) { window.__mockWrites++; localStorage.setItem(PFX + p, JSON.stringify(data)); setTimeout(notify, 5); },
+      async set(data) {
+        // tolak penulisan room sekali (meniru aturan Firestore saat lease host sudah lewat)
+        if (window.__denyRoomWrites > 0 && /^rooms\/[^/]+$/.test(p)) { window.__denyRoomWrites--; throw { code: 'permission-denied', message: 'denied' }; }
+        window.__mockWrites++; localStorage.setItem(PFX + p, JSON.stringify(data)); setTimeout(notify, 5);
+      },
       async update(data) { const cur = read(p); if (!cur) throw { code: 'invalid_argument' }; localStorage.setItem(PFX + p, JSON.stringify(Object.assign(cur, data))); setTimeout(notify, 5); },
       async delete() { localStorage.removeItem(PFX + p); setTimeout(notify, 5); },
       async acquire({ holder, ttlMs }) {
@@ -251,6 +255,21 @@ const server = http.createServer((req, res) => {
   const gseq = await seqOf(guest);
   ok('tamu reconnect ke room & state pulih', gseq === seqBefore, 'seq ' + gseq + ' vs ' + seqBefore);
   await guest.screenshot({ path: OUT + '/05-guest-rejoin.png' });
+
+  // host yang tulisannya ditolak (lease lewat saat HP di latar) mengambil lease lagi lalu menulis ulang, tidak macet
+  await host.evaluate(() => { window.__denyRoomWrites = 1; window.LoveNet.doc.settings = Object.assign({}, window.LoveNet.doc.settings, { probe: 7 }); window.LoveNet.writeRoom(); });
+  await guest.waitForFunction(() => window.LoveNet.doc && window.LoveNet.doc.settings && window.LoveNet.doc.settings.probe === 7, null, { timeout: 8000 }).catch(() => {});
+  const probe = await guest.evaluate(() => window.LoveNet.doc && window.LoveNet.doc.settings && window.LoveNet.doc.settings.probe);
+  const stillHost = await host.evaluate(() => window.LoveNet.isHost());
+  ok('host ditolak server: ambil lease lagi & tulis ulang', probe === 7 && stillHost, 'probe=' + probe + ' host=' + stillHost);
+  const leaseLeft = await host.evaluate(async () => {
+    const k = 'mocklease:rooms/' + window.LoveNet.code + '/locks/host';
+    const cur = JSON.parse(localStorage.getItem(k)); cur.exp = Date.now() + 1000; localStorage.setItem(k, JSON.stringify(cur));
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise(r => setTimeout(r, 300));
+    return JSON.parse(localStorage.getItem(k)).exp - Date.now();
+  });
+  ok('kembali ke aplikasi: lease host langsung diperpanjang', leaseLeft > 30000, 'sisa ' + leaseLeft + 'ms');
 
   console.log(results.join('\n'));
   console.log('ERRORS (' + errors.length + '):', errors.slice(0, 10).join('\n'));

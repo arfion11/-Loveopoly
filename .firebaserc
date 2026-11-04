@@ -1,1 +1,1 @@
-{ "projects": { "default": "demo-loveopoly" } }
+{ "projects": { "default": "demo-loveopoly", "prod": "loveopoly-5b227" } }

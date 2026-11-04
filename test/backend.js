@@ -78,6 +78,27 @@ const server = http.createServer((req, res) => { res.writeHead(200, { 'content-t
   const nuid = await uidOf(N).catch(e => 'ERR ' + JSON.stringify(e));
   ok('auth jalan tanpa IndexedDB', typeof nuid === 'string' && nuid.length > 5 && !nuid.startsWith('ERR'), nuid);
 
+  // --- SDK macet: batas waktu, lalu Coba lagi hanya memuat yang belum ada ---
+  const ctxH = await newCtx(() => { window.LOVE_FIREBASE.sdkTimeoutMs = 1500; });
+  let hang = true;
+  await ctxH.route(/firebase-firestore-compat\.js$/, r => { if (!hang) return r.fallback(); /* tidak dijawab: koneksi macet */ });
+  const H = await open(ctxH);
+  const warns = [];
+  H.on('console', m => { if (m.type() === 'warning' || m.type() === 'error') warns.push(m.text()); });
+  const t0 = Date.now();
+  const hres = await H.evaluate(() => window.LoveBackend.use('user').then(() => 'ok', e => e.code));
+  ok('SDK macet ditolak sdk-load dalam batas waktu', hres === 'sdk-load' && Date.now() - t0 < 6000, hres + ' ' + (Date.now() - t0) + 'ms');
+  hang = false;
+  const hres2 = await H.evaluate(async () => { try { window.LoveBackend._reset(); const u = await window.LoveBackend.use('user'); return { uid: await u.id(), n: document.querySelectorAll('script[src*="firebase-app-compat"]').length }; } catch (e) { return { err: (e && (e.code + ' ' + e.message)) || String(e) }; } });
+  ok('Coba lagi berhasil tanpa memuat ulang SDK yang sudah ada', hres2.uid && hres2.n === 1 && !warns.some(w => /already|sudah/i.test(w)), JSON.stringify(hres2) + ' ' + warns.join(' | '));
+
+  // --- offline saat masuk: kode unavailable (bukan auth) ---
+  const ctxO = await newCtx();
+  await ctxO.route(/127\.0\.0\.1:9099/, r => r.abort('internetdisconnected'));
+  const O = await open(ctxO);
+  const ores = await O.evaluate(() => window.LoveBackend.use('user').then(() => 'ok', e => e.code));
+  ok('offline saat masuk → unavailable', ores === 'unavailable', ores);
+
   // --- lease host ---
   const ctxB = await newCtx();
   const B = await open(ctxB);

@@ -7161,7 +7161,13 @@ main { position: relative; }
    di firestore.rules & database.rules.json. Uji memakai emulator: LOVE_FIREBASE.emulator = { host }. */
 (function (G) {
   'use strict';
-  G.LOVE_FIREBASE = G.LOVE_FIREBASE || { apiKey: '', authDomain: '', projectId: '', databaseURL: '', appId: '' };
+  G.LOVE_FIREBASE = G.LOVE_FIREBASE || {
+    apiKey: 'AIzaSyD8tdvMNOBMeIDx3mTdcfphYauL-QxV3ww',
+    authDomain: 'loveopoly-5b227.firebaseapp.com',
+    databaseURL: 'https://loveopoly-5b227-default-rtdb.asia-southeast1.firebasedatabase.app',
+    projectId: 'loveopoly-5b227',
+    appId: '1:392894236949:web:db735a0c9bbe40ff89c11c'
+  };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 /* LOVEOPOLY — backend online di Firebase (Firestore + Auth anonim + Realtime Database).
@@ -7178,6 +7184,8 @@ main { position: relative; }
   const INDEX_KEYS = ['hostUid', 'status', 'room', 'uid', 'exp', 'holder'];
 
   let loading = null, authing = null, app = null;
+  const loaded = new Set();
+  let tries = 0;
 
   function normErr(e) {
     let code = String((e && e.code) || 'unknown').replace(/^(firestore|auth|database)\//, '');
@@ -7186,18 +7194,27 @@ main { position: relative; }
     return { code, message: (e && e.message) || code };
   }
 
+  // satu skrip SDK; koneksi macet (portal Wi-Fi, sinyal lemah) dibatasi waktu supaya layar tidak menunggu selamanya
   function loadScript(src) {
+    if (loaded.has(src)) return Promise.resolve();
+    const ms = (G.LOVE_FIREBASE && G.LOVE_FIREBASE.sdkTimeoutMs) || 15000;
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = src; s.async = false;
-      s.onload = resolve;
-      s.onerror = () => reject({ code: 'sdk-load', message: 'Gagal memuat ' + src });
+      const fail = () => { clearTimeout(t); s.remove(); reject({ code: 'sdk-load', message: 'Gagal memuat ' + src }); };
+      const t = setTimeout(fail, ms);
+      // percobaan ulang memakai URL berbeda: browser bisa menumpang ke permintaan lama yang masih menggantung
+      // async (bawaan): urutan sudah dijaga rantai Promise; async=false memakai antrean browser yang bisa
+      // tertahan selamanya oleh skrip lama yang menggantung
+      s.src = tries ? src + '?coba=' + tries : src;
+      s.onload = () => { clearTimeout(t); loaded.add(src); resolve(); };
+      s.onerror = fail;
       document.head.appendChild(s);
     });
   }
   function loadSdk() {
     if (!loading) {
-      loading = (G.firebase && G.firebase.firestore && G.firebase.database ? Promise.resolve() : Promise.all(SDK.map(loadScript)))
+      // berurutan: app harus ada sebelum modul lain; yang sudah termuat tidak disisipkan lagi saat Coba lagi
+      loading = SDK.reduce((p, src) => p.then(() => loadScript(src)), Promise.resolve())
         .then(() => {
           const cfg = G.LOVE_FIREBASE || {};
           if (!cfg.projectId) throw { code: 'sdk-load', message: 'Konfigurasi Firebase belum diisi.' };
@@ -7211,7 +7228,7 @@ main { position: relative; }
           }
           fb.firestore().settings({ experimentalAutoDetectLongPolling: true, merge: true });
         })
-        .catch(e => { loading = null; throw e.code === 'sdk-load' ? e : normErr(e); });
+        .catch(e => { loading = null; tries++; throw e.code === 'sdk-load' ? e : normErr(e); });
     }
     return loading;
   }
@@ -7225,7 +7242,12 @@ main { position: relative; }
         })
         .then(u => u || G.firebase.auth().signInAnonymously().then(c => c.user))
         .then(u => u.uid)
-        .catch(e => { authing = null; throw e.code === 'sdk-load' ? e : { code: 'auth', message: (e && e.message) || 'auth' }; });
+        .catch(e => {
+          authing = null;
+          if (e.code === 'sdk-load') throw e;
+          const n = normErr(e);
+          throw n.code === 'unavailable' ? n : { code: 'auth', message: n.message };
+        });
     }
     return authing;
   }
@@ -7380,6 +7402,11 @@ main { position: relative; }
         if (!this.uid) { this.initErr = MSG.auth; return false; }
         this.canWrite = true;
         B.use('room').then(r => { this.room = r; }).catch(() => { this.room = null; });
+        // HP di latar menghentikan timer perpanjangan lease: perpanjang segera saat aplikasi terlihat lagi
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden || !this.isHost()) return;
+          this.renewLease().then(ok => { if (!ok && this.isHost()) this.stepDown('Host dipindahkan ke pemain lain.'); });
+        });
         this.avail = true;
         return true;
       } catch (e) {
@@ -7589,6 +7616,10 @@ main { position: relative; }
       this.syncInboxSubs();
       return true;
     },
+    async renewLease() {
+      try { const r = await this.db.doc('rooms/' + this.code + '/locks/host').acquire({ holder: this.uid + ':' + clientId, ttlMs: LEASE_MS }); return !!(r && r.acquired); }
+      catch (e) { return false; }
+    },
     async verifyHostLease(d) {
       if (this.verifying) return;
       this.verifying = true;
@@ -7707,6 +7738,12 @@ main { position: relative; }
             catch (e) {
               tries++;
               if (e && e.code === 'unavailable' && tries < 3) { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); continue; }
+              // aturan menolak: lease host lewat (mis. HP di latar). Ambil lagi lalu tulis ulang; gagal = host pindah
+              if (e && e.code === 'permission-denied' && tries < 3) {
+                if (await this.renewLease()) continue;
+                this.stepDown('Host dipindahkan ke pemain lain.');
+                break;
+              }
               toast('Gagal menyimpan room (' + (e && e.code ? e.code : 'error') + ').', { kind: 'err' });
               break;
             }

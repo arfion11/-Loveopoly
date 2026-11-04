@@ -25,6 +25,9 @@ const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@fir
   await check('alice tanpa lease tidak bisa ubah room', assertFails(alice.doc('rooms/R1').set(room('R1', 'alice'))));
   await check('alice ambil lease', assertSucceeds(alice.doc('rooms/R1/locks/host').set(lock('alice', now + 45000))));
   await check('lease terlalu lama ditolak', assertFails(alice.doc('rooms/R9/locks/host').set(lock('alice', now + 600000))));
+  await check('lease dengan jam HP 4 menit lebih cepat diterima', assertSucceeds(alice.doc('rooms/R7/locks/host').set(lock('alice', now + 240000))));
+  await check('daftar semua room ditolak', assertFails(bob.collection('rooms').get()));
+  await check('baca room dengan kode diizinkan', assertSucceeds(bob.doc('rooms/R1').get()));
   await check('lease atas nama orang lain ditolak', assertFails(bob.doc('rooms/R8/locks/host').set(lock('alice', now + 45000))));
   await check('alice (pemegang lease) ubah room', assertSucceeds(alice.doc('rooms/R1').set(Object.assign(room('R1', 'alice'), { status: 'playing' }))));
   await check('bob ubah room ditolak', assertFails(bob.doc('rooms/R1').set(room('R1', 'bob'))));

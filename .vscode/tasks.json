@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Loveopoly: build", "type": "npm", "script": "build", "group": { "kind": "build", "isDefault": true }, "problemMatcher": [] },
+    { "label": "Loveopoly: pratinjau (auto-reload)", "type": "npm", "script": "dev", "isBackground": true, "problemMatcher": [] },
+    { "label": "Loveopoly: uji semua", "type": "npm", "script": "test", "group": { "kind": "test", "isDefault": true }, "problemMatcher": [] }
+  ]
+}

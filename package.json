@@ -1,0 +1,23 @@
+{
+  "name": "loveopoly",
+  "version": "2.17.0",
+  "private": true,
+  "description": "Loveopoly: board game keliling dunia untuk pasangan LDR, dibangun menjadi satu file HTML artifact Claude.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node tools/serve.mjs",
+    "setup": "playwright install chromium",
+    "test": "npm run build && npm run test:sim && npm run test:flows && npm run test:online && npm run test:ui",
+    "test:sim": "node test/sim.js 200",
+    "test:flows": "node test/flows.js",
+    "test:online": "node test/online.js",
+    "test:ui": "node test/ui.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.eol": "\n",
+  "files.exclude": { "**/node_modules": true },
+  "search.exclude": { "dist/**": true, "test/vendor/**": true, "test/out/**": true }
+}

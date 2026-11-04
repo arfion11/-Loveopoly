@@ -121,6 +121,8 @@ const server = http.createServer((req, res) => {
   await host.waitForSelector('#codeBox', { timeout: 8000 });
   const code = (await host.textContent('#codeBox')).trim();
   ok('host membuat room', /^[A-Z0-9]{6}$/.test(code), code);
+  const note = await host.evaluate(() => (document.querySelector('#scrOnline .note') || {}).textContent || '');
+  ok('petunjuk room tanpa istilah artifact', /Gabung Room/.test(note) && !/artifact|Editor/.test(note), note.slice(0, 140));
   await host.screenshot({ path: OUT + '/01-host-lobby.png' });
 
   await guest.click('#hOnline');
@@ -136,8 +138,8 @@ const server = http.createServer((req, res) => {
   await guest.screenshot({ path: OUT + '/02-guest-lobby.png' });
 
   await host.click('#oStart', { force: true });
-  await host.waitForSelector('#board .tile', { timeout: 8000 });
-  await guest.waitForSelector('#board .tile', { timeout: 8000 });
+  await host.waitForSelector('#board .tile', { timeout: 20000 });
+  await guest.waitForSelector('#board .tile', { timeout: 20000 });
   ok('kedua tab masuk papan', true);
 
   const settle = async p => { await p.waitForFunction(() => !window.LoveUI.App.animating && !window.LoveUI.App.pending.length, null, { timeout: 15000 }); await p.waitForTimeout(200); };

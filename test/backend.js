@@ -57,10 +57,11 @@ const server = http.createServer((req, res) => { res.writeHead(200, { 'content-t
     const db = await window.LoveBackend.use('db'), me = await (await window.LoveBackend.use('user')).id();
     await db.doc('lobby/' + me).set({ room: 'ABC123', name: 'A' });
     const seen = [];
-    const unsub = db.collection('lobby').where('room', '==', 'ABC123').onSnapshot(q => seen.push(q.docChanges().map(c => c.type + ':' + c.doc.id + ':' + (c.doc.data() || {}).name).join(',')));
-    await new Promise(r => setTimeout(r, 600));
+    const until = async f => { for (let t = 0; t < 80 && !f(); t++) await new Promise(r => setTimeout(r, 100)); };
+    const unsub = db.collection('lobby').where('room', '==', 'ABC123').onSnapshot(q => { const c = q.docChanges().map(c => c.type + ':' + c.doc.id + ':' + (c.doc.data() || {}).name).join(','); if (c) seen.push(c); });
+    await until(() => seen.some(x => x.startsWith('added:')));
     await db.doc('lobby/' + me).delete();
-    await new Promise(r => setTimeout(r, 600));
+    await until(() => seen.some(x => x.startsWith('removed:')));
     unsub();
     const got = await db.collection('lobby').where('room', '==', 'ABC123').get();
     return { seen, me, size: got.size };

@@ -7261,7 +7261,7 @@ main { position: relative; }
       delete: () => wrapErr(ref().delete()),
       onSnapshot: (next, err) => ref().onSnapshot(s => next(snapOf(s)), e => err && err(normErr(e))),
       collection: sub => query(path + '/' + sub, []),
-      acquire: () => Promise.reject({ code: 'unimplemented', message: 'acquire belum tersedia.' })
+      acquire: opts => acquire(ref(), opts)
     };
   }
   function query(path, filters) {
@@ -7274,7 +7274,47 @@ main { position: relative; }
       doc: id => docRef(path + '/' + (id || G.firebase.firestore().collection(path).doc().id))
     };
   }
+  // lease host: transaksi pada dokumen kunci {uid, holder, exp}; berhasil bila kosong, kedaluwarsa, atau milik holder
+  const LEASE_MAX = 60000;
+  function acquire(ref, opts) {
+    const holder = String(opts.holder), ttl = Math.min(Number(opts.ttlMs) || 30000, LEASE_MAX);
+    const fs = G.firebase.firestore(), uid = G.firebase.auth().currentUser.uid;
+    return wrapErr(fs.runTransaction(async tx => {
+      const s = await tx.get(ref);
+      const cur = s.exists ? decode(s.data()) : null;
+      const now = Date.now();
+      if (cur && cur.exp > now && cur.holder !== holder) return { acquired: false, holder: cur.holder, expiresAt: new Date(cur.exp).toISOString() };
+      const exp = now + ttl;
+      tx.set(ref, encode({ uid, holder, exp }));
+      return { acquired: true, holder, expiresAt: new Date(exp).toISOString() };
+    }));
+  }
   const db = { doc: docRef, collection: p => query(p, []) };
+
+  // ---------- room (presence di RTDB) ----------
+  function join(name) {
+    const code = String(name).replace(/^lv-/, '').toUpperCase();
+    const rdb = G.firebase.database(), uid = G.firebase.auth().currentUser.uid;
+    const base = rdb.ref('presence/' + code), mine = base.child(uid);
+    const offs = [];
+    const listen = (ref, fn, err) => { const cb = ref.on('value', fn, e => err && err(normErr(e))); const off = () => ref.off('value', cb); offs.push(off); return off; };
+    let current = null;
+    const write = () => current ? mine.onDisconnect().remove().then(() => mine.set(Object.assign({}, current, { ts: G.firebase.database.ServerValue.TIMESTAMP }))) : Promise.resolve();
+    // tulis ulang setelah tersambung kembali (onDisconnect sudah menghapus node saat koneksi putus)
+    listen(rdb.ref('.info/connected'), s => { if (s.val() === true) write().catch(() => {}); });
+    return Promise.resolve({
+      presence: obj => { current = obj; return wrapErr(write()); },
+      onPeers: (cb, err) => listen(base, s => {
+        const v = s.val() || {};
+        cb({ peers: Object.keys(v).map(k => ({ by: k, presence: v[k] })) });
+      }, err),
+      onConnection: cb => listen(rdb.ref('.info/connected'), s => cb(s.val() === true)),
+      on: () => () => {},
+      emit: () => Promise.resolve(),
+      leave: () => { offs.splice(0).forEach(f => f()); current = null; return mine.onDisconnect().cancel().then(() => mine.remove()).catch(() => {}); }
+    });
+  }
+  const room = { join };
   const user = { id: () => signIn(), can: () => Promise.resolve(true) };
 
   const LoveBackend = {
@@ -7282,6 +7322,7 @@ main { position: relative; }
       return signIn().then(() => {
         if (name === 'db') return db;
         if (name === 'user') return user;
+        if (name === 'room') return room;
         return null;
       });
     },

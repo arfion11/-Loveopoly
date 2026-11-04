@@ -1,4 +1,14 @@
 {
+  "hosting": {
+    "public": "dist",
+    "ignore": ["test.html", "**/.*"],
+    "headers": [
+      { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  },
+  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json", "location": "asia-southeast2" },
+  "database": { "rules": "database.rules.json" },
   "emulators": {
     "auth": { "port": 9099 },
     "firestore": { "port": 8080 },

@@ -1,0 +1,39 @@
+rules_version = '2';
+// Loveopoly: room host-authoritative. Semua butuh login (anonim). Isi dokumen ada di field __j (JSON);
+// field yang dipakai aturan (hostUid, uid, exp) disalin ke tingkat atas oleh src/backend.js.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function authed() { return request.auth != null; }
+    function lockPath(code) { return /databases/$(database)/documents/rooms/$(code)/locks/host; }
+    function holdsLease(code) {
+      let lk = get(lockPath(code));
+      return lk != null && lk.data.uid == request.auth.uid && lk.data.exp > request.time.toMillis();
+    }
+
+    match /rooms/{code} {
+      allow read: if authed();
+      // room baru: penulisnya harus host; sesudah itu hanya pemegang lease host yang masih berlaku
+      allow create: if authed() && request.resource.data.hostUid == request.auth.uid;
+      allow update, delete: if authed() && holdsLease(code);
+
+      match /locks/host {
+        allow read: if authed();
+        allow create, update: if authed()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.exp is int
+          && request.resource.data.exp <= request.time.toMillis() + 60000
+          && (resource == null || resource.data.uid == request.auth.uid || resource.data.exp < request.time.toMillis());
+        allow delete: if authed() && (resource.data.uid == request.auth.uid || resource.data.exp < request.time.toMillis());
+      }
+    }
+    // permintaan gabung & aksi pemain: hanya pemilik uid yang menulis (identitas dijamin Firebase Auth)
+    match /lobby/{uid} {
+      allow read: if authed();
+      allow write: if authed() && request.auth.uid == uid;
+    }
+    match /inbox/{uid}/intents/{id} {
+      allow read: if authed();
+      allow write: if authed() && request.auth.uid == uid;
+    }
+  }
+}

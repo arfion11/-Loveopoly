@@ -15,9 +15,13 @@
     "test:sim": "node test/sim.js 200",
     "test:flows": "node test/flows.js",
     "test:online": "node test/online.js",
-    "test:ui": "node test/ui.js"
+    "test:ui": "node test/ui.js",
+    "test:backend": "firebase emulators:exec --project demo-loveopoly --only auth,firestore,database \"node test/backend.js\""
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1",
+    "firebase-tools": "^13.35.1",
     "playwright": "1.63.0"
   }
 }

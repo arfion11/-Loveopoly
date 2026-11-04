@@ -578,7 +578,7 @@
     $('#hMenu').innerHTML = ic('menu'); $('#hGuide').innerHTML = ic('book'); $('#hSettings').innerHTML = ic('sliders');
     $('.brand-mark').innerHTML = ART.merpi('');
   }
-  function boot(hotData) {
+  function boot() {
     document.documentElement.lang = 'id';
     // tata letak papan memakai container query (iOS 16+, Chrome/Edge 105+, Firefox 110+)
     const modern = !!(G.CSS && CSS.supports && CSS.supports('container-type: inline-size'));
@@ -590,17 +590,13 @@
     if (G.LoveBG) G.LoveBG.setEnabled(App.prefs.bg3d !== false);
     bindHeader();
     document.addEventListener('pointerdown', () => SND.unlock(), { once: true });
-    const hs = hotData && hotData.save;
-    if (validSave(hs)) { enterGame('local', -1, hs.S); return; }
     show('scrHome');
     renderHome();
   }
 
   Object.assign(UI, { show, savePrefs, applyTheme, syncSoundBtn, renderHome, openSetup, openOnline, renderLobby, enterGame, exitToHome, togglePause, showWin, afterSettle, onLetter, boot, startTour, endTour });
 
-  const hot = G.claude && G.claude.hot;
-  try { if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ save: App.mode === 'local' && App.S && !App.S.over ? { S: App.S } : null })); } catch (e) { /* opsional */ }
-  const start = data => { try { boot(data || {}); } catch (e) { console.error(e); const m = document.getElementById('fatal'); if (m) { m.hidden = false; m.textContent = 'Terjadi kesalahan saat memuat game: ' + e.message; } } };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {}); });
-  else if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {});
+  const start = () => { try { boot(); } catch (e) { console.error(e); const m = document.getElementById('fatal'); if (m) { m.hidden = false; m.textContent = 'Terjadi kesalahan saat memuat game: ' + e.message; } } };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })(typeof window !== 'undefined' ? window : globalThis);

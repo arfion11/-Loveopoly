@@ -1,5 +1,4 @@
-<title>Loveopoly</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Loveopoly</title>
 <meta name="description" content="Loveopoly: board game keliling dunia untuk pasangan LDR. Beli kota romantis, bangun sampai landmark, adakan festival, dan menangkan monopoli.">
 <style>
 /* Fredoka (c) The Fredoka Project Authors; Nunito (c) The Nunito Project Authors. Keduanya berlisensi SIL Open Font License 1.1 - https://openfontlicense.org */
@@ -7158,6 +7157,23 @@ main { position: relative; }
   });
 })(typeof window !== 'undefined' ? window : globalThis);
 
+/* LOVEOPOLY — konfigurasi web Firebase. Nilai ini memang publik (dikirim ke browser); keamanan dijaga aturan
+   di firestore.rules & database.rules.json. Uji memakai emulator: LOVE_FIREBASE.emulator = { host }. */
+(function (G) {
+  'use strict';
+  G.LOVE_FIREBASE = G.LOVE_FIREBASE || { apiKey: '', authDomain: '', projectId: '', databaseURL: '', appId: '' };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* LOVEOPOLY — backend online di Firebase (Firestore + Auth anonim + Realtime Database).
+   LoveBackend.use('db' | 'user' | 'room') memberi objek dengan bentuk API yang dipakai net.js. */
+(function (G) {
+  'use strict';
+  const LoveBackend = {
+    use() { return Promise.reject({ code: 'sdk-load', message: 'Backend belum tersedia.' }); }
+  };
+  G.LoveBackend = LoveBackend;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 /* LOVEOPOLY 2.0 — multiplayer online.
    Arsitektur: host-authoritative di atas database real-time artifact.
    - rooms/<KODE>            : dokumen room (kursi, pengaturan, state game, ack). Hanya host yang menulis.
@@ -8345,7 +8361,7 @@ main { position: relative; }
     $('#hMenu').innerHTML = ic('menu'); $('#hGuide').innerHTML = ic('book'); $('#hSettings').innerHTML = ic('sliders');
     $('.brand-mark').innerHTML = ART.merpi('');
   }
-  function boot(hotData) {
+  function boot() {
     document.documentElement.lang = 'id';
     // tata letak papan memakai container query (iOS 16+, Chrome/Edge 105+, Firefox 110+)
     const modern = !!(G.CSS && CSS.supports && CSS.supports('container-type: inline-size'));
@@ -8357,19 +8373,16 @@ main { position: relative; }
     if (G.LoveBG) G.LoveBG.setEnabled(App.prefs.bg3d !== false);
     bindHeader();
     document.addEventListener('pointerdown', () => SND.unlock(), { once: true });
-    const hs = hotData && hotData.save;
-    if (validSave(hs)) { enterGame('local', -1, hs.S); return; }
     show('scrHome');
     renderHome();
   }
 
   Object.assign(UI, { show, savePrefs, applyTheme, syncSoundBtn, renderHome, openSetup, openOnline, renderLobby, enterGame, exitToHome, togglePause, showWin, afterSettle, onLetter, boot, startTour, endTour });
 
-  const hot = G.claude && G.claude.hot;
-  try { if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ save: App.mode === 'local' && App.S && !App.S.over ? { S: App.S } : null })); } catch (e) { /* opsional */ }
-  const start = data => { try { boot(data || {}); } catch (e) { console.error(e); const m = document.getElementById('fatal'); if (m) { m.hidden = false; m.textContent = 'Terjadi kesalahan saat memuat game: ' + e.message; } } };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {}); });
-  else if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {});
+  const start = () => { try { boot(); } catch (e) { console.error(e); const m = document.getElementById('fatal'); if (m) { m.hidden = false; m.textContent = 'Terjadi kesalahan saat memuat game: ' + e.message; } } };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
+</body></html>

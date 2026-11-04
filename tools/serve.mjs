@@ -1,8 +1,7 @@
 // Pratinjau lokal Loveopoly dengan rebuild + reload otomatis.
 //   npm run dev  ->  http://localhost:5173
-// "/" = dist/test.html (halaman lengkap seperti di Claude). Saat file di src/ berubah: build ulang, lalu
-// browser memuat ulang sendiri. Catatan: mode online butuh database artifact Claude, jadi di sini hanya
-// menampilkan petunjuk; uji online memakai mock (npm run test:online).
+// "/" = dist/index.html. Saat file di src/ berubah: build ulang, lalu browser memuat ulang sendiri.
+// Mode online memakai project Firebase di src/firebase-config.js (uji online memakai mock: npm run test:online).
 import { createServer } from 'node:http';
 import { readFileSync, watch } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -32,11 +31,11 @@ createServer((req, res) => {
     req.on('close', () => clients.delete(res));
     return;
   }
-  const file = { '/': 'test.html', '/index.html': 'test.html', '/artifact.html': 'loveopoly.html' }[path];
+  const file = { '/': 'index.html', '/index.html': 'index.html' }[path];
   if (!file) { res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('Tidak ada: ' + path); return; }
   try {
     let html = readFileSync(join(root, 'dist', file), 'utf8');
-    if (file === 'test.html') html = html.replace('</body>', RELOAD + '</body>');
+    html = html.replace('</body>', RELOAD + '</body>');
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }).end(html);
   } catch (e) {
     res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' }).end('Build dulu: npm run build');

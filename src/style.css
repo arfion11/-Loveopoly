@@ -799,6 +799,8 @@ main { position: relative; }
 /* ---------- Merpi besar di tengah papan ----------
    .ms-stand memuat Merpi + ruang di atas kepala (lompat/terbang & emote) supaya isi tidak menjulur keluar kotak 3D */
 .ms-mat { position: absolute; inset: 0; border-radius: 50%; }
+.ctr-pt { position: absolute; width: 1px; height: 1px; pointer-events: none; }
+.ctr-pt[data-c="tl"] { left: 0; top: 0; } .ctr-pt[data-c="tr"] { right: 0; top: 0; } .ctr-pt[data-c="bl"] { left: 0; bottom: 0; } .ctr-pt[data-c="br"] { right: 0; bottom: 0; }
 .ms-mat svg { display: block; width: 100%; height: 100%; }
 .ms-shadow { position: absolute; left: 50%; top: 50%; width: 46%; height: 16%; translate: -50% -50%; border-radius: 50%; background: radial-gradient(closest-side, rgba(42, 24, 56, .42), rgba(42, 24, 56, 0)); }
 .ms-stand { position: absolute; left: 4%; right: 4%; bottom: calc(50% - var(--mw) * .065); height: 132%; transform-origin: 50% 100%; }
@@ -806,7 +808,7 @@ main { position: relative; }
 .ms-body { width: 100%; height: 100%; pointer-events: auto; cursor: pointer; transform-origin: 50% 92%; -webkit-tap-highlight-color: transparent; }
 .ms-body .merpi .mp-shadow { display: none; }
 .ms-body .merpi .mp-eyes, .ms-body .merpi .mp-blink, .ms-body .merpi .mp-beak { transform: translate(calc(var(--lx, 0) * 5px), calc(var(--ly, 0) * 3px)); transition: transform .4s ease; }
-.ms-emote { position: absolute; left: 66%; top: 2%; display: grid; place-items: center; width: 30%; aspect-ratio: 1; border-radius: 50% 50% 50% 12%; background: var(--surface); color: var(--brand); box-shadow: inset 0 0 0 .5cqmin var(--line), 0 .7cqmin 0 var(--line); opacity: 0; transform: scale(.3) translateY(30%); transform-origin: 10% 100%; transition: opacity .2s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+.ms-emote { position: absolute; left: 1%; top: 34%; display: grid; place-items: center; width: 28%; aspect-ratio: 1; border-radius: 50% 50% 12% 50%; background: var(--surface); color: var(--brand); box-shadow: inset 0 0 0 .5cqmin var(--line), 0 .7cqmin 0 var(--line); opacity: 0; transform: scale(.3) translateY(30%); transform-origin: 90% 100%; transition: opacity .2s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
 .ms-emote.show { opacity: 1; transform: none; }
 .ms-emote .ic { width: 58%; height: 58%; }
 .ms-zz { font: 700 4.4cqmin/1 var(--fd); color: var(--violet); letter-spacing: .02em; }
@@ -1715,3 +1717,12 @@ main { position: relative; }
   .sc-buy .gb-b.b3, .sc-landmark .gb-b.b4, .sc-fest .gb-b.b3, .sc .g-lc:first-child, .sc .g-trophy, .sc .g-shield, .sc .g-cost, .sc .g-spot { opacity: 1 !important; filter: none !important; }
   .sc .gc-back { display: none !important; }
 }
+
+/* ---------- Merpi besar menggantikan Merpi kecil di panel (kamera 3D & ponsel) ----------
+   panel tanpa kolom Merpi; gelembung kata pindah ke #boardVP dan mengikuti kepala Merpi besar */
+.game.v3d .hud .st-merpi, .game.v3d.layout-wide .hud .st-merpi, .game.layout-compact .hud .st-merpi, .game.layout-land .hud .st-merpi { display: none; }
+.game.v3d .hud .stage, .game.layout-compact .hud .stage { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tick tick" "turn dice" "acts acts"; }
+.game.layout-land .hud .stage, .game.v3d.layout-land .hud .stage, .game.v3d.layout-wide .hud .stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "turn" "dice" "acts"; }
+.game.layout-land .hud .turn-line, .game.v3d.layout-wide .hud .turn-line { justify-self: center; }
+#boardVP > .bubble.ms-say { position: absolute; z-index: 16; left: 0; top: 0; translate: 0 -100%; width: max-content; max-width: min(260px, calc(100% - 16px)); padding: 8px 13px; font-size: 14px; box-shadow: inset 0 0 0 2px var(--line), 0 4px 0 var(--line), var(--shadow); }
+.game.layout-compact #boardVP > .bubble.ms-say, .game.layout-land #boardVP > .bubble.ms-say { max-width: min(220px, calc(100% - 16px)); font-size: 12.5px; line-height: 1.25; padding: 6px 10px; border-radius: 14px 14px 14px 5px; }

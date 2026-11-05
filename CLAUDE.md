@@ -15,7 +15,7 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 - Semua teks UI Bahasa Indonesia, santai & hangat. Angka pakai format `id-ID` (`fmt()`).
 - Seni orisinal (SVG di `src/art.js`). Jangan meniru aset, karakter, atau branding Get Rich / game lain.
 - Satu file: jangan menambah dependensi runtime atau CDN baru. Pustaka luar hanya SDK Firebase compat 10.14.1 (gstatic) yang dimuat malas oleh `backend.js` saat menu online dibuka (uji memakai `node_modules/firebase`).
-- Latar halaman diam & ringan (gradasi CSS `.page-sky`, tanpa animasi/WebGL). Tengah papan (kamera 3D & ponsel) memakai Merpi besar `#mascot` (SVG + CSS 3D, tanpa WebGL): alas globe & bayangan rebah di papan, Merpi berdiri tegak. Reaksi lewat `mascotAct()` (kelas `act-*`), `mascotEmote()`, `mascotLook(petak)`; mood ikut `merpiSay()`, tertidur setelah 30 detik diam. Teks tetap di gelembung panel (aria-live).
+- Latar halaman diam & ringan (gradasi CSS `.page-sky`, tanpa animasi/WebGL). Tengah papan (kamera 3D & ponsel) memakai Merpi besar `#mascot` (SVG + CSS 3D, tanpa WebGL): alas globe & bayangan rebah di papan, Merpi berdiri tegak. Reaksi lewat `mascotAct()` (kelas `act-*`), `mascotEmote()`, `mascotLook(petak)`; mood ikut `merpiSay()`, tertidur setelah 30 detik diam. Merpi kecil di panel disembunyikan di mode ini; `#bubble` (aria-live) dipindah `placeStage()` ke `#boardVP` dan diposisikan `trackBubble()` di atas kepala Merpi besar.
 - Warna lewat token CSS di `:root` + dua blok tema gelap (media query & `[data-theme="dark"]`). Jangan menaruh warna literal yang hanya terbaca di satu tema.
 - Aksesibilitas: target axe WCAG 2.1 AA 0 pelanggaran; hormati `prefers-reduced-motion` (`reduceMotion()`); tombol punya label.
 

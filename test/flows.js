@@ -301,8 +301,8 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   ok('tengah papan: Merpi besar tampil (tanpa Three.js)', gl.has && gl.w > 40 && !gl.three && !gl.globe, JSON.stringify(gl));
   // diketuk: Merpi bereaksi (gelembung kata di panel + gerak), menoleh ke pion yang jalan
   await page.click('#mascot .ms-body');
-  const tap = await page.evaluate(() => ({ bub: document.getElementById('bubble').classList.contains('show'), act: [...document.getElementById('mascot').classList].filter(c => c.startsWith('act-')).join(' ') }));
-  ok('Merpi besar: diketuk menjawab & bergerak', tap.bub && /act-spin/.test(tap.act), JSON.stringify(tap));
+  const tap = await page.evaluate(() => ({ bub: document.getElementById('bubble').classList.contains('show'), inVP: document.getElementById('bubble').parentNode.id, small: getComputedStyle(document.querySelector('#stage .st-merpi')).display, act: [...document.getElementById('mascot').classList].filter(c => c.startsWith('act-')).join(' ') }));
+  ok('Merpi besar: diketuk menjawab & bergerak (gelembung di papan, Merpi kecil disembunyikan)', tap.bub && tap.inVP === 'boardVP' && tap.small === 'none' && /act-spin/.test(tap.act), JSON.stringify(tap));
   await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
 
   // 24b. Mode online: layanan tidak bisa dihubungi → petunjuk + Coba lagi

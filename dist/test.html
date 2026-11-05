@@ -806,6 +806,8 @@ main { position: relative; }
 /* ---------- Merpi besar di tengah papan ----------
    .ms-stand memuat Merpi + ruang di atas kepala (lompat/terbang & emote) supaya isi tidak menjulur keluar kotak 3D */
 .ms-mat { position: absolute; inset: 0; border-radius: 50%; }
+.ctr-pt { position: absolute; width: 1px; height: 1px; pointer-events: none; }
+.ctr-pt[data-c="tl"] { left: 0; top: 0; } .ctr-pt[data-c="tr"] { right: 0; top: 0; } .ctr-pt[data-c="bl"] { left: 0; bottom: 0; } .ctr-pt[data-c="br"] { right: 0; bottom: 0; }
 .ms-mat svg { display: block; width: 100%; height: 100%; }
 .ms-shadow { position: absolute; left: 50%; top: 50%; width: 46%; height: 16%; translate: -50% -50%; border-radius: 50%; background: radial-gradient(closest-side, rgba(42, 24, 56, .42), rgba(42, 24, 56, 0)); }
 .ms-stand { position: absolute; left: 4%; right: 4%; bottom: calc(50% - var(--mw) * .065); height: 132%; transform-origin: 50% 100%; }
@@ -813,7 +815,7 @@ main { position: relative; }
 .ms-body { width: 100%; height: 100%; pointer-events: auto; cursor: pointer; transform-origin: 50% 92%; -webkit-tap-highlight-color: transparent; }
 .ms-body .merpi .mp-shadow { display: none; }
 .ms-body .merpi .mp-eyes, .ms-body .merpi .mp-blink, .ms-body .merpi .mp-beak { transform: translate(calc(var(--lx, 0) * 5px), calc(var(--ly, 0) * 3px)); transition: transform .4s ease; }
-.ms-emote { position: absolute; left: 66%; top: 2%; display: grid; place-items: center; width: 30%; aspect-ratio: 1; border-radius: 50% 50% 50% 12%; background: var(--surface); color: var(--brand); box-shadow: inset 0 0 0 .5cqmin var(--line), 0 .7cqmin 0 var(--line); opacity: 0; transform: scale(.3) translateY(30%); transform-origin: 10% 100%; transition: opacity .2s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+.ms-emote { position: absolute; left: 1%; top: 34%; display: grid; place-items: center; width: 28%; aspect-ratio: 1; border-radius: 50% 50% 12% 50%; background: var(--surface); color: var(--brand); box-shadow: inset 0 0 0 .5cqmin var(--line), 0 .7cqmin 0 var(--line); opacity: 0; transform: scale(.3) translateY(30%); transform-origin: 90% 100%; transition: opacity .2s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
 .ms-emote.show { opacity: 1; transform: none; }
 .ms-emote .ic { width: 58%; height: 58%; }
 .ms-zz { font: 700 4.4cqmin/1 var(--fd); color: var(--violet); letter-spacing: .02em; }
@@ -1722,6 +1724,15 @@ main { position: relative; }
   .sc-buy .gb-b.b3, .sc-landmark .gb-b.b4, .sc-fest .gb-b.b3, .sc .g-lc:first-child, .sc .g-trophy, .sc .g-shield, .sc .g-cost, .sc .g-spot { opacity: 1 !important; filter: none !important; }
   .sc .gc-back { display: none !important; }
 }
+
+/* ---------- Merpi besar menggantikan Merpi kecil di panel (kamera 3D & ponsel) ----------
+   panel tanpa kolom Merpi; gelembung kata pindah ke #boardVP dan mengikuti kepala Merpi besar */
+.game.v3d .hud .st-merpi, .game.v3d.layout-wide .hud .st-merpi, .game.layout-compact .hud .st-merpi, .game.layout-land .hud .st-merpi { display: none; }
+.game.v3d .hud .stage, .game.layout-compact .hud .stage { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "tick tick" "turn dice" "acts acts"; }
+.game.layout-land .hud .stage, .game.v3d.layout-land .hud .stage, .game.v3d.layout-wide .hud .stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "turn" "dice" "acts"; }
+.game.layout-land .hud .turn-line, .game.v3d.layout-wide .hud .turn-line { justify-self: center; }
+#boardVP > .bubble.ms-say { position: absolute; z-index: 16; left: 0; top: 0; translate: 0 -100%; width: max-content; max-width: min(260px, calc(100% - 16px)); padding: 8px 13px; font-size: 14px; box-shadow: inset 0 0 0 2px var(--line), 0 4px 0 var(--line), var(--shadow); }
+.game.layout-compact #boardVP > .bubble.ms-say, .game.layout-land #boardVP > .bubble.ms-say { max-width: min(220px, calc(100% - 16px)); font-size: 12.5px; line-height: 1.25; padding: 6px 10px; border-radius: 14px 14px 14px 5px; }
 
 </style>
 <div class="page-sky" aria-hidden="true"></div>
@@ -4316,6 +4327,16 @@ main { position: relative; }
     }
     const host = usesCam() ? $('#hud') : $('#board .center');
     if (host && st.parentNode !== host) host.appendChild(st);
+    // Merpi besar tampil di tengah papan: Merpi kecil di panel disembunyikan (CSS), gelembung katanya
+    // pindah ke atas papan dan mengikuti kepala Merpi besar (lihat trackBubble)
+    const bub = $('#bubble'), vpB = $('#boardVP'), slot = $('.st-merpi', st), big = $('#mascot');
+    if (bub && vpB && slot) {
+      const onBig = !!(big && big.offsetWidth);
+      const want = onBig ? vpB : slot;
+      if (bub.parentNode !== want) want.appendChild(bub);
+      bub.classList.toggle('ms-say', onBig);
+      if (onBig && bub.classList.contains('show')) trackBubble();
+    }
     const b = $('#board'); if (b) b.classList.toggle('staged', !usesCam());
     // kontrol kamera tidak boleh menutup petak: ponsel potret -> header, ponsel mendatar & panel samping -> panel
     const cc = $('#camCtl'), hud = $('#hud'), vp = $('#boardVP'), mid = $('#hdrMid');
@@ -4728,6 +4749,7 @@ main { position: relative; }
       (still ? '<g class="cd-plane" transform="translate(250 210) rotate(-40)">' + plane + '</g>' : '<g class="cd-plane">' + plane + '<animateMotion dur="9s" repeatCount="indefinite" rotate="auto"><mpath href="#cdRoute"/></animateMotion></g>') +
       '</svg><div class="cd-logo">Loveopoly</div><div class="cd-tag">Long Distance · One Destination</div>' +
       mascotHTML() +
+      '<i class="ctr-pt" data-c="tl"></i><i class="ctr-pt" data-c="tr"></i><i class="ctr-pt" data-c="bl"></i><i class="ctr-pt" data-c="br"></i>' +
       '<div class="deck" id="deck"><span class="dk dk3"></span><span class="dk dk2"></span><span class="dk dk1">' + ART.art('card') + '</span></div></div>';
     b.appendChild(c);
     const tk = document.createElement('div');
@@ -4752,6 +4774,7 @@ main { position: relative; }
       st.id = 'stage';
     }
     stageEl = st;
+    const oldBub = $('#boardVP > #bubble'); if (oldBub) oldBub.remove();
     st.innerHTML =
       '<div class="st-top"><span class="round-chip" id="roundChip"></span></div>' +
       '<div class="st-merpi"><button type="button" class="merpi-btn" id="merpiBtn" aria-label="Merpi, maskot Loveopoly">' + ART.merpi('') + '</button><div class="bubble" id="bubble" role="status" aria-live="polite"></div></div>' +
@@ -5184,6 +5207,7 @@ main { position: relative; }
     if (text) {
       bub.innerHTML = '<span>' + esc(text) + '</span>';
       restart(bub, 'show');
+      trackBubble();
     }
     if (mood === 'happy' || mood === 'wow' || mood === 'love') pulse($('#merpiBtn'), 'jump', 700);
     else if (mood === 'sad') pulse($('#merpiBtn'), 'droop', 900);
@@ -5254,6 +5278,61 @@ main { position: relative; }
       const e = $('.ms-emote', mm);
       if (e) { e.innerHTML = '<span class="ms-zz">z<i>z</i><b>Z</b></span>'; e.classList.add('show', 'zz'); }
     }, 30000);
+  }
+  // gelembung kata di atas kepala Merpi besar: 2D di atas papan (teks tetap tajam & seukuran, tidak ikut
+  // kemiringan/skala kamera), posisinya mengikuti Merpi tiap frame selama tampil. Gelembung selalu di dalam
+  // area tengah papan (tidak menutupi petak) dan tidak menutupi Merpi: batasnya trapesium dari 4 titik sudut
+  // .center (.ctr-pt) yang sudah terproyeksi kamera, dipotong area papan yang terlihat; dicoba beberapa letak
+  // (atas-kanan, atas, atas-kiri, bawah kaki). Bila tidak ada yang muat (kamera mendekat ke pion),
+  // gelembung cukup menempel di tepi area terlihat.
+  let bubRaf = 0;
+  function trackBubble() {
+    cancelAnimationFrame(bubRaf);
+    const step = () => {
+      const bub = $('#bubble'), body = $('#mascot .ms-body'), vp = $('#boardVP');
+      if (!bub || !body || !vp || !bub.classList.contains('ms-say') || !bub.classList.contains('show')) return;
+      const r = body.getBoundingClientRect(), v = vp.getBoundingClientRect(), ins = camInsets() || { top: 0, bot: 0 };
+      const m = 8, pad = 8;
+      const pt = k => { const e = $('#board .center .ctr-pt[data-c="' + k + '"]'); if (!e) return null; const q = e.getBoundingClientRect(); return { x: q.left - v.left, y: q.top - v.top }; };
+      const tl = pt('tl'), tr = pt('tr'), bl = pt('bl'), br = pt('br');
+      const vTop = ins.top + m, vBot = v.height - ins.bot - m;
+      // kotak Merpi (diciutkan sedikit: ujung sayap & ruang kosong SVG boleh tertutup)
+      const mx = r.left - v.left, my = r.top - v.top, mw = r.width, mh = r.height;
+      const mb = { l: mx + mw * 0.2, t: my + mh * 0.16, r: mx + mw * 0.8, b: my + mh * 0.95 };
+      let bw = bub.offsetWidth, bh = bub.offsetHeight;
+      let x = mx + mw * 0.6, y = my + mh * 0.16;
+      let placed = false;
+      if (tl && tr && bl && br) {
+        const yMin = Math.max(tl.y + pad, vTop), yMax = Math.min(bl.y - pad, vBot);
+        const span = yt => { const t = (yt - tl.y) / Math.max(1, bl.y - tl.y); return [Math.max(m, tl.x + (bl.x - tl.x) * t + pad), Math.min(v.width - m, tr.x + (br.x - tr.x) * t - pad)]; };
+        // lebar maksimum = lebar area tengah setinggi kepala Merpi
+        const [hl, hr] = span(Math.max(yMin, my));
+        if (hr - hl >= 110) {
+          const maxW = Math.min(260, Math.floor(hr - hl));
+          if (bub._mw !== maxW) { bub._mw = maxW; bub.style.maxWidth = maxW + 'px'; bw = bub.offsetWidth; bh = bub.offsetHeight; }
+          // kandidat (x kiri, y bawah gelembung): atas-kanan kepala, atas tengah, atas-kiri, di bawah kaki
+          const cands = [[mx + mw * 0.58, my + mh * 0.16], [mx + mw / 2 - bw / 2, my + mh * 0.12], [mx + mw * 0.42 - bw, my + mh * 0.16], [mx + mw / 2 - bw / 2, my + mh + bh + 4]];
+          for (const [cx0, cy0] of cands) {
+            if (cy0 - bh < yMin || cy0 > yMax) continue;
+            const [xl, xr] = span(cy0 - bh);
+            if (xr - xl < bw) continue;
+            const cx = Math.max(xl, Math.min(xr - bw, cx0));
+            const hit = cx < mb.r && cx + bw > mb.l && cy0 - bh < mb.b && cy0 > mb.t;
+            if (hit) continue;
+            x = cx; y = cy0; placed = true; break;
+          }
+        }
+      }
+      if (!placed) {
+        if (bub._mw) { bub._mw = 0; bub.style.maxWidth = ''; bw = bub.offsetWidth; bh = bub.offsetHeight; }
+        x = Math.max(m, Math.min(v.width - bw - m, x));
+        y = Math.max(vTop + bh, Math.min(vBot, y));
+      }
+      bub.style.left = x.toFixed(1) + 'px';
+      bub.style.top = y.toFixed(1) + 'px';
+      bubRaf = requestAnimationFrame(step);
+    };
+    step();
   }
   // menoleh ke petak: --lx -1 (kiri) .. 1 (kanan), --ly -1 (belakang/atas) .. 1 (depan/bawah)
   function mascotLook(tile) {

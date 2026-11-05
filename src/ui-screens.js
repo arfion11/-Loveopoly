@@ -305,7 +305,7 @@
       (onlineErr ? '<div class="note warn page">' + ic('alert') + ' ' + esc(onlineErr) + '</div>' : '') +
       '<div class="online"><div class="panel stack"><h3>' + ic('globe') + 'Kode room</h3><div class="code-box" id="codeBox">' + esc(Net.code) + '</div>' +
       '<button type="button" class="btn soft" id="oCopy">' + ic('copy') + '<span>Salin kode</span></button>' +
-      '<div class="note">' + ic('info') + ' Kirim kode ini ke pasanganmu. Minta dia buka <b>' + esc(location.host || 'Loveopoly') + '</b>, pilih <b>Main Online</b>, ketik kodenya di <b>Gabung dengan kode</b>, lalu tekan Gabung Room. Tanpa daftar akun, langsung main!</div>' +
+      '<div class="note">' + ic('info') + '<span>Kirim kode ini ke pasanganmu. Minta dia buka <b>' + esc(location.host || 'Loveopoly') + '</b>, pilih <b>Main Online</b>, ketik kodenya di <b>Gabung dengan kode</b>, lalu tekan Gabung Room. Tanpa daftar akun, langsung main!</span></div>' +
       '<div class="tiny muted">Uang awal ' + fmt(st.startCash || RULES.startCash) + (st.roundLimit ? ' · ' + st.roundLimit + ' ronde' : ' · tanpa batas ronde') + ' · aturan ' + (st.takeover ? 'lengkap' : 'santai') + '</div></div>' +
       '<div class="panel stack"><h3>' + ic('users') + 'Pemain <span class="muted">' + d.seats.length + '/4</span></h3>' + seats +
       (pending ? '<div class="note">' + ic('clock') + ' Menunggu host menerima kamu…</div>' : '') +

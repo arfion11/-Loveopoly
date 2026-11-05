@@ -210,7 +210,7 @@
         const can = p.cash >= cost;
         const src = { visit: 'Mampir ke kotamu', start: 'Bonus berhenti di START', takeover: 'Kota baru hasil ambil alih' }[it.src] || '';
         let body = cityHero(S, it.tile, { owner: false }) + levelCards(S, it.p, it.tile, st.level, sel, allowed, costFn);
-        if (st.level === 3) body += '<div class="note gold">' + ic('crown') + ' Landmark: tol tertinggi dan <b>kebal diambil alih</b>.</div>';
+        if (st.level === 3) body += '<div class="note gold">' + ic('crown') + '<span>Landmark: tol tertinggi dan <b>kebal diambil alih</b>.</span></div>';
         else if (E.capLevel(S, it.p) < 3) body += '<div class="note">' + ic('info') + ' Hotel terbuka setelah kamu melewati START sekali.</div>';
         if (p.discount) body += '<div class="note good">' + ic('ticket') + ' Voucher diskon ' + Math.round(p.discount * 100) + '% dipakai.</div>';
         body += sumRow(p.cash, cost, can);
@@ -802,7 +802,7 @@
       key: 'exit', size: 'mid',
       build: () => ({
         title: 'Keluar ke Menu?', kicker: ic('exit') + 'Keluar',
-        body: App.mode === 'online' ? '<div class="note">' + ic('info') + ' Kamu bisa kembali kapan saja dengan kode room <b class="mono">' + esc(App.net ? App.net.code : '') + '</b>.</div>' : '<div class="note">' + ic('info') + ' Progres tersimpan otomatis di perangkat ini. Lanjutkan dari menu utama kapan saja.</div>',
+        body: App.mode === 'online' ? '<div class="note">' + ic('info') + '<span>Kamu bisa kembali kapan saja dengan kode room <b class="mono">' + esc(App.net ? App.net.code : '') + '</b>.</span></div>' : '<div class="note">' + ic('info') + ' Progres tersimpan otomatis di perangkat ini. Lanjutkan dari menu utama kapan saja.</div>',
         foot: btn('id="xNo"', 'ghost', 'back', 'Tetap Main') + '<span class="grow"></span>' + btn('id="xYes"', 'primary', 'exit', 'Keluar')
       }),
       mount: m => { on(m, '#xNo', () => closeModal()); on(m, '#xYes', () => { closeModal(); UI.exitToHome(); }); }

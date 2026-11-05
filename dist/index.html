@@ -78,10 +78,9 @@ p { margin: 0; }
 svg.art { display: block; width: 100%; height: 100%; overflow: visible; }
 .coin-ic { display: inline-block; width: .95em; height: .95em; border-radius: 50%; flex: none; vertical-align: -0.12em; background: radial-gradient(circle at 35% 30%, #FFF1B0 0 18%, transparent 19%), radial-gradient(circle, #FFD54A 0 55%, #F2B416 56% 100%); box-shadow: inset 0 0 0 1.5px #C98D06; }
 .page-sky { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(70% 60% at 0% 0%, color-mix(in srgb, var(--brand-soft) 85%, transparent), transparent 70%), radial-gradient(65% 55% at 100% 100%, color-mix(in srgb, var(--bg-2) 95%, transparent), transparent 72%), var(--bg); }
-/* globe ilustrasi diam di tengah papan (saat panel aksi ada di luar papan: kamera 3D & ponsel) */
-.globe-2d { display: none; position: absolute; left: 50%; top: 44%; width: 62cqmin; aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
-.globe-2d svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.game.v3d .globe-2d, .game.layout-compact .globe-2d, .game.layout-land .globe-2d { display: block; }
+/* Merpi besar di tengah papan (saat panel aksi ada di luar papan: kamera 3D & ponsel), berdiri di atas alas globe */
+.mascot { --mw: 34cqmin; display: none; position: absolute; left: 50%; top: 46%; width: var(--mw); aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
+.game.v3d .mascot, .game.layout-compact .mascot, .game.layout-land .mascot { display: block; }
 .game.v3d .center .cd-map, .game.layout-compact .center .cd-map, .game.layout-land .center .cd-map { opacity: 0; }
 
 /* ---------- header ---------- */
@@ -468,8 +467,11 @@ main { position: relative; }
 .board.b3d .tile:hover .t-face { transform: none; }
 .board.b3d .center { overflow: visible; transform-style: preserve-3d; }
 .board.b3d .center-deco { transform-style: preserve-3d; }
-/* globe berdiri di tengah papan seperti benda di atas meja (diputar balik sebesar kemiringan papan) */
-.board.b3d .globe-2d { top: auto; bottom: 30%; width: 36cqmin; translate: -50% 0; rotate: x calc(var(--tilt, 0deg) * -1); transform-origin: 50% 100%; }
+/* maskot: alas & bayangan rebah di bidang papan, Merpi berdiri tegak (diputar balik sebesar kemiringan papan) */
+.board.b3d .mascot, .board.b3d .ms-stand, .board.b3d .ms-look { transform-style: preserve-3d; }
+.board.b3d .mascot { --mw: 36cqmin; top: 52%; }
+.board.b3d .ms-shadow { translate: -50% -50% 2px; }
+.board.b3d .ms-stand { rotate: x calc(var(--tilt, 0deg) * -1); translate: 0 0 3px; }
 /* tablet tegak saat 3D: panel aksi menjadi dok di bawah papan */
 .game.v3d.layout-mid .board-col { position: relative; }
 .game.v3d.layout-mid .hud { display: block; position: absolute; left: 50%; bottom: 10px; z-index: 26; width: min(640px, calc(100% - 24px)); translate: -50% 0; }
@@ -800,6 +802,52 @@ main { position: relative; }
 /* salinan kartu yang terbang dari papan ke dialog (posisi & ukuran dianimasikan dari JS) */
 .fly-card { position: fixed; z-index: 400; display: grid; place-items: center; border-radius: 22px; background: linear-gradient(160deg, #FFB3CF, #FF7EAC); box-shadow: inset 0 0 0 5px #fff, 0 6px 0 #D5336E, 0 18px 30px -10px rgba(90, 20, 60, .45); pointer-events: none; will-change: left, top, width, height, transform; }
 .fly-card span { display: block; width: min(60%, 96px); aspect-ratio: 1; }
+
+/* ---------- Merpi besar di tengah papan ----------
+   .ms-stand memuat Merpi + ruang di atas kepala (lompat/terbang & emote) supaya isi tidak menjulur keluar kotak 3D */
+.ms-mat { position: absolute; inset: 0; border-radius: 50%; }
+.ms-mat svg { display: block; width: 100%; height: 100%; }
+.ms-shadow { position: absolute; left: 50%; top: 50%; width: 46%; height: 16%; translate: -50% -50%; border-radius: 50%; background: radial-gradient(closest-side, rgba(42, 24, 56, .42), rgba(42, 24, 56, 0)); }
+.ms-stand { position: absolute; left: 4%; right: 4%; bottom: calc(50% - var(--mw) * .065); height: 132%; transform-origin: 50% 100%; }
+.ms-look { position: absolute; left: 0; right: 0; bottom: 0; aspect-ratio: 1; transform: rotateY(calc(var(--lx, 0) * 24deg)); transition: transform .5s cubic-bezier(.3, 1.4, .5, 1); }
+.ms-body { width: 100%; height: 100%; pointer-events: auto; cursor: pointer; transform-origin: 50% 92%; -webkit-tap-highlight-color: transparent; }
+.ms-body .merpi .mp-shadow { display: none; }
+.ms-body .merpi .mp-eyes, .ms-body .merpi .mp-blink, .ms-body .merpi .mp-beak { transform: translate(calc(var(--lx, 0) * 5px), calc(var(--ly, 0) * 3px)); transition: transform .4s ease; }
+.ms-emote { position: absolute; left: 66%; top: 2%; display: grid; place-items: center; width: 30%; aspect-ratio: 1; border-radius: 50% 50% 50% 12%; background: var(--surface); color: var(--brand); box-shadow: inset 0 0 0 .5cqmin var(--line), 0 .7cqmin 0 var(--line); opacity: 0; transform: scale(.3) translateY(30%); transform-origin: 10% 100%; transition: opacity .2s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+.ms-emote.show { opacity: 1; transform: none; }
+.ms-emote .ic { width: 58%; height: 58%; }
+.ms-zz { font: 700 4.4cqmin/1 var(--fd); color: var(--violet); letter-spacing: .02em; }
+.ms-zz i, .ms-zz b { font-style: normal; display: inline-block; }
+.ms-zz i { translate: 0 -20%; font-size: .85em; }
+.ms-zz b { translate: 0 -45%; font-size: 1.2em; }
+.mascot.sleep .ms-emote { animation: zzFloat 2.4s ease-in-out infinite; }
+@keyframes zzFloat { 50% { transform: translateY(-8%); } }
+#mascot .merpi.is-sleep .mp-eyes-open { display: none; }
+#mascot .merpi.is-sleep .mp-blink { display: inline; opacity: 1; animation: none; }
+#mascot .merpi.is-sleep .mp-bob { animation: mpSleep 3.6s ease-in-out infinite; }
+#mascot .merpi.is-sleep .mp-wing-l, #mascot .merpi.is-sleep .mp-wing-r { animation: none; }
+@keyframes mpSleep { 50% { transform: translateY(2px) rotate(-4deg) scaleY(.97); } }
+.mascot.act-hop .ms-body { animation: msHop .7s cubic-bezier(.3, 1.5, .5, 1); }
+.mascot.act-peek .ms-body { animation: msPeek .7s ease; }
+.mascot.act-cheer .ms-body { animation: msCheer .8s ease; }
+.mascot.act-droop .ms-body { animation: msDroop 1s ease; }
+.mascot.act-shake .ms-body { animation: msShake .7s ease; }
+.mascot.act-spin .ms-body { animation: msSpin .9s cubic-bezier(.4, 0, .3, 1); }
+.mascot.act-fly .ms-body { animation: msFly 1.5s ease-in-out; }
+.mascot.act-fly .merpi .mp-wing-l { animation: flapL .18s ease-in-out infinite; }
+.mascot.act-fly .merpi .mp-wing-r { animation: flapR .18s ease-in-out infinite; }
+.mascot.act-hop .ms-shadow, .mascot.act-cheer .ms-shadow { animation: msShHop .7s cubic-bezier(.3, 1.5, .5, 1); }
+.mascot.act-spin .ms-shadow { animation: msShHop .9s ease; }
+.mascot.act-fly .ms-shadow { animation: msShFly 1.5s ease-in-out; }
+@keyframes msHop { 35% { transform: translateY(-14%) scale(.96, 1.06); } 70% { transform: translateY(1%) scale(1.06, .94); } }
+@keyframes msPeek { 40% { transform: translateY(-4%) rotate(calc(var(--lx, 0) * 8deg)); } }
+@keyframes msCheer { 25% { transform: translateY(-10%) rotate(-9deg); } 55% { transform: translateY(-6%) rotate(9deg); } 80% { transform: translateY(0) scale(1.05, .95); } }
+@keyframes msDroop { 40%, 70% { transform: translateY(3%) rotate(-6deg) scaleY(.92); } }
+@keyframes msShake { 20%, 60% { transform: translateX(-6%) rotate(-5deg); } 40%, 80% { transform: translateX(6%) rotate(5deg); } }
+@keyframes msSpin { 0% { transform: none; } 40% { transform: translateY(-14%) rotateY(200deg); } 80% { transform: translateY(0) rotateY(360deg); } 90% { transform: scale(1.05, .95) rotateY(360deg); } 100% { transform: rotateY(360deg); } }
+@keyframes msFly { 0%, 100% { transform: none; } 25% { transform: translateY(-22%) rotate(-6deg); } 50% { transform: translateY(-20%) translateX(-5%) rotate(5deg); } 75% { transform: translateY(-22%) translateX(5%) rotate(-4deg); } }
+@keyframes msShHop { 35% { transform: scale(.68); opacity: .55; } }
+@keyframes msShFly { 25%, 75% { transform: scale(.5); opacity: .4; } }
 
 /* panggung: Merpi, dadu, aksi */
 .stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; gap: 1.6cqh; padding: 3.6cqh 7% 3cqh; z-index: 2; }
@@ -4679,14 +4727,7 @@ main { position: relative; }
       '<path d="M340 92c-8-6-14-12-14-19a7 7 0 0 1 14-3 7 7 0 0 1 14 3c0 7-6 13-14 19z" fill="#7B61FF" stroke="#3A2B4A" stroke-width="2"/>' +
       (still ? '<g class="cd-plane" transform="translate(250 210) rotate(-40)">' + plane + '</g>' : '<g class="cd-plane">' + plane + '<animateMotion dur="9s" repeatCount="indefinite" rotate="auto"><mpath href="#cdRoute"/></animateMotion></g>') +
       '</svg><div class="cd-logo">Loveopoly</div><div class="cd-tag">Long Distance · One Destination</div>' +
-      '<div class="globe-2d"><svg viewBox="0 0 200 200"><defs><radialGradient id="glOcean" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient></defs>' +
-        '<ellipse cx="100" cy="186" rx="46" ry="7" fill="#2A1838" opacity=".14"/>' +
-        '<circle cx="100" cy="96" r="74" fill="url(#glOcean)" stroke="#3A2B4A" stroke-width="3"/>' +
-        '<g fill="#7FD9AE" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"><path d="M58 62c10-12 30-14 40-6 6 5 2 12-6 14-8 2-6 10 2 14 6 3 4 12-6 12-10 0-16 8-24 4-10-5-14-26-6-38z"/><path d="M118 44c14-2 28 6 34 18 3 7-4 9-10 6-7-4-14 0-12 8 2 7-6 10-12 4-6-6-14-6-14-16 0-10 6-18 14-20z"/><path d="M110 112c10-4 24 0 30 10 5 9-2 22-12 26-9 4-16-2-16-10 0-6-8-8-8-14 0-6 0-10 6-12z"/></g>' +
-        '<path d="M44 120c30 26 84 30 116 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9" opacity=".85"/>' +
-        '<path d="M128 22c-4-6-13-5-13 3 0 6 7 10 13 15 6-5 13-9 13-15 0-8-9-9-13-3z" fill="#FF4F8B" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"/>' +
-        '<path d="M128 40v10" stroke="#3A2B4A" stroke-width="2.5" stroke-linecap="round"/>' +
-        '<ellipse cx="74" cy="70" rx="16" ry="9" fill="#fff" opacity=".35" transform="rotate(-30 74 70)"/></svg></div>' +
+      mascotHTML() +
       '<div class="deck" id="deck"><span class="dk dk3"></span><span class="dk dk2"></span><span class="dk dk1">' + ART.art('card') + '</span></div></div>';
     b.appendChild(c);
     const tk = document.createElement('div');
@@ -4695,6 +4736,9 @@ main { position: relative; }
     b.appendChild(tk);
     buildStage();
     placeStage();
+    const mbody = $('#mascot .ms-body');
+    if (mbody) mbody.onclick = () => merpiPoke();
+    mascotWake();
     if (!reduceMotion()) {
       b.classList.add('enter');
       setTimeout(() => b.classList.remove('enter'), 1600);
@@ -4939,6 +4983,7 @@ main { position: relative; }
       el.style.transition = 'transform ' + ms + 'ms cubic-bezier(.45,0,.25,1)';
       restart(el, fly ? 'plane' : 'fly');
       camFocus(e.to, true, ms);
+      mascotLook(e.to);
       placeToken(e.p, e.to, 1);
       SND.play(fly ? 'plane' : 'whoosh');
       await sleep(ms + 30);
@@ -4957,6 +5002,7 @@ main { position: relative; }
       el.style.transition = 'transform ' + per + 'ms cubic-bezier(.35,.1,.3,1)';
       placeToken(e.p, pos, 1);
       camFocus(pos, true, per + 60);
+      mascotLook(pos);
       restart(el, 'hop');
       pulse(tileEl(pos), 'stepped', 380);
       SND.play('step');
@@ -5126,9 +5172,15 @@ main { position: relative; }
   function merpiSay(text, mood, ms) {
     const m = $('#stage .merpi'), bub = $('#bubble');
     if (!m || !bub) return;
-    MOODS.forEach(x => m.classList.remove('is-' + x));
+    const big = $('#mascot .merpi');
+    const all = big ? [m, big] : [m];
+    all.forEach(x => MOODS.forEach(k => x.classList.remove('is-' + k)));
     merpiMood = mood || '';
-    if (mood) m.classList.add('is-' + mood);
+    if (mood) all.forEach(x => x.classList.add('is-' + mood));
+    mascotWake();
+    if (mood === 'happy' || mood === 'love') mascotAct('hop', 700);
+    else if (mood === 'wow') mascotAct('cheer', 800);
+    else if (mood === 'sad') mascotAct('droop', 1000);
     if (text) {
       bub.innerHTML = '<span>' + esc(text) + '</span>';
       restart(bub, 'show');
@@ -5137,7 +5189,7 @@ main { position: relative; }
     else if (mood === 'sad') pulse($('#merpiBtn'), 'droop', 900);
     clearTimeout(merpiTimer);
     merpiTimer = setTimeout(() => {
-      MOODS.forEach(x => m.classList.remove('is-' + x));
+      all.forEach(x => MOODS.forEach(k => x.classList.remove('is-' + k)));
       merpiMood = '';
       bub.classList.remove('show');
     }, ms || 2200);
@@ -5145,6 +5197,76 @@ main { position: relative; }
   function merpiPoke() {
     SND.play('chirp');
     merpiSay(pick(D.MERPI.poke), pick(['happy', 'love', 'wow']), 2600);
+    mascotAct('spin', 900);
+    mascotEmote(ic('heart'), 1400);
+  }
+
+  // ---------- Merpi besar di tengah papan (ponsel & kamera 3D, menggantikan globe) ----------
+  // berdiri tegak di atas alas globe; menoleh ke pion yang aktif, bereaksi lewat gerak (kelas act-*) & ikon emote,
+  // tertidur bila lama tidak ada kejadian. Teks tetap di gelembung panel aksi (wilayah aria-live).
+  // Semua isi berada di dalam kotak .ms-stand (elemen 3D tidak boleh menjulur keluar kotaknya).
+  function mascotHTML() {
+    const land = '<g fill="#7FD9AE" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"><path d="M50 60c10-12 30-14 40-6 6 5 2 12-6 14-8 2-6 10 2 14 6 3 4 12-6 12-10 0-16 8-24 4-10-5-14-26-6-38z"/><path d="M122 48c14-2 28 6 34 18 3 7-4 9-10 6-7-4-14 0-12 8 2 7-6 10-12 4-6-6-14-6-14-16 0-10 6-18 14-20z"/><path d="M104 126c10-4 24 0 30 10 5 9-2 22-12 26-9 4-16-2-16-10 0-6-8-8-8-14 0-6 0-10 6-12z"/><path d="M40 122c8-3 16 2 16 9s-8 10-14 7-8-13-2-16z"/></g>';
+    return '<div class="mascot" id="mascot">' +
+      '<div class="ms-mat" aria-hidden="true"><svg viewBox="0 0 200 200"><defs><radialGradient id="msOcean" cx="40%" cy="36%" r="72%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient></defs>' +
+        '<circle cx="100" cy="100" r="94" fill="#fff" stroke="#3A2B4A" stroke-width="3"/>' +
+        '<circle cx="100" cy="100" r="84" fill="url(#msOcean)" stroke="#3A2B4A" stroke-width="2.5"/>' + land +
+        '<circle cx="100" cy="100" r="89" fill="none" stroke="#FF7EAC" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></svg></div>' +
+      '<div class="ms-shadow" aria-hidden="true"></div>' +
+      '<div class="ms-stand"><div class="ms-look"><div class="ms-body" title="Merpi">' + ART.merpi('') + '</div></div>' +
+      '<div class="ms-emote" aria-hidden="true"></div></div></div>';
+  }
+  const MS_ACTS = ['hop', 'droop', 'spin', 'fly', 'cheer', 'shake', 'peek'];
+  let msActT = null, msEmoT = null, msSleepT = null;
+  function mascotAct(act, ms) {
+    const m = $('#mascot');
+    if (!m || reduceMotion()) return;
+    MS_ACTS.forEach(a => m.classList.remove('act-' + a));
+    void m.offsetWidth;
+    m.classList.add('act-' + act);
+    clearTimeout(msActT);
+    msActT = setTimeout(() => m.classList.remove('act-' + act), ms || 800);
+  }
+  function mascotEmote(html, ms) {
+    const e = $('#mascot .ms-emote');
+    if (!e) return;
+    mascotWake();
+    e.innerHTML = html;
+    restart(e, 'show');
+    clearTimeout(msEmoT);
+    msEmoT = setTimeout(() => e.classList.remove('show'), ms || 1600);
+  }
+  // tertidur setelah 30 detik tanpa kejadian; bangun lagi saat ada kejadian atau diketuk
+  function mascotWake() {
+    const m = $('#mascot');
+    if (!m) return;
+    if (m.classList.contains('sleep')) {
+      m.classList.remove('sleep');
+      const mp = $('.merpi', m); if (mp) mp.classList.remove('is-sleep');
+      const e = $('.ms-emote', m); if (e) e.classList.remove('show', 'zz');
+    }
+    clearTimeout(msSleepT);
+    msSleepT = setTimeout(() => {
+      const mm = $('#mascot');
+      if (!mm || !App.S || App.S.over || merpiMood) return;
+      mm.classList.add('sleep');
+      const mp = $('.merpi', mm); if (mp) mp.classList.add('is-sleep');
+      const e = $('.ms-emote', mm);
+      if (e) { e.innerHTML = '<span class="ms-zz">z<i>z</i><b>Z</b></span>'; e.classList.add('show', 'zz'); }
+    }, 30000);
+  }
+  // menoleh ke petak: --lx -1 (kiri) .. 1 (kanan), --ly -1 (belakang/atas) .. 1 (depan/bawah)
+  function mascotLook(tile) {
+    const m = $('#mascot'), b = $('#board');
+    if (!m || !b) return;
+    let lx = 0, ly = 0;
+    if (tile != null) {
+      const a = tileAnchor(tile), W = b.offsetWidth || 1, H = b.offsetHeight || 1;
+      lx = Math.max(-1, Math.min(1, (a.x - W / 2) / (W * 0.36)));
+      ly = Math.max(-1, Math.min(1, (a.y - H / 2) / (H * 0.36)));
+    }
+    m.style.setProperty('--lx', lx.toFixed(2));
+    m.style.setProperty('--ly', ly.toFixed(2));
   }
   const fill = (s, S) => s.replace('{n}', S && S.players[S.turn.p] ? S.players[S.turn.p].name : '');
 
@@ -5254,6 +5376,7 @@ main { position: relative; }
       App.aim = null;
       if (fresh && !S.over) {
         pulse(tl, 'pop', 900);
+        mascotLook(cur.pos); mascotWake();
         if (controls(S.turn.p)) merpiSay(fill(pick(D.MERPI.turn), S), '', 2400);
         if (is3d()) { if (auto3d()) camHold(false); else if (App.cam.zoomed && Date.now() >= App.cam.manualUntil) camFocus(cur.pos, true, 500, true); }
         else if (camAuto()) camHold(false); else camFocus(cur.pos, true, 500, true);
@@ -5426,8 +5549,9 @@ main { position: relative; }
       switch (e.t) {
         case 'dice':
           if (fresh) {
+            mascotLook(ns.players[e.p].pos); mascotEmote(ic('dice'), 1100); mascotAct('peek', 700);
             await rollDice(e.d, e.dbl, e.aim, e.hit);
-            if (e.dbl && !ns.players[e.p].island) merpiSay(pick(D.MERPI.doubles), 'wow', 1600);
+            if (e.dbl && !ns.players[e.p].island) { merpiSay(pick(D.MERPI.doubles), 'wow', 1600); mascotAct('spin', 900); mascotEmote(ic('sparkle'), 1400); }
           } else { setDieFace($('#die1'), e.d[0], false); setDieFace($('#die2'), e.d[1], false); }
           break;
         case 'move': if (fresh) await moveToken(e); break;
@@ -5435,11 +5559,11 @@ main { position: relative; }
           if (fresh) { tweenCash(e.p, e.d); moneyFx(evs, idx, used); }
           if (coinBurst++ < 2) SND.play(e.d > 0 ? 'coin' : 'pay');
           break;
-        case 'salary': if (fresh) { merpiSay(pick(D.MERPI.salary), 'happy', 1500); pulse($('#tok-' + e.p), 'cheer', 800); } break;
+        case 'salary': if (fresh) { merpiSay(pick(D.MERPI.salary), 'happy', 1500); mascotEmote(ic('coins'), 1400); pulse($('#tok-' + e.p), 'cheer', 800); } break;
         case 'love': if (fresh && Math.abs(e.d) >= 3) bfloat(e.p, (e.d > 0 ? '+' : '−') + Math.abs(e.d) + ic('heart'), 'love'); break;
         case 'buy': {
           SND.play('buy');
-          if (fresh) { flagDrop(e.tile, ns.players[e.p].color); merpiSay(pick(D.MERPI.buy), 'happy', 1800); await sleep(420 * SPD()); }
+          if (fresh) { flagDrop(e.tile, ns.players[e.p].color); merpiSay(pick(D.MERPI.buy), 'happy', 1800); mascotEmote(ic('flag'), 1500); await sleep(420 * SPD()); }
           const el = tileEl(e.tile); if (el) renderTile(el, ns, true);
           flashTile(e.tile);
           if (fresh && e.level > 0) await sleep(380 * SPD());
@@ -5453,7 +5577,8 @@ main { position: relative; }
             if (fresh) burst(e.tile, ['#FFD93D', '#FFF3B0', '#FFFFFF'], 16);
             banner('LANDMARK!', pname(e.p) + ' membangun landmark di ' + TILES[e.tile].name + '. Kebal diambil alih!', 'gold', 2400, 'b4');
             merpiSay(pick(D.MERPI.landmark), 'wow', 2200);
-          } else if (fresh) merpiSay(pick(D.MERPI.build), 'happy', 1600);
+            mascotAct('spin', 900); mascotEmote(ic('crown'), 2000);
+          } else if (fresh) { merpiSay(pick(D.MERPI.build), 'happy', 1600); mascotEmote(ic('build'), 1400); }
           if (fresh) await sleep(520 * SPD());
           break;
         }
@@ -5463,6 +5588,7 @@ main { position: relative; }
           if (fresh) stampDrop(e.tile, taker.color, 'DIAMBIL ALIH');
           banner('AMBIL ALIH!', taker.name + ' merebut ' + TILES[e.tile].name + ' dari ' + from.name + ' (' + fmt(e.price) + ').', 'take', 2400);
           merpiSay(pick(D.MERPI.takeover), 'wow', 2000);
+          if (fresh) { mascotAct('shake', 700); mascotEmote(ic('alert'), 1600); }
           const el = tileEl(e.tile); if (el) renderTile(el, ns, true);
           flashTile(e.tile);
           if (fresh) await sleep(620 * SPD());
@@ -5472,6 +5598,7 @@ main { position: relative; }
           if (fresh) {
             if (mine(e.p)) merpiSay(pick(D.MERPI.rent), 'sad', 1800);
             else if (mine(e.to)) merpiSay('Cuan! Tol masuk ' + fmt(e.amount) + '.', 'love', 1800);
+            mascotEmote(ic('coins'), 1400);
           }
           break;
         case 'festival': {
@@ -5482,6 +5609,7 @@ main { position: relative; }
           if (el) flashTile(e.tile);
           banner('FESTIVAL CINTA!', TILES[e.tile].name + ' jadi tuan rumah. Tol ×' + e.mult + '!', 'party', 2400, 'festival');
           merpiSay(pick(D.MERPI.festival), 'love', 2000);
+          if (fresh) { mascotAct('spin', 900); mascotEmote(ic('party'), 2000); }
           if (fresh) await sleep(700 * SPD());
           break;
         }
@@ -5504,12 +5632,12 @@ main { position: relative; }
         case 'sell': { const el = tileEl(e.tile); if (el) renderTile(el, ns, true); flashTile(e.tile); SND.play('pay'); break; }
         case 'island':
           SND.play('splash');
-          if (fresh) { pulse($('#tok-' + e.p), 'shake', 600); merpiSay(pick(D.MERPI.island), 'sad', 2000); }
+          if (fresh) { pulse($('#tok-' + e.p), 'shake', 600); merpiSay(pick(D.MERPI.island), 'sad', 2000); mascotEmote(ic('island'), 1800); }
           break;
         case 'free': SND.play('good'); if (fresh) pulse($('#tok-' + e.p), 'cheer', 800); break;
         case 'tour':
           SND.play('plane');
-          if (fresh) { merpiSay(pick(D.MERPI.travel), 'happy', 1800); pulse($('#tok-' + e.p), 'cheer', 800); }
+          if (fresh) { merpiSay(pick(D.MERPI.travel), 'happy', 1800); mascotAct('fly', 1500); mascotEmote(ic('plane'), 1500); pulse($('#tok-' + e.p), 'cheer', 800); }
           break;
         case 'tax': SND.play('pay'); break;
         case 'card': {
@@ -5518,6 +5646,7 @@ main { position: relative; }
           if (!fresh) pulse($('#deck'), 'pull', 800);
           if (fresh && !controls(e.p)) peekCard(e);
           else if (fresh) merpiSay(pick(D.MERPI.card), 'think', 1200);
+          if (fresh) mascotEmote(ic('letter'), 1500);
           break;
         }
         case 'gameover': {
@@ -5526,6 +5655,7 @@ main { position: relative; }
             SND.play('win');
             banner({ triple: 'TRIPLE MONOPOLI!', line: 'MONOPOLI JALUR!', spots: 'MONOPOLI WISATA!' }[o.reason], pname(o.winner) + ' menang instan!', 'gold', 2600, 'b4');
             merpiSay(pick(D.MERPI.win), 'love', 2600);
+            mascotAct('spin', 900); mascotEmote(ic('trophy'), 2600);
             if (fresh) await sleep(1700 * SPD());
           }
           break;
@@ -5533,7 +5663,7 @@ main { position: relative; }
         case 'achievement': achievementFx(e, ns, fresh); break;
         case 'bankrupt': SND.play('bad'); toast(pname(e.p) + ' bangkrut.', { icon: 'alert', kind: 'err' }); banner('BANGKRUT!', pname(e.p) + ' keluar dari permainan.', 'warn', 2000); break;
         case 'skip': toast(pname(e.p) + ' kehilangan giliran.', { icon: 'pause' }); break;
-        case 'challenge': if (e.ok) { SND.play('good'); if (fresh) merpiSay('Romantis banget!', 'love', 1600); } break;
+        case 'challenge': if (e.ok) { SND.play('good'); if (fresh) { merpiSay('Romantis banget!', 'love', 1600); mascotEmote(ic('heart'), 1500); } } break;
         case 'power': SND.play('card'); if (fresh) bfloat(e.p, ic(D.POWER[e.power].icon), 'love'); break;
         case 'letter': G.LoveUI.onLetter && G.LoveUI.onLetter(e.p); break;
         default: break;

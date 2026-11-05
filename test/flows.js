@@ -297,8 +297,12 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   const bg = await page.evaluate(() => ({ three: !!window.THREE, canvas: document.querySelectorAll('.page-sky canvas').length, blobs: document.querySelectorAll('.page-sky i').length, anim: document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length }));
   ok('latar: diam & ringan (tanpa Three.js, kanvas, atau animasi)', !bg.three && !bg.canvas && !bg.blobs && !bg.anim, JSON.stringify(bg));
   await newGame('');
-  const gl = await page.evaluate(() => { const g = document.querySelector('#board .center .globe-2d'); const r = g && g.getBoundingClientRect(); return { has: !!g, w: r ? Math.round(r.width) : 0, three: !!window.THREE }; });
-  ok('tengah papan: globe diam tampil', gl.has && gl.w > 40 && !gl.three, JSON.stringify(gl));
+  const gl = await page.evaluate(() => { const g = document.querySelector('#board .center #mascot .ms-body'); const r = g && g.getBoundingClientRect(); return { has: !!g, w: r ? Math.round(r.width) : 0, three: !!window.THREE, globe: !!document.querySelector('.globe-2d') }; });
+  ok('tengah papan: Merpi besar tampil (tanpa Three.js)', gl.has && gl.w > 40 && !gl.three && !gl.globe, JSON.stringify(gl));
+  // diketuk: Merpi bereaksi (gelembung kata di panel + gerak), menoleh ke pion yang jalan
+  await page.click('#mascot .ms-body');
+  const tap = await page.evaluate(() => ({ bub: document.getElementById('bubble').classList.contains('show'), act: [...document.getElementById('mascot').classList].filter(c => c.startsWith('act-')).join(' ') }));
+  ok('Merpi besar: diketuk menjawab & bergerak', tap.bub && /act-spin/.test(tap.act), JSON.stringify(tap));
   await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
 
   // 24b. Mode online: layanan tidak bisa dihubungi → petunjuk + Coba lagi

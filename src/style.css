@@ -71,10 +71,9 @@ p { margin: 0; }
 svg.art { display: block; width: 100%; height: 100%; overflow: visible; }
 .coin-ic { display: inline-block; width: .95em; height: .95em; border-radius: 50%; flex: none; vertical-align: -0.12em; background: radial-gradient(circle at 35% 30%, #FFF1B0 0 18%, transparent 19%), radial-gradient(circle, #FFD54A 0 55%, #F2B416 56% 100%); box-shadow: inset 0 0 0 1.5px #C98D06; }
 .page-sky { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(70% 60% at 0% 0%, color-mix(in srgb, var(--brand-soft) 85%, transparent), transparent 70%), radial-gradient(65% 55% at 100% 100%, color-mix(in srgb, var(--bg-2) 95%, transparent), transparent 72%), var(--bg); }
-/* globe ilustrasi diam di tengah papan (saat panel aksi ada di luar papan: kamera 3D & ponsel) */
-.globe-2d { display: none; position: absolute; left: 50%; top: 44%; width: 62cqmin; aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
-.globe-2d svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.game.v3d .globe-2d, .game.layout-compact .globe-2d, .game.layout-land .globe-2d { display: block; }
+/* Merpi besar di tengah papan (saat panel aksi ada di luar papan: kamera 3D & ponsel), berdiri di atas alas globe */
+.mascot { --mw: 34cqmin; display: none; position: absolute; left: 50%; top: 46%; width: var(--mw); aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
+.game.v3d .mascot, .game.layout-compact .mascot, .game.layout-land .mascot { display: block; }
 .game.v3d .center .cd-map, .game.layout-compact .center .cd-map, .game.layout-land .center .cd-map { opacity: 0; }
 
 /* ---------- header ---------- */
@@ -461,8 +460,11 @@ main { position: relative; }
 .board.b3d .tile:hover .t-face { transform: none; }
 .board.b3d .center { overflow: visible; transform-style: preserve-3d; }
 .board.b3d .center-deco { transform-style: preserve-3d; }
-/* globe berdiri di tengah papan seperti benda di atas meja (diputar balik sebesar kemiringan papan) */
-.board.b3d .globe-2d { top: auto; bottom: 30%; width: 36cqmin; translate: -50% 0; rotate: x calc(var(--tilt, 0deg) * -1); transform-origin: 50% 100%; }
+/* maskot: alas & bayangan rebah di bidang papan, Merpi berdiri tegak (diputar balik sebesar kemiringan papan) */
+.board.b3d .mascot, .board.b3d .ms-stand, .board.b3d .ms-look { transform-style: preserve-3d; }
+.board.b3d .mascot { --mw: 36cqmin; top: 52%; }
+.board.b3d .ms-shadow { translate: -50% -50% 2px; }
+.board.b3d .ms-stand { rotate: x calc(var(--tilt, 0deg) * -1); translate: 0 0 3px; }
 /* tablet tegak saat 3D: panel aksi menjadi dok di bawah papan */
 .game.v3d.layout-mid .board-col { position: relative; }
 .game.v3d.layout-mid .hud { display: block; position: absolute; left: 50%; bottom: 10px; z-index: 26; width: min(640px, calc(100% - 24px)); translate: -50% 0; }
@@ -793,6 +795,52 @@ main { position: relative; }
 /* salinan kartu yang terbang dari papan ke dialog (posisi & ukuran dianimasikan dari JS) */
 .fly-card { position: fixed; z-index: 400; display: grid; place-items: center; border-radius: 22px; background: linear-gradient(160deg, #FFB3CF, #FF7EAC); box-shadow: inset 0 0 0 5px #fff, 0 6px 0 #D5336E, 0 18px 30px -10px rgba(90, 20, 60, .45); pointer-events: none; will-change: left, top, width, height, transform; }
 .fly-card span { display: block; width: min(60%, 96px); aspect-ratio: 1; }
+
+/* ---------- Merpi besar di tengah papan ----------
+   .ms-stand memuat Merpi + ruang di atas kepala (lompat/terbang & emote) supaya isi tidak menjulur keluar kotak 3D */
+.ms-mat { position: absolute; inset: 0; border-radius: 50%; }
+.ms-mat svg { display: block; width: 100%; height: 100%; }
+.ms-shadow { position: absolute; left: 50%; top: 50%; width: 46%; height: 16%; translate: -50% -50%; border-radius: 50%; background: radial-gradient(closest-side, rgba(42, 24, 56, .42), rgba(42, 24, 56, 0)); }
+.ms-stand { position: absolute; left: 4%; right: 4%; bottom: calc(50% - var(--mw) * .065); height: 132%; transform-origin: 50% 100%; }
+.ms-look { position: absolute; left: 0; right: 0; bottom: 0; aspect-ratio: 1; transform: rotateY(calc(var(--lx, 0) * 24deg)); transition: transform .5s cubic-bezier(.3, 1.4, .5, 1); }
+.ms-body { width: 100%; height: 100%; pointer-events: auto; cursor: pointer; transform-origin: 50% 92%; -webkit-tap-highlight-color: transparent; }
+.ms-body .merpi .mp-shadow { display: none; }
+.ms-body .merpi .mp-eyes, .ms-body .merpi .mp-blink, .ms-body .merpi .mp-beak { transform: translate(calc(var(--lx, 0) * 5px), calc(var(--ly, 0) * 3px)); transition: transform .4s ease; }
+.ms-emote { position: absolute; left: 66%; top: 2%; display: grid; place-items: center; width: 30%; aspect-ratio: 1; border-radius: 50% 50% 50% 12%; background: var(--surface); color: var(--brand); box-shadow: inset 0 0 0 .5cqmin var(--line), 0 .7cqmin 0 var(--line); opacity: 0; transform: scale(.3) translateY(30%); transform-origin: 10% 100%; transition: opacity .2s, transform .35s cubic-bezier(.3, 1.6, .5, 1); }
+.ms-emote.show { opacity: 1; transform: none; }
+.ms-emote .ic { width: 58%; height: 58%; }
+.ms-zz { font: 700 4.4cqmin/1 var(--fd); color: var(--violet); letter-spacing: .02em; }
+.ms-zz i, .ms-zz b { font-style: normal; display: inline-block; }
+.ms-zz i { translate: 0 -20%; font-size: .85em; }
+.ms-zz b { translate: 0 -45%; font-size: 1.2em; }
+.mascot.sleep .ms-emote { animation: zzFloat 2.4s ease-in-out infinite; }
+@keyframes zzFloat { 50% { transform: translateY(-8%); } }
+#mascot .merpi.is-sleep .mp-eyes-open { display: none; }
+#mascot .merpi.is-sleep .mp-blink { display: inline; opacity: 1; animation: none; }
+#mascot .merpi.is-sleep .mp-bob { animation: mpSleep 3.6s ease-in-out infinite; }
+#mascot .merpi.is-sleep .mp-wing-l, #mascot .merpi.is-sleep .mp-wing-r { animation: none; }
+@keyframes mpSleep { 50% { transform: translateY(2px) rotate(-4deg) scaleY(.97); } }
+.mascot.act-hop .ms-body { animation: msHop .7s cubic-bezier(.3, 1.5, .5, 1); }
+.mascot.act-peek .ms-body { animation: msPeek .7s ease; }
+.mascot.act-cheer .ms-body { animation: msCheer .8s ease; }
+.mascot.act-droop .ms-body { animation: msDroop 1s ease; }
+.mascot.act-shake .ms-body { animation: msShake .7s ease; }
+.mascot.act-spin .ms-body { animation: msSpin .9s cubic-bezier(.4, 0, .3, 1); }
+.mascot.act-fly .ms-body { animation: msFly 1.5s ease-in-out; }
+.mascot.act-fly .merpi .mp-wing-l { animation: flapL .18s ease-in-out infinite; }
+.mascot.act-fly .merpi .mp-wing-r { animation: flapR .18s ease-in-out infinite; }
+.mascot.act-hop .ms-shadow, .mascot.act-cheer .ms-shadow { animation: msShHop .7s cubic-bezier(.3, 1.5, .5, 1); }
+.mascot.act-spin .ms-shadow { animation: msShHop .9s ease; }
+.mascot.act-fly .ms-shadow { animation: msShFly 1.5s ease-in-out; }
+@keyframes msHop { 35% { transform: translateY(-14%) scale(.96, 1.06); } 70% { transform: translateY(1%) scale(1.06, .94); } }
+@keyframes msPeek { 40% { transform: translateY(-4%) rotate(calc(var(--lx, 0) * 8deg)); } }
+@keyframes msCheer { 25% { transform: translateY(-10%) rotate(-9deg); } 55% { transform: translateY(-6%) rotate(9deg); } 80% { transform: translateY(0) scale(1.05, .95); } }
+@keyframes msDroop { 40%, 70% { transform: translateY(3%) rotate(-6deg) scaleY(.92); } }
+@keyframes msShake { 20%, 60% { transform: translateX(-6%) rotate(-5deg); } 40%, 80% { transform: translateX(6%) rotate(5deg); } }
+@keyframes msSpin { 0% { transform: none; } 40% { transform: translateY(-14%) rotateY(200deg); } 80% { transform: translateY(0) rotateY(360deg); } 90% { transform: scale(1.05, .95) rotateY(360deg); } 100% { transform: rotateY(360deg); } }
+@keyframes msFly { 0%, 100% { transform: none; } 25% { transform: translateY(-22%) rotate(-6deg); } 50% { transform: translateY(-20%) translateX(-5%) rotate(5deg); } 75% { transform: translateY(-22%) translateX(5%) rotate(-4deg); } }
+@keyframes msShHop { 35% { transform: scale(.68); opacity: .55; } }
+@keyframes msShFly { 25%, 75% { transform: scale(.5); opacity: .4; } }
 
 /* panggung: Merpi, dadu, aksi */
 .stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; gap: 1.6cqh; padding: 3.6cqh 7% 3cqh; z-index: 2; }

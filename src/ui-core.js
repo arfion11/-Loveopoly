@@ -719,14 +719,7 @@
       '<path d="M340 92c-8-6-14-12-14-19a7 7 0 0 1 14-3 7 7 0 0 1 14 3c0 7-6 13-14 19z" fill="#7B61FF" stroke="#3A2B4A" stroke-width="2"/>' +
       (still ? '<g class="cd-plane" transform="translate(250 210) rotate(-40)">' + plane + '</g>' : '<g class="cd-plane">' + plane + '<animateMotion dur="9s" repeatCount="indefinite" rotate="auto"><mpath href="#cdRoute"/></animateMotion></g>') +
       '</svg><div class="cd-logo">Loveopoly</div><div class="cd-tag">Long Distance · One Destination</div>' +
-      '<div class="globe-2d"><svg viewBox="0 0 200 200"><defs><radialGradient id="glOcean" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient></defs>' +
-        '<ellipse cx="100" cy="186" rx="46" ry="7" fill="#2A1838" opacity=".14"/>' +
-        '<circle cx="100" cy="96" r="74" fill="url(#glOcean)" stroke="#3A2B4A" stroke-width="3"/>' +
-        '<g fill="#7FD9AE" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"><path d="M58 62c10-12 30-14 40-6 6 5 2 12-6 14-8 2-6 10 2 14 6 3 4 12-6 12-10 0-16 8-24 4-10-5-14-26-6-38z"/><path d="M118 44c14-2 28 6 34 18 3 7-4 9-10 6-7-4-14 0-12 8 2 7-6 10-12 4-6-6-14-6-14-16 0-10 6-18 14-20z"/><path d="M110 112c10-4 24 0 30 10 5 9-2 22-12 26-9 4-16-2-16-10 0-6-8-8-8-14 0-6 0-10 6-12z"/></g>' +
-        '<path d="M44 120c30 26 84 30 116 6" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9" opacity=".85"/>' +
-        '<path d="M128 22c-4-6-13-5-13 3 0 6 7 10 13 15 6-5 13-9 13-15 0-8-9-9-13-3z" fill="#FF4F8B" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"/>' +
-        '<path d="M128 40v10" stroke="#3A2B4A" stroke-width="2.5" stroke-linecap="round"/>' +
-        '<ellipse cx="74" cy="70" rx="16" ry="9" fill="#fff" opacity=".35" transform="rotate(-30 74 70)"/></svg></div>' +
+      mascotHTML() +
       '<div class="deck" id="deck"><span class="dk dk3"></span><span class="dk dk2"></span><span class="dk dk1">' + ART.art('card') + '</span></div></div>';
     b.appendChild(c);
     const tk = document.createElement('div');
@@ -735,6 +728,9 @@
     b.appendChild(tk);
     buildStage();
     placeStage();
+    const mbody = $('#mascot .ms-body');
+    if (mbody) mbody.onclick = () => merpiPoke();
+    mascotWake();
     if (!reduceMotion()) {
       b.classList.add('enter');
       setTimeout(() => b.classList.remove('enter'), 1600);
@@ -979,6 +975,7 @@
       el.style.transition = 'transform ' + ms + 'ms cubic-bezier(.45,0,.25,1)';
       restart(el, fly ? 'plane' : 'fly');
       camFocus(e.to, true, ms);
+      mascotLook(e.to);
       placeToken(e.p, e.to, 1);
       SND.play(fly ? 'plane' : 'whoosh');
       await sleep(ms + 30);
@@ -997,6 +994,7 @@
       el.style.transition = 'transform ' + per + 'ms cubic-bezier(.35,.1,.3,1)';
       placeToken(e.p, pos, 1);
       camFocus(pos, true, per + 60);
+      mascotLook(pos);
       restart(el, 'hop');
       pulse(tileEl(pos), 'stepped', 380);
       SND.play('step');
@@ -1166,9 +1164,15 @@
   function merpiSay(text, mood, ms) {
     const m = $('#stage .merpi'), bub = $('#bubble');
     if (!m || !bub) return;
-    MOODS.forEach(x => m.classList.remove('is-' + x));
+    const big = $('#mascot .merpi');
+    const all = big ? [m, big] : [m];
+    all.forEach(x => MOODS.forEach(k => x.classList.remove('is-' + k)));
     merpiMood = mood || '';
-    if (mood) m.classList.add('is-' + mood);
+    if (mood) all.forEach(x => x.classList.add('is-' + mood));
+    mascotWake();
+    if (mood === 'happy' || mood === 'love') mascotAct('hop', 700);
+    else if (mood === 'wow') mascotAct('cheer', 800);
+    else if (mood === 'sad') mascotAct('droop', 1000);
     if (text) {
       bub.innerHTML = '<span>' + esc(text) + '</span>';
       restart(bub, 'show');
@@ -1177,7 +1181,7 @@
     else if (mood === 'sad') pulse($('#merpiBtn'), 'droop', 900);
     clearTimeout(merpiTimer);
     merpiTimer = setTimeout(() => {
-      MOODS.forEach(x => m.classList.remove('is-' + x));
+      all.forEach(x => MOODS.forEach(k => x.classList.remove('is-' + k)));
       merpiMood = '';
       bub.classList.remove('show');
     }, ms || 2200);
@@ -1185,6 +1189,76 @@
   function merpiPoke() {
     SND.play('chirp');
     merpiSay(pick(D.MERPI.poke), pick(['happy', 'love', 'wow']), 2600);
+    mascotAct('spin', 900);
+    mascotEmote(ic('heart'), 1400);
+  }
+
+  // ---------- Merpi besar di tengah papan (ponsel & kamera 3D, menggantikan globe) ----------
+  // berdiri tegak di atas alas globe; menoleh ke pion yang aktif, bereaksi lewat gerak (kelas act-*) & ikon emote,
+  // tertidur bila lama tidak ada kejadian. Teks tetap di gelembung panel aksi (wilayah aria-live).
+  // Semua isi berada di dalam kotak .ms-stand (elemen 3D tidak boleh menjulur keluar kotaknya).
+  function mascotHTML() {
+    const land = '<g fill="#7FD9AE" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"><path d="M50 60c10-12 30-14 40-6 6 5 2 12-6 14-8 2-6 10 2 14 6 3 4 12-6 12-10 0-16 8-24 4-10-5-14-26-6-38z"/><path d="M122 48c14-2 28 6 34 18 3 7-4 9-10 6-7-4-14 0-12 8 2 7-6 10-12 4-6-6-14-6-14-16 0-10 6-18 14-20z"/><path d="M104 126c10-4 24 0 30 10 5 9-2 22-12 26-9 4-16-2-16-10 0-6-8-8-8-14 0-6 0-10 6-12z"/><path d="M40 122c8-3 16 2 16 9s-8 10-14 7-8-13-2-16z"/></g>';
+    return '<div class="mascot" id="mascot">' +
+      '<div class="ms-mat" aria-hidden="true"><svg viewBox="0 0 200 200"><defs><radialGradient id="msOcean" cx="40%" cy="36%" r="72%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient></defs>' +
+        '<circle cx="100" cy="100" r="94" fill="#fff" stroke="#3A2B4A" stroke-width="3"/>' +
+        '<circle cx="100" cy="100" r="84" fill="url(#msOcean)" stroke="#3A2B4A" stroke-width="2.5"/>' + land +
+        '<circle cx="100" cy="100" r="89" fill="none" stroke="#FF7EAC" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></svg></div>' +
+      '<div class="ms-shadow" aria-hidden="true"></div>' +
+      '<div class="ms-stand"><div class="ms-look"><div class="ms-body" title="Merpi">' + ART.merpi('') + '</div></div>' +
+      '<div class="ms-emote" aria-hidden="true"></div></div></div>';
+  }
+  const MS_ACTS = ['hop', 'droop', 'spin', 'fly', 'cheer', 'shake', 'peek'];
+  let msActT = null, msEmoT = null, msSleepT = null;
+  function mascotAct(act, ms) {
+    const m = $('#mascot');
+    if (!m || reduceMotion()) return;
+    MS_ACTS.forEach(a => m.classList.remove('act-' + a));
+    void m.offsetWidth;
+    m.classList.add('act-' + act);
+    clearTimeout(msActT);
+    msActT = setTimeout(() => m.classList.remove('act-' + act), ms || 800);
+  }
+  function mascotEmote(html, ms) {
+    const e = $('#mascot .ms-emote');
+    if (!e) return;
+    mascotWake();
+    e.innerHTML = html;
+    restart(e, 'show');
+    clearTimeout(msEmoT);
+    msEmoT = setTimeout(() => e.classList.remove('show'), ms || 1600);
+  }
+  // tertidur setelah 30 detik tanpa kejadian; bangun lagi saat ada kejadian atau diketuk
+  function mascotWake() {
+    const m = $('#mascot');
+    if (!m) return;
+    if (m.classList.contains('sleep')) {
+      m.classList.remove('sleep');
+      const mp = $('.merpi', m); if (mp) mp.classList.remove('is-sleep');
+      const e = $('.ms-emote', m); if (e) e.classList.remove('show', 'zz');
+    }
+    clearTimeout(msSleepT);
+    msSleepT = setTimeout(() => {
+      const mm = $('#mascot');
+      if (!mm || !App.S || App.S.over || merpiMood) return;
+      mm.classList.add('sleep');
+      const mp = $('.merpi', mm); if (mp) mp.classList.add('is-sleep');
+      const e = $('.ms-emote', mm);
+      if (e) { e.innerHTML = '<span class="ms-zz">z<i>z</i><b>Z</b></span>'; e.classList.add('show', 'zz'); }
+    }, 30000);
+  }
+  // menoleh ke petak: --lx -1 (kiri) .. 1 (kanan), --ly -1 (belakang/atas) .. 1 (depan/bawah)
+  function mascotLook(tile) {
+    const m = $('#mascot'), b = $('#board');
+    if (!m || !b) return;
+    let lx = 0, ly = 0;
+    if (tile != null) {
+      const a = tileAnchor(tile), W = b.offsetWidth || 1, H = b.offsetHeight || 1;
+      lx = Math.max(-1, Math.min(1, (a.x - W / 2) / (W * 0.36)));
+      ly = Math.max(-1, Math.min(1, (a.y - H / 2) / (H * 0.36)));
+    }
+    m.style.setProperty('--lx', lx.toFixed(2));
+    m.style.setProperty('--ly', ly.toFixed(2));
   }
   const fill = (s, S) => s.replace('{n}', S && S.players[S.turn.p] ? S.players[S.turn.p].name : '');
 
@@ -1294,6 +1368,7 @@
       App.aim = null;
       if (fresh && !S.over) {
         pulse(tl, 'pop', 900);
+        mascotLook(cur.pos); mascotWake();
         if (controls(S.turn.p)) merpiSay(fill(pick(D.MERPI.turn), S), '', 2400);
         if (is3d()) { if (auto3d()) camHold(false); else if (App.cam.zoomed && Date.now() >= App.cam.manualUntil) camFocus(cur.pos, true, 500, true); }
         else if (camAuto()) camHold(false); else camFocus(cur.pos, true, 500, true);
@@ -1466,8 +1541,9 @@
       switch (e.t) {
         case 'dice':
           if (fresh) {
+            mascotLook(ns.players[e.p].pos); mascotEmote(ic('dice'), 1100); mascotAct('peek', 700);
             await rollDice(e.d, e.dbl, e.aim, e.hit);
-            if (e.dbl && !ns.players[e.p].island) merpiSay(pick(D.MERPI.doubles), 'wow', 1600);
+            if (e.dbl && !ns.players[e.p].island) { merpiSay(pick(D.MERPI.doubles), 'wow', 1600); mascotAct('spin', 900); mascotEmote(ic('sparkle'), 1400); }
           } else { setDieFace($('#die1'), e.d[0], false); setDieFace($('#die2'), e.d[1], false); }
           break;
         case 'move': if (fresh) await moveToken(e); break;
@@ -1475,11 +1551,11 @@
           if (fresh) { tweenCash(e.p, e.d); moneyFx(evs, idx, used); }
           if (coinBurst++ < 2) SND.play(e.d > 0 ? 'coin' : 'pay');
           break;
-        case 'salary': if (fresh) { merpiSay(pick(D.MERPI.salary), 'happy', 1500); pulse($('#tok-' + e.p), 'cheer', 800); } break;
+        case 'salary': if (fresh) { merpiSay(pick(D.MERPI.salary), 'happy', 1500); mascotEmote(ic('coins'), 1400); pulse($('#tok-' + e.p), 'cheer', 800); } break;
         case 'love': if (fresh && Math.abs(e.d) >= 3) bfloat(e.p, (e.d > 0 ? '+' : '−') + Math.abs(e.d) + ic('heart'), 'love'); break;
         case 'buy': {
           SND.play('buy');
-          if (fresh) { flagDrop(e.tile, ns.players[e.p].color); merpiSay(pick(D.MERPI.buy), 'happy', 1800); await sleep(420 * SPD()); }
+          if (fresh) { flagDrop(e.tile, ns.players[e.p].color); merpiSay(pick(D.MERPI.buy), 'happy', 1800); mascotEmote(ic('flag'), 1500); await sleep(420 * SPD()); }
           const el = tileEl(e.tile); if (el) renderTile(el, ns, true);
           flashTile(e.tile);
           if (fresh && e.level > 0) await sleep(380 * SPD());
@@ -1493,7 +1569,8 @@
             if (fresh) burst(e.tile, ['#FFD93D', '#FFF3B0', '#FFFFFF'], 16);
             banner('LANDMARK!', pname(e.p) + ' membangun landmark di ' + TILES[e.tile].name + '. Kebal diambil alih!', 'gold', 2400, 'b4');
             merpiSay(pick(D.MERPI.landmark), 'wow', 2200);
-          } else if (fresh) merpiSay(pick(D.MERPI.build), 'happy', 1600);
+            mascotAct('spin', 900); mascotEmote(ic('crown'), 2000);
+          } else if (fresh) { merpiSay(pick(D.MERPI.build), 'happy', 1600); mascotEmote(ic('build'), 1400); }
           if (fresh) await sleep(520 * SPD());
           break;
         }
@@ -1503,6 +1580,7 @@
           if (fresh) stampDrop(e.tile, taker.color, 'DIAMBIL ALIH');
           banner('AMBIL ALIH!', taker.name + ' merebut ' + TILES[e.tile].name + ' dari ' + from.name + ' (' + fmt(e.price) + ').', 'take', 2400);
           merpiSay(pick(D.MERPI.takeover), 'wow', 2000);
+          if (fresh) { mascotAct('shake', 700); mascotEmote(ic('alert'), 1600); }
           const el = tileEl(e.tile); if (el) renderTile(el, ns, true);
           flashTile(e.tile);
           if (fresh) await sleep(620 * SPD());
@@ -1512,6 +1590,7 @@
           if (fresh) {
             if (mine(e.p)) merpiSay(pick(D.MERPI.rent), 'sad', 1800);
             else if (mine(e.to)) merpiSay('Cuan! Tol masuk ' + fmt(e.amount) + '.', 'love', 1800);
+            mascotEmote(ic('coins'), 1400);
           }
           break;
         case 'festival': {
@@ -1522,6 +1601,7 @@
           if (el) flashTile(e.tile);
           banner('FESTIVAL CINTA!', TILES[e.tile].name + ' jadi tuan rumah. Tol ×' + e.mult + '!', 'party', 2400, 'festival');
           merpiSay(pick(D.MERPI.festival), 'love', 2000);
+          if (fresh) { mascotAct('spin', 900); mascotEmote(ic('party'), 2000); }
           if (fresh) await sleep(700 * SPD());
           break;
         }
@@ -1544,12 +1624,12 @@
         case 'sell': { const el = tileEl(e.tile); if (el) renderTile(el, ns, true); flashTile(e.tile); SND.play('pay'); break; }
         case 'island':
           SND.play('splash');
-          if (fresh) { pulse($('#tok-' + e.p), 'shake', 600); merpiSay(pick(D.MERPI.island), 'sad', 2000); }
+          if (fresh) { pulse($('#tok-' + e.p), 'shake', 600); merpiSay(pick(D.MERPI.island), 'sad', 2000); mascotEmote(ic('island'), 1800); }
           break;
         case 'free': SND.play('good'); if (fresh) pulse($('#tok-' + e.p), 'cheer', 800); break;
         case 'tour':
           SND.play('plane');
-          if (fresh) { merpiSay(pick(D.MERPI.travel), 'happy', 1800); pulse($('#tok-' + e.p), 'cheer', 800); }
+          if (fresh) { merpiSay(pick(D.MERPI.travel), 'happy', 1800); mascotAct('fly', 1500); mascotEmote(ic('plane'), 1500); pulse($('#tok-' + e.p), 'cheer', 800); }
           break;
         case 'tax': SND.play('pay'); break;
         case 'card': {
@@ -1558,6 +1638,7 @@
           if (!fresh) pulse($('#deck'), 'pull', 800);
           if (fresh && !controls(e.p)) peekCard(e);
           else if (fresh) merpiSay(pick(D.MERPI.card), 'think', 1200);
+          if (fresh) mascotEmote(ic('letter'), 1500);
           break;
         }
         case 'gameover': {
@@ -1566,6 +1647,7 @@
             SND.play('win');
             banner({ triple: 'TRIPLE MONOPOLI!', line: 'MONOPOLI JALUR!', spots: 'MONOPOLI WISATA!' }[o.reason], pname(o.winner) + ' menang instan!', 'gold', 2600, 'b4');
             merpiSay(pick(D.MERPI.win), 'love', 2600);
+            mascotAct('spin', 900); mascotEmote(ic('trophy'), 2600);
             if (fresh) await sleep(1700 * SPD());
           }
           break;
@@ -1573,7 +1655,7 @@
         case 'achievement': achievementFx(e, ns, fresh); break;
         case 'bankrupt': SND.play('bad'); toast(pname(e.p) + ' bangkrut.', { icon: 'alert', kind: 'err' }); banner('BANGKRUT!', pname(e.p) + ' keluar dari permainan.', 'warn', 2000); break;
         case 'skip': toast(pname(e.p) + ' kehilangan giliran.', { icon: 'pause' }); break;
-        case 'challenge': if (e.ok) { SND.play('good'); if (fresh) merpiSay('Romantis banget!', 'love', 1600); } break;
+        case 'challenge': if (e.ok) { SND.play('good'); if (fresh) { merpiSay('Romantis banget!', 'love', 1600); mascotEmote(ic('heart'), 1500); } } break;
         case 'power': SND.play('card'); if (fresh) bfloat(e.p, ic(D.POWER[e.power].icon), 'love'); break;
         case 'letter': G.LoveUI.onLetter && G.LoveUI.onLetter(e.p); break;
         default: break;

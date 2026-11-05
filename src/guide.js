@@ -55,18 +55,32 @@
     },
     {
       id: 'island', title: 'Pulau Rindu', say: 'Hiks… tapi ada banyak cara pulang!',
-      pts: ['Terdampar maksimal ' + RULES.islandTurns + ' giliran.', 'Dadu kembar = langsung keluar dan jalan. Atau bayar perahu ' + RULES.islandFee + ', pakai Tiket Pulang, atau selesaikan Rindu Challenge.', 'Di akhir permainan, terdampar bisa jadi tempat aman dari tol!'],
+      pts: ['Terdampar maksimal ' + RULES.islandTurns + ' giliran.', 'Dadu kembar = langsung keluar dan jalan. Atau bayar perahu ' + RULES.islandFee + ', atau pakai Tiket Pulang.', 'Rindu Challenge (sekali per terdampar): tantangan mode sulit. Lulus = keluar gratis, gagal = tetap di pulau.'],
       scene: () => '<div class="sc sc-island"><span class="g-isl">' + ART.art('island') + '</span>' + pawn(PINK, '🐻', 'bob') + '<span class="g-waves"><i></i><i></i></span><div class="g-opts"><span>' + ic('dice') + 'Kembar</span><span>' + ic('boat') + RULES.islandFee + '</span><span>' + ic('heart') + 'Tantangan</span></div></div>'
     },
     {
       id: 'cards', title: 'Kartu Cinta', say: 'Kartu apa ya kali ini?',
-      pts: ['Berhenti di petak Kartu Cinta untuk mengambil kartu.', 'Simpan: Malaikat Cinta, Kupon Tol 50%, Tiket Pulang.', 'Aksi: Badai Rindu, Tukar Kota, Festival Kilat, Renovasi Gratis, plus tantangan yang harus dibuktikan.'],
+      pts: ['Berhenti di petak Kartu Cinta untuk mengambil 1 dari ' + D.CARDS.length + ' kartu: rezeki, masalah LDR, perjalanan, aksi, dan tantangan.', 'Simpan: Malaikat Cinta, Kupon Tol 50%, Tiket Pulang. Aksi: Badai Rindu, Tukar Kota, Festival Kilat, Renovasi Gratis.', 'Ada juga pilihan nekat, misalnya Taruhan Nekat: dapat 200 tapi ke Pulau Rindu.'],
       scene: () => '<div class="sc sc-cards">' + [['Malaikat Cinta', 'Tol jadi 0', 'angel'], ['Badai Rindu', 'Bangunan lawan turun 1', 'storm'], ['Tukar Kota', 'Tukar kotamu dengan kota lawan', 'swap']].map((c, k) => '<span class="g-lc" style="--k:' + k + '"><span class="gc-back">' + ART.art('card') + '</span><span class="gc-front">' + ic(c[2]) + '<b>' + c[0] + '</b><small>' + c[1] + '</small></span></span>').join('') + '</div>'
     },
     {
+      id: 'proof', title: 'Tantangan wajib terbukti', say: 'Tidak ada lagi klik "Selesai". Buktikan!',
+      pts: ['Mini-game berwaktu dinilai otomatis: Kuis Keliling Dunia, Tebak Harga, Ingat Urutan, Hitung Ongkos, Susun Nama Kota, Tebak Emoji.', 'Lawan ikut main: Tebak Isi Hati, Dua Fakta Satu Bohong, Peragakan!. Game yang membandingkan jawaban.', 'Aksi Berani & Foto Bukti punya syarat sah yang jelas, dan lawan yang mengesahkan. Semua hasil tercatat sebagai bukti di log.'],
+      scene: () => '<div class="sc sc-proof">' +
+        '<span class="gp-card c1"><span class="gp-tag">' + ic('clock') + 'Dinilai game</span><span class="gp-timer"><i></i></span><span class="gp-emoji">🗼🥐💕</span><b class="gp-res">4/4 benar · 17,3 dtk</b></span>' +
+        '<span class="gp-card c2"><span class="gp-tag">' + ic('users') + 'Lawan ikut main</span><span class="gp-duo"><span class="gp-av" style="--c:' + PINK + '">🐻</span><b>?</b><span class="gp-av" style="--c:' + VIOLET + '">🐰</span></span><b class="gp-res">2/3 cocok</b></span>' +
+        '<span class="gp-card c3"><span class="gp-tag">' + ic('check') + 'Disahkan lawan</span><span class="gp-stamp">SAH!</span><b class="gp-res">Aksi Berani</b></span></div>'
+    },
+    {
+      id: 'photo', title: 'Foto Bukti & main berdua', say: 'Senyum… 3, 2, 1, cekrek!',
+      pts: ['Kartu Foto Bukti membuka kamera dengan hitungan 3-2-1 (atau unggah foto dari galeri).', 'Lawan menilai fotonya. Foto dipajang sebagai polaroid di tengah papan. Ketuk polaroid untuk melihat galeri bukti.', 'Main berdua di satu HP? Layar "Serahkan ke…" muncul supaya jawaban rahasia aman. Online: tiap pemain menjawab di HP-nya sendiri.'],
+      scene: () => '<div class="sc sc-photo"><span class="gph-cam"><span class="gph-lens">' + ART.merpi('is-happy') + '</span><b class="gph-cd"><i>3</i><i>2</i><i>1</i></b><span class="gph-flash"></span></span>' +
+        '<span class="gph-board"></span><span class="gph-pola"><span class="gph-img">' + ART.merpi('is-love') + '</span><small>Arfi ✓ Sah</small></span></div>'
+    },
+    {
       id: 'love', title: 'Love Meter & tantangan', say: 'Kemesraan juga strategi!',
-      pts: ['Love naik dari tantangan, kartu manis, dan lewat START.', 'Jadian, Bucin, Soulmate: gaji +20/+30/+40 dan tol +5–15%.', 'Tantangan wajib terbukti: mini-game berwaktu dinilai game, Tebak Isi Hati & Peragakan! melibatkan lawan, Aksi Berani & Foto Bukti disahkan lawan.'],
-      scene: () => '<div class="sc sc-love"><div class="g-meter">' + ic('heart') + '<span class="gm-bar"><i></i></span><span class="gm-tiers"><b>PDKT</b><b>Jadian</b><b>Bucin</b><b>Soulmate</b></span></div><div class="g-note">Truth: Hal apa dari pasanganmu yang paling kamu rindukan saat jauh?</div><span class="g-reward">' + coin + '+120 · ' + ic('heart') + '+8</span></div>'
+      pts: ['Love naik dari tantangan yang lulus, kartu manis, dan lewat START. Melewati tantangan mengurangi Love.', 'Jadian, Bucin, Soulmate: gaji +20/+30/+40 dan tol +5–15%.', 'Penilai yang adil juga ikut dapat Love, jadi main jujur itu menguntungkan.'],
+      scene: () => '<div class="sc sc-love"><div class="g-meter">' + ic('heart') + '<span class="gm-bar"><i></i></span><span class="gm-tiers"><b>PDKT</b><b>Jadian</b><b>Bucin</b><b>Soulmate</b></span></div><div class="g-note">Tebak Isi Hati: 2/3 cocok! Kalian berdua dapat hadiah.</div><span class="g-reward">' + coin + '+140 · ' + ic('heart') + '+10</span></div>'
     },
     {
       id: 'win', title: 'Cara menang', say: 'Siap jadi juragan cinta dunia?',

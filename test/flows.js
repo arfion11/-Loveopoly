@@ -198,13 +198,62 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   st = await S();
   ok('kartu: hadiah 150 diterima', st.players[0].cash === 2650, 'cash=' + st.players[0].cash);
 
-  // 15. Tantangan pasangan (kuis) -> jawaban benar
-  await newGame('S.queue.push({ type: "CHALLENGE", p: 0, ch: window.LOVE_DATA.CHALLENGES.find(c => c.type === "quiz").id, cat: "quiz", source: "card", redraws: 0 });');
+  // 15. Tantangan terbukti: tidak ada lagi "klik Selesai"; mini-game dinilai engine, duel & foto dinilai lawan
+  const jsClick = async sel => { await page.waitForSelector(sel, { state: 'visible', timeout: 8000 }); await page.$eval(sel, e => e.click()); await page.waitForTimeout(120); await settle(); };
+  const chGame = (id, mut) => newGame((mut || '') + 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "' + id + '", cat: "card", source: "card", redraws: 0 }); E.migrate(S);');
+  await chGame('tv');
   await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
-  const chTitle = await title();
-  await click('#bDone');
+  ok('tantangan: tidak ada tombol "Benar/Selesai" tanpa bukti', !(await page.$('#modalRoot #bDone')) && !!(await page.$('#modalRoot #bChGo')));
+  await jsClick('#bChGo');
+  const sol = await page.evaluate(() => window.LoveEngine.chSolve(window.LoveUI.App.S.queue[0]));
+  for (const k of sol) { await page.waitForSelector('#modalRoot [data-ans="' + k + '"]', { state: 'visible' }); await page.$eval('#modalRoot [data-ans="' + k + '"]', e => e.click()); await page.waitForTimeout(330); }
+  await settle();
   st = await S();
-  ok('tantangan: hadiah diterima', st.players[0].cash > 2500, chTitle + ' cash=' + st.players[0].cash);
+  ok('kuis: semua jawaban benar lewat klik → lulus + bukti tercatat', st.players[0].cash === 2650 && st.proofs.length === 1 && /4\/4 benar/.test(st.proofs[0].proof), JSON.stringify(st.proofs[0]));
+  await shot('15-challenge-proof');
+  // jawaban salah → gagal, tanpa hadiah
+  await chGame('em');
+  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await jsClick('#bChGo');
+  const sol2 = await page.evaluate(() => window.LoveEngine.chSolve(window.LoveUI.App.S.queue[0]));
+  for (const k of sol2) { const w = (k + 1) % 4; await page.waitForSelector('#modalRoot [data-ans="' + w + '"]', { state: 'visible' }); await page.$eval('#modalRoot [data-ans="' + w + '"]', e => e.click()); await page.waitForTimeout(330); }
+  await settle();
+  st = await S();
+  ok('tebak emoji: jawaban salah → gagal tanpa hadiah', st.players[0].cash === 2500 && st.proofs[0] && !st.proofs[0].ok, st.proofs[0] && st.proofs[0].proof);
+  // Rindu Challenge: gagal = tetap di pulau
+  await newGame('S.players[0].pos = 8; S.players[0].island = true;', null, [HUMANS[0], { name: 'Bot', kind: 'ai', avatar: '🤖', color: '#7B61FF' }]);
+  await act({ type: 'ISLAND_CH', p: 0 });
+  const rinduType = await page.evaluate(() => { const it = window.LoveUI.App.S.queue[0]; return window.LoveEngine.CH[it.ch].type + (it.hard ? ' (sulit)' : ''); });
+  await act({ type: 'CH_ANSWER', p: 0, answers: [], ms: 1000 });
+  st = await S();
+  ok('Rindu Challenge: jawaban salah → tetap di Pulau Rindu', st.players[0].island && st.players[0].islandCh && !st.queue.length && st.proofs.length === 1 && !st.proofs[0].ok, rinduType + ' · ' + (st.proofs[0] && st.proofs[0].proof));
+  // duel Tebak Isi Hati (dua pemain satu HP): layar serah-HP, jawaban rahasia, tebakan
+  await chGame('hs');
+  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await jsClick('#bChStep');
+  ok('tebak isi hati: layar "Serahkan ke Nadia" sebelum jawaban rahasia', /Serahkan ke Nadia/.test(await title()), await title());
+  await jsClick('#bGate');
+  for (const q of [0, 1, 2]) { await page.$eval('#modalRoot [data-sa="' + q + ':1"]', e => e.click()); await page.waitForTimeout(60); }
+  await jsClick('#bChSend');
+  await jsClick('#bGate');
+  for (const [q, o] of [[0, 1], [1, 1], [2, 3]]) { await page.$eval('#modalRoot [data-sa="' + q + ':' + o + '"]', e => e.click()); await page.waitForTimeout(60); }
+  await jsClick('#bChSend');
+  st = await S();
+  ok('tebak isi hati: 2/3 cocok → keduanya dapat hadiah', st.players[0].cash > 2500 && st.players[1].love > st.players[0].love - 20 && /2\/3 cocok/.test(st.proofs[0].proof), st.proofs[0] && st.proofs[0].proof);
+  // Foto Bukti lewat unggah foto → dinilai lawan → dipajang di papan
+  await chGame('ph1');
+  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAYAAAD+Bd/7AAAAGUlEQVR4nGP4z8Dwn4GBgYGJAQoYRgUAAPMSAv8Wfr4DAAAAAElFTkSuQmCC', 'base64');
+  await page.setInputFiles('#camFile', { name: 'bukti.png', mimeType: 'image/png', buffer: png });
+  await page.waitForFunction(() => { const b = document.querySelector('#modalRoot #bChSend'); return b && !b.disabled; }, null, { timeout: 5000 });
+  await jsClick('#bChSend');
+  await jsClick('#bGate');
+  ok('foto bukti: penilai melihat fotonya', !!(await page.$('#modalRoot .proof-photo img')));
+  await jsClick('#bJudgeOk');
+  await page.waitForTimeout(400);
+  st = await S();
+  ok('foto bukti: disahkan → hadiah + foto dipajang di papan', st.players[0].cash > 2500 && st.photos.length === 1 && !!(await page.$('#board #proofPin img')), 'photos=' + (st.photos || []).length);
+  await shot('15b-photo-proof');
 
   // 16. Pajak Rindu
   await newGame('own(1, 0, 2); S.players[0].pos = 28;');

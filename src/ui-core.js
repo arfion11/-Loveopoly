@@ -1468,6 +1468,8 @@
           else { ah = btn('cOpen', 'primary big attn', 'chevron', 'Buka Keputusan'); binds.push(['cOpen', () => G.LoveUI.syncModal(true)]); }
         } else {
           nh = '<span class="wait">' + (runsAI(a) ? ic('bot') : ic('clock')) + esc(who.name) + ' ' + esc(describeItem(S, it, false)) + ' ' + dots + '</span>';
+          // online: pemilik tantangan yang menunggu penilai boleh membatalkan (penilai pergi / tidak merespons)
+          if (it.type === 'CHALLENGE' && it.who !== it.p && controls(it.p)) { ah = btn('cChCancel', 'ghost', 'x', 'Batalkan tantangan', 'Lewati bila ' + who.name + ' tidak merespons'); binds.push(['cChCancel', () => act({ type: 'CH_RESOLVE', p: it.p, result: 'skip' })]); }
         }
       } else if (!controls(a)) {
         nh = '<span class="wait">' + (runsAI(a) ? ic('bot') + esc(cur.name) + ' sedang berpikir' : ic('clock') + 'Menunggu ' + esc(cur.name)) + ' ' + dots + '</span>';
@@ -1479,7 +1481,7 @@
           ah += btn('cRoll', 'go', 'dice', 'Cari Kembar', 'Lempar: dadu kembar = keluar dan jalan');
           ah += '<div class="isle-opts">' + btn('cIslePay', 'soft', 'boat', 'Bayar ' + RULES.islandFee, 'Bayar perahu dan lempar dadu biasa') +
             (p.cards.some(c => E.CARD[c].power === 'escape') ? btn('cIsleCard', 'soft lilac', 'key', 'Tiket Pulang') : '') +
-            (!p.islandCh ? btn('cIsleCh', 'soft rose', 'heart', 'Rindu Challenge', 'Selesaikan tantangan pasangan untuk keluar gratis') : '') + '</div>';
+            (!p.islandCh ? btn('cIsleCh', 'soft rose', 'heart', 'Rindu Challenge', 'Lulus tantangan mode sulit = keluar gratis. Gagal = tetap di pulau.') : '') + '</div>';
           nh = 'Terdampar! Percobaan ' + (p.islandTries + 1) + '/' + RULES.islandTurns + '. Kembar = keluar, atau pilih cara lain.';
         } else if (E.canRoll(S, a)) {
           if (S.settings.diceControl) {
@@ -1522,7 +1524,11 @@
       case 'TAKEOVER': return mine ? 'Ambil alih ' + t.name + '?' : 'mempertimbangkan ambil alih ' + t.name;
       case 'TAX': return mine ? 'Bayar Pajak Rindu.' : 'membayar Pajak Rindu';
       case 'CARD': return mine ? 'Buka Kartu Cinta.' : 'membuka Kartu Cinta';
-      case 'CHALLENGE': return mine ? 'Tantangan pasangan menunggu.' : 'mengerjakan tantangan pasangan';
+      case 'CHALLENGE': {
+        const ch = E.CH[it.ch], lb = ch ? D.CH_TYPES[ch.type].label : 'tantangan';
+        if (it.who != null && it.who !== it.p) return mine ? 'Giliranmu menilai ' + lb + '.' : S.players[it.who].name + ' sedang menilai ' + lb;
+        return mine ? lb + ' menunggu.' : 'mengerjakan ' + lb;
+      }
       case 'DEBT': return mine ? 'Uangmu kurang ' + fmt(it.amount - S.players[it.p].cash) + '.' : 'sedang mencari dana';
       case 'TARGET': return mine ? ({ festival: 'Pilih kota tuan rumah Festival Cinta di papan.', build: 'Pilih kotamu untuk dibangun di papan.', renov: 'Pilih kota untuk renovasi gratis.', storm: 'Pilih kota lawan untuk Badai Rindu.', swap: 'Pilih kota yang mau ditukar.' }[it.kind]) : ({ festival: 'memilih kota festival', build: 'memilih kota untuk dibangun', renov: 'memilih kota renovasi', storm: 'memilih sasaran badai', swap: 'memilih kota untuk ditukar' }[it.kind]);
       case 'TOUR': return mine ? 'World Tour: pilih tujuan di papan.' : 'memilih tujuan World Tour';
@@ -1530,9 +1536,41 @@
     }
   }
 
+  // polaroid foto bukti terakhir: rebah di bidang papan (seperti foto di meja); ketuk = galeri bukti
+  function renderProofPin(S) {
+    const c = $('#board .center');
+    if (!c) return;
+    const ph = S && S.photos && S.photos[S.photos.length - 1];
+    let pin = $('#proofPin', c);
+    if (!ph) { if (pin) pin.remove(); return; }
+    if (!pin) {
+      pin = document.createElement('button');
+      pin.type = 'button'; pin.id = 'proofPin'; pin.className = 'proof-pin';
+      pin.addEventListener('click', () => G.LoveUI.openProofs && G.LoveUI.openProofs());
+      c.appendChild(pin);
+    }
+    const k = S.photos.length + ':' + ph.r + ':' + ph.p;
+    if (pin.dataset.k === k) return;
+    pin.dataset.k = k;
+    pin.setAttribute('aria-label', 'Galeri foto bukti (' + S.photos.length + ')');
+    pin.innerHTML = '<img src="' + ph.img + '" alt=""><span class="pp-cap">' + esc(S.players[ph.p].name) + ' ' + (ph.ok ? '✓' : '✗') + '</span>' + (S.photos.length > 1 ? '<b class="pp-n">' + S.photos.length + '</b>' : '');
+  }
+  // foto bukti baru muncul besar di atas papan sebentar, lalu "jatuh" ke polaroid di papan
+  function showPhotoPop(ph, S) {
+    const vp = $('#boardVP'); if (!vp) return;
+    const old = $('.photo-pop', vp); if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'photo-pop' + (ph.ok ? '' : ' no');
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = '<figure><img src="' + ph.img + '" alt=""><figcaption><b>' + esc(S.players[ph.p].name) + '</b><span>' + (ph.ok ? 'Disahkan' : 'Ditolak') + (ph.judge >= 0 ? ' ' + esc(S.players[ph.judge].name) : '') + '</span></figcaption></figure>';
+    vp.appendChild(el);
+    setTimeout(() => el.classList.add('out'), reduceMotion() ? 2400 : 2600);
+    setTimeout(() => el.remove(), 3200);
+  }
   function renderAll() {
     const S = App.S;
     if (!S) return;
+    renderProofPin(S);
     renderHeader(S);
     renderBoard(S);
     renderTokens(S);
@@ -1723,7 +1761,21 @@
         case 'achievement': achievementFx(e, ns, fresh); break;
         case 'bankrupt': SND.play('bad'); toast(pname(e.p) + ' bangkrut.', { icon: 'alert', kind: 'err' }); banner('BANGKRUT!', pname(e.p) + ' keluar dari permainan.', 'warn', 2000); break;
         case 'skip': toast(pname(e.p) + ' kehilangan giliran.', { icon: 'pause' }); break;
-        case 'challenge': if (e.ok) { SND.play('good'); if (fresh) { merpiSay('Romantis banget!', 'love', 1600); mascotEmote(ic('heart'), 1500); } } break;
+        case 'challenge': {
+          if (e.dilemma) { SND.play('good'); break; }
+          SND.play(e.ok ? 'fanfare' : 'bad');
+          if (fresh) {
+            const ph = ns.photos && ns.photos[ns.photos.length - 1];
+            const isPhoto = ph && D.CH_TYPES.photo.label === e.label;
+            if (isPhoto) showPhotoPop(ph, ns);
+            else banner(e.ok ? 'LULUS!' : 'BELUM LULUS', pname(e.p) + ' · ' + e.label + ': ' + e.proof, e.ok ? 'gold' : 'warn', 2600);
+            merpiSay(e.ok ? pick(['Terbukti! Keren banget!', 'Sah! Hadiah cair~', 'Bukti lengkap, mantap!']) : pick(['Hampir! Coba lagi lain kali.', 'Belum terbukti, hehe.', 'Ups, bukti kurang kuat!']), e.ok ? 'love' : 'sad', 2000);
+            mascotEmote(ic(e.ok ? 'trophy' : 'x'), 1600);
+            if (e.ok) mascotAct('spin', 900);
+            await sleep(500 * SPD());
+          }
+          break;
+        }
         case 'power': SND.play('card'); if (fresh) bfloat(e.p, ic(D.POWER[e.power].icon), 'love'); break;
         case 'letter': G.LoveUI.onLetter && G.LoveUI.onLetter(e.p); break;
         default: break;

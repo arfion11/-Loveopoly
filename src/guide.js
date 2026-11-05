@@ -60,12 +60,12 @@
     },
     {
       id: 'cards', title: 'Kartu Cinta', say: 'Kartu apa ya kali ini?',
-      pts: ['Berhenti di petak Kartu Cinta untuk mengambil kartu.', 'Simpan: Malaikat Cinta, Kupon Tol 50%, Tiket Pulang.', 'Aksi: Badai Rindu, Tukar Kota, Festival Kilat, Renovasi Gratis, plus tantangan pasangan.'],
+      pts: ['Berhenti di petak Kartu Cinta untuk mengambil kartu.', 'Simpan: Malaikat Cinta, Kupon Tol 50%, Tiket Pulang.', 'Aksi: Badai Rindu, Tukar Kota, Festival Kilat, Renovasi Gratis, plus tantangan yang harus dibuktikan.'],
       scene: () => '<div class="sc sc-cards">' + [['Malaikat Cinta', 'Tol jadi 0', 'angel'], ['Badai Rindu', 'Bangunan lawan turun 1', 'storm'], ['Tukar Kota', 'Tukar kotamu dengan kota lawan', 'swap']].map((c, k) => '<span class="g-lc" style="--k:' + k + '"><span class="gc-back">' + ART.art('card') + '</span><span class="gc-front">' + ic(c[2]) + '<b>' + c[0] + '</b><small>' + c[1] + '</small></span></span>').join('') + '</div>'
     },
     {
       id: 'love', title: 'Love Meter & tantangan', say: 'Kemesraan juga strategi!',
-      pts: ['Love naik dari tantangan pasangan, kartu manis, dan lewat START.', 'Jadian, Bucin, Soulmate: gaji +20/+30/+40 dan tol +5–15%.', 'Tantangan: Seberapa Kenal Kamu, Truth or Dare, Deep Talk, tebak-tebakan, mini-game.'],
+      pts: ['Love naik dari tantangan, kartu manis, dan lewat START.', 'Jadian, Bucin, Soulmate: gaji +20/+30/+40 dan tol +5–15%.', 'Tantangan wajib terbukti: mini-game berwaktu dinilai game, Tebak Isi Hati & Peragakan! melibatkan lawan, Aksi Berani & Foto Bukti disahkan lawan.'],
       scene: () => '<div class="sc sc-love"><div class="g-meter">' + ic('heart') + '<span class="gm-bar"><i></i></span><span class="gm-tiers"><b>PDKT</b><b>Jadian</b><b>Bucin</b><b>Soulmate</b></span></div><div class="g-note">Truth: Hal apa dari pasanganmu yang paling kamu rindukan saat jauh?</div><span class="g-reward">' + coin + '+120 · ' + ic('heart') + '+8</span></div>'
     },
     {

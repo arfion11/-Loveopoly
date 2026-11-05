@@ -2,7 +2,7 @@
 (function (G) {
   'use strict';
   const D = G.LOVE_DATA;
-  const { RULES, SIDES, GROUPS, TILES, CARDS, CHALLENGES, CH_TYPES, ACHIEVEMENTS, POWER } = D;
+  const { RULES, SIDES, GROUPS, TILES, CARDS, CHALLENGES, CH_TYPES, ACHIEVEMENTS, POWER, AUTO_TYPES, HEART_QS, CHARADES, EMOJI_CLUES } = D;
 
   const CARD = Object.fromEntries(CARDS.map(c => [c.id, c]));
   const CH = Object.fromEntries(CHALLENGES.map(c => [c.id, c]));
@@ -243,11 +243,11 @@
       turn: { p: 0, rolled: false, doubles: 0, canRollAgain: false, dice: [0, 0], rollId: 0 },
       round: 1, queue: [],
       decks: { card: [], challenge: {} },
-      log: [], logN: 0, letters: [],
+      log: [], logN: 0, letters: [], proofs: [],
       lastEvents: [], evSeq: 0, over: null, paused: false
     };
     S.decks.card = shuffle(S, CARDS.map(c => c.id));
-    Object.keys(CH_TYPES).forEach(type => { S.decks.challenge[type] = shuffle(S, CHALLENGES.filter(c => c.type === type).map(c => c.id)); });
+    chDecks(S);
     log(S, 'Permainan dimulai. Selamat keliling dunia berdua!', 'heart');
     return S;
   }
@@ -429,18 +429,226 @@
   }
 
   // ---------- tantangan ----------
-  const RINDU_TYPES = ['quiz', 'memory', 'truthdare', 'message', 'guess', 'minigame'];
-  const ANY_TYPES = ['quiz', 'memory', 'truthdare', 'message', 'guess', 'dilemma', 'minigame'];
-  function drawChallenge(S, cat) {
-    let type = cat;
-    if (cat === 'any') type = ANY_TYPES[rint(S, ANY_TYPES.length)];
-    else if (cat === 'rindu') type = RINDU_TYPES[rint(S, RINDU_TYPES.length)];
+  // Tidak ada "klik Selesai" tanpa bukti: auto = soal dari seed dinilai engine; duel = jawaban lawan dibandingkan
+  // engine; judge = lawan manusia mengesahkan aksi nyata. Item: { type: 'CHALLENGE', p (pemilik), who (yang
+  // sedang beraksi), judge (lawan penilai / -1), phase, pz (soal), hard (Rindu Challenge) }.
+  const NEEDS_JUDGE = ['secret', 'bluff', 'charades', 'dare', 'photo'];
+  const PHOTO_MAX = 22000, PHOTO_KEEP = 4;
+  const PHOTO_RE = /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+  const PRICED = TILES.filter(t => t.price).map(t => t.i);
+  const RECALL_POOL = ['kotatua', 'bali', 'paris', 'kyoto', 'santorini', 'hawaii', 'ferris', 'balloon', 'swiss', 'seoul', 'maldives', 'aurora'];
+  function chDecks(S) {
+    S.decks.challenge = S.decks.challenge || {};
+    Object.keys(CH_TYPES).forEach(type => {
+      const ids = CHALLENGES.filter(c => c.type === type).map(c => c.id);
+      const cur = S.decks.challenge[type];
+      if (!Array.isArray(cur) || !cur.length || cur.some(id => !CH[id])) S.decks.challenge[type] = shuffle(S, ids);
+    });
+  }
+  // lawan manusia aktif berikutnya dalam urutan giliran (bot tidak pernah menjadi penilai)
+  function judgeFor(S, i) {
+    const n = S.players.length;
+    for (let k = 1; k < n; k++) { const q = S.players[(i + k) % n]; if (q.kind === 'human' && !q.bankrupt) return q.i; }
+    return -1;
+  }
+  function chType(S, i, cat) {
+    const human = PL(S, i).kind === 'human', j = human ? judgeFor(S, i) : -1;
+    const pickOf = arr => arr[rint(S, arr.length)];
+    const auto = () => pickOf(AUTO_TYPES);
+    if (cat === 'skill') return auto();
+    if (cat === 'any') return pickOf(AUTO_TYPES.concat(['dilemma'], human ? ['message'] : [], j >= 0 ? NEEDS_JUDGE : []));
+    if (cat === 'rindu') return pickOf(AUTO_TYPES.concat(j >= 0 ? NEEDS_JUDGE : []));
+    if (!CH_TYPES[cat]) return auto();
+    if (NEEDS_JUDGE.includes(cat) && j < 0) return auto();
+    if (cat === 'message' && !human) return auto();
+    return cat;
+  }
+  function pickN(S, arr, n) { return shuffle(S, arr.slice()).slice(0, n); }
+  const normWord = x => String(x == null ? '' : x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  function sideOf(t) { const sd = SIDES.find(d => t >= d.from && t <= d.to); return sd ? sd.name : ''; }
+  // jawaban benar sebuah soal trivia (dihitung dari data papan, tidak disimpan di state)
+  function triviaAnswer(q) {
+    if (q.k === 'max') { let best = -1, bi = 0; q.o.forEach((nm, k) => { const t = TILES.find(x => x.name === nm); if (t && t.price > best) { best = t.price; bi = k; } }); return bi; }
+    if (q.k === 'group') return q.o.indexOf(GROUPS[TILES[q.s].group].name);
+    if (q.k === 'next') return q.o.indexOf(TILES[(q.s + 1) % N].name);
+    if (q.k === 'side') return q.o.indexOf(sideOf(q.s));
+    if (q.k === 'price') return q.o.indexOf(fmt(TILES[q.s].price));
+    if (q.k === 'odd') return q.o.findIndex(nm => { const t = TILES.find(x => x.name === nm); return !t || sideOf(t.i) !== q.side; });
+    return -1;
+  }
+  function genTrivia(S, n) {
+    const kinds = shuffle(S, ['max', 'group', 'next', 'side', 'price', 'odd', 'next']).slice(0, n);
+    const used = new Set();
+    const subj = pool => { const c = pool.filter(t => !used.has(t)); const t = c[rint(S, c.length)]; used.add(t); return t; };
+    const cities = TILES.filter(t => t.type === 'city').map(t => t.i), sideT = TILES.filter(t => t.price && sideOf(t.i)).map(t => t.i);
+    const withAns = (ans, others) => shuffle(S, [ans].concat(pickN(S, others.filter(x => x !== ans), 3)));
+    return kinds.map(k => {
+      if (k === 'max') {
+        const prices = new Set(), opts = [];
+        shuffle(S, PRICED.slice()).forEach(t => { if (opts.length < 4 && !prices.has(TILES[t].price)) { prices.add(TILES[t].price); opts.push(TILES[t].name); } });
+        return { k, s: -1, t: 'Mana yang harga belinya paling mahal?', o: opts };
+      }
+      if (k === 'group') { const t = subj(cities); return { k, s: t, t: TILES[t].name + ' termasuk grup warna apa?', o: withAns(GROUPS[TILES[t].group].name, Object.values(GROUPS).map(g => g.name)) }; }
+      if (k === 'next') {
+        const t = subj(TILES.map(x => x.i).filter(i => TILES[i].type !== 'card' && TILES[(i + 1) % N].type !== 'card'));
+        const names = [...new Set(TILES.map(x => x.name))];
+        return { k, s: t, t: 'Petak apa yang tepat sesudah ' + TILES[t].name + ' (searah langkah pion)?', o: withAns(TILES[(t + 1) % N].name, names) };
+      }
+      if (k === 'odd') {
+        const sd = SIDES[rint(S, SIDES.length)], inS = sideT.filter(t => sideOf(t) === sd.name), out = sideT.filter(t => sideOf(t) !== sd.name);
+        const o = shuffle(S, pickN(S, inS, 3).concat([out[rint(S, out.length)]]).map(t => TILES[t].name));
+        return { k, s: -1, side: sd.name, t: 'Mana yang BUKAN bagian dari ' + sd.name + '?', o };
+      }
+      if (k === 'side') { const t = subj(sideT); return { k, s: t, t: TILES[t].name + ' ada di jalur mana?', o: withAns(sideOf(t), SIDES.map(d => d.name)) }; }
+      const t = subj(PRICED);
+      const near = [...new Set(PRICED.map(i => TILES[i].price))].filter(v => v !== TILES[t].price).sort((a, b) => Math.abs(a - TILES[t].price) - Math.abs(b - TILES[t].price)).slice(0, 5);
+      return { k: 'price', s: t, t: 'Berapa harga beli ' + TILES[t].name + '?', o: withAns(fmt(TILES[t].price), near.map(fmt)) };
+    });
+  }
+  function genMath(S, n) {
+    const P = () => TILES[PRICED[rint(S, PRICED.length)]].price;
+    const kinds = shuffle(S, ['fest', 'trip', 'tax', 'change', 'fest', 'trip']).slice(0, n);
+    return kinds.map(k => {
+      if (k === 'fest') { const a = P(), m = 2 + rint(S, 2), b = P(); return { k, n: [a, m, b], t: 'Tol ' + fmt(a) + ' × ' + m + ' (festival) + tol ' + fmt(b) + ' = ?' }; }
+      if (k === 'trip') { const a = P(), b = P(), c = P(); return { k, n: [a, b, c], t: 'Beli ' + fmt(a) + ' + ' + fmt(b) + ' − jual ' + fmt(c) + ' = ?' }; }
+      if (k === 'tax') { const a = (120 + rint(S, 380)) * 10; return { k, n: [a], t: 'Pajak Rindu 10% dari aset ' + fmt(a) + ' = ?' }; }
+      const a = 1000 + rint(S, 20) * 50, b = P(), c = P(); return { k: 'change', n: [a, b, c], t: 'Uang ' + fmt(a) + ', bayar tol ' + fmt(b) + ' dan ' + fmt(c) + '. Sisa = ?' };
+    });
+  }
+  function mathAnswer(q) {
+    const [a, b, c] = q.n;
+    if (q.k === 'fest') return a * b + c;
+    if (q.k === 'trip') return a + b - c;
+    if (q.k === 'tax') return Math.round(a / 10);
+    return a - b - c;
+  }
+  function scrambleWord(S, w) {
+    const word = x => { if (x.length < 3) return x; let y = x; for (let k = 0; k < 8 && y.toLowerCase() === x.toLowerCase(); k++) y = shuffle(S, x.split('')).join(''); return y; };
+    return w.split(' ').map(word).join(' ').toUpperCase();
+  }
+  function setupCh(S, it) {
+    const ch = CH[it.ch], def = CH_TYPES[ch.type], H2 = it.hard;
+    const of = (H2 && def.ofHard) || def.of, need = (H2 && def.needHard) || def.need, secs = (H2 && def.secsHard) || def.secs;
+    it.phase = 'play'; it.who = it.p; it.pz = null;
+    if (ch.type === 'trivia') it.pz = { qs: genTrivia(S, of), need, secs };
+    else if (ch.type === 'price') it.pz = { items: pickN(S, PRICED, of), need, secs, tol: (H2 && def.tolHard) || def.tol };
+    else if (ch.type === 'recall') {
+      const pool = pickN(S, RECALL_POOL, 6), seq = [];
+      while (seq.length < of) { const x = pool[rint(S, pool.length)]; if (x !== seq[seq.length - 1]) seq.push(x); }
+      it.pz = { pool, seq, need: of, secs, showMs: 900 + of * 550 };
+    } else if (ch.type === 'math') it.pz = { qs: genMath(S, of), need, secs };
+    else if (ch.type === 'emoji') {
+      const keys = Object.keys(EMOJI_CLUES).map(Number), names = [...new Set(keys.map(t => TILES[t].name))];
+      it.pz = { qs: pickN(S, keys, of).map(t => ({ s: t, e: EMOJI_CLUES[t], o: shuffle(S, [TILES[t].name].concat(pickN(S, names.filter(x => x !== TILES[t].name), 3))) })), need, secs };
+    }
+    else if (ch.type === 'scramble') it.pz = { items: pickN(S, PRICED.concat([ISLAND]), of).map(t => ({ s: t, w: scrambleWord(S, TILES[t].name) })), need, secs };
+    else if (ch.type === 'secret') { it.phase = 'intro'; it.pz = { qs: pickN(S, HEART_QS.map((_, k) => k), def.of), need: def.need }; }
+    else if (ch.type === 'bluff') it.phase = 'write';
+    else if (ch.type === 'charades') { it.phase = 'act'; it.pz = { word: CHARADES[rint(S, CHARADES.length)], secs: def.secs, tries: 0, max: def.tries, guesses: [] }; }
+    else if (ch.type === 'message') it.phase = 'write';
+    else if (ch.type === 'dare') { it.phase = 'do'; it.pz = { secs: ch.secs || 30 }; }
+    else if (ch.type === 'photo') { it.phase = 'do'; it.pz = {}; }
+    else if (ch.type === 'dilemma') it.phase = 'choose';
+  }
+  function drawChallenge(S, i, cat) {
+    chDecks(S);
+    const type = chType(S, i, cat);
     const deck = S.decks.challenge[type];
     const id = deck.shift(); deck.push(id);
     return id;
   }
-  function chItem(S, i, cat, source) { return { type: 'CHALLENGE', p: i, ch: drawChallenge(S, cat), cat, source, redraws: 0 }; }
-
+  function chItem(S, i, cat, source) {
+    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, hard: source === 'island', judge: -1 };
+    it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, i) : -1;
+    setupCh(S, it);
+    return it;
+  }
+  // migrasi save lama / item buatan tangan: tantangan tanpa fase atau dengan id yang sudah dihapus disiapkan ulang
+  function migrate(S) {
+    if (!S || !Array.isArray(S.queue)) return S;
+    if (!S.proofs) S.proofs = [];
+    S.queue.forEach(it => {
+      if (it.type !== 'CHALLENGE' || (CH[it.ch] && it.phase && it.who != null)) return;
+      if (!S.decks) S.decks = { card: [], challenge: {} };
+      if (!CH[it.ch]) it.ch = drawChallenge(S, it.p, it.cat || 'any');
+      if (it.redraws == null) it.redraws = 0;
+      it.hard = it.source === 'island';
+      it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, it.p) : -1;
+      if (NEEDS_JUDGE.includes(CH[it.ch].type) && it.judge < 0) { it.ch = drawChallenge(S, it.p, 'skill'); it.judge = -1; }
+      setupCh(S, it);
+    });
+    return S;
+  }
+  // jawaban benar untuk tantangan auto (dipakai AI & umpan balik UI; penilaian tetap di engine)
+  function chSolve(it) {
+    const ch = CH[it.ch], z = it.pz;
+    if (!z) return null;
+    if (ch.type === 'trivia') return z.qs.map(triviaAnswer);
+    if (ch.type === 'price') return z.items.map(t => TILES[t].price);
+    if (ch.type === 'recall') return z.seq.slice();
+    if (ch.type === 'math') return z.qs.map(mathAnswer);
+    if (ch.type === 'scramble') return z.items.map(x => TILES[x.s].name);
+    if (ch.type === 'emoji') return z.qs.map(q => q.o.indexOf(TILES[q.s].name));
+    return null;
+  }
+  function gradeAuto(it, ans) {
+    const ch = CH[it.ch], z = it.pz, A = Array.isArray(ans) ? ans : [];
+    if (ch.type === 'trivia') return z.qs.reduce((n, q, k) => n + (Number(A[k]) === triviaAnswer(q) ? 1 : 0), 0);
+    if (ch.type === 'price') return z.items.reduce((n, t, k) => { const v = Number(String(A[k] == null ? '' : A[k]).replace(/\D/g, '')); const pr = TILES[t].price; return n + (v > 0 && Math.abs(v - pr) <= pr * z.tol ? 1 : 0); }, 0);
+    if (ch.type === 'recall') return z.seq.every((x, k) => A[k] === x) && A.length === z.seq.length ? z.seq.length : 0;
+    if (ch.type === 'math') return z.qs.reduce((n, q, k) => n + (A[k] !== '' && A[k] != null && Number(String(A[k]).replace(/[^\d-]/g, '')) === mathAnswer(q) ? 1 : 0), 0);
+    if (ch.type === 'scramble') return z.items.reduce((n, x, k) => n + (normWord(A[k]) === normWord(TILES[x.s].name) ? 1 : 0), 0);
+    if (ch.type === 'emoji') return z.qs.reduce((n, q, k) => n + (Number(A[k]) === q.o.indexOf(TILES[q.s].name) ? 1 : 0), 0);
+    return 0;
+  }
+  const secsTxt = ms => (Math.round(ms / 100) / 10).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' dtk';
+  // cek syarat Surat Bersyarat; kembalikan daftar { ok, label }
+  function messageChecks(rule, text) {
+    const t = String(text || ''), lines = t.split(/\n+/).map(x => x.trim()).filter(Boolean), words = t.split(/\s+/).filter(w => /[a-z0-9]/i.test(w));
+    const out = [];
+    if (rule.acrostic) out.push({ ok: lines.length === rule.acrostic.length && rule.acrostic.split('').every((c, k) => lines[k] && normWord(lines[k])[0] === c.toLowerCase()), label: rule.acrostic.length + ' baris diawali ' + rule.acrostic.split('').join('-') });
+    if (rule.cities) { const found = new Set(TILES.filter(x => x.type === 'city' || x.type === 'spot').filter(x => normWord(t).includes(normWord(x.name))).map(x => x.name)); out.push({ ok: found.size >= rule.cities, label: 'Memuat ' + rule.cities + ' nama kota di papan (' + found.size + ')' }); }
+    if (rule.noLetter) out.push({ ok: t.length > 0 && !t.toLowerCase().includes(rule.noLetter), label: 'Tanpa huruf "' + rule.noLetter + '"' });
+    if (rule.minWords) out.push({ ok: words.length >= rule.minWords, label: 'Minimal ' + rule.minWords + ' kata (' + words.length + ')' });
+    if (rule.lines) out.push({ ok: lines.length === rule.lines, label: 'Tepat ' + rule.lines + ' baris (' + lines.length + ')' });
+    if (rule.wordsPerLine) out.push({ ok: lines.length > 0 && lines.every(l => l.split(/\s+/).filter(Boolean).length >= rule.wordsPerLine), label: 'Tiap baris minimal ' + rule.wordsPerLine + ' kata' });
+    if (rule.rhyme === 'abab') { const end = k => { const w = normWord((lines[k] || '').split(/\s+/).pop()); return w.slice(-2); }; out.push({ ok: lines.length === 4 && end(0) && end(0) === end(2) && end(1) === end(3), label: 'Rima a-b-a-b' }); }
+    out.push({ ok: t.trim().length <= 400, label: 'Maksimal 400 karakter' });
+    return out;
+  }
+  const cleanText = (x, max) => String(x || '').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, max);
+  function chProof(S, it, ok, proof) {
+    const ch = CH[it.ch];
+    S.proofs = S.proofs || [];
+    S.proofs.push({ p: it.p, type: ch.type, label: CH_TYPES[ch.type].label, ok, proof, judge: it.judge, r: S.round });
+    if (S.proofs.length > 40) S.proofs.shift();
+  }
+  function rewardTo(S, i, rw) {
+    if (!rw) return '';
+    if (rw.gain) cashAdd(S, i, rw.gain);
+    if (rw.love) loveAdd(S, i, rw.love);
+    return [rw.gain ? '+' + fmt(rw.gain) : '', rw.love ? 'Love +' + rw.love : ''].filter(Boolean).join(', ');
+  }
+  // akhir tantangan: ok = pemilik lulus. judgeWin = penilai yang dapat hadiah (Dua Fakta Satu Bohong)
+  function chFinish(S, it, ok, proof, judgeShare) {
+    const ch = CH[it.ch], def = CH_TYPES[ch.type], p = PL(S, it.p);
+    S.queue.shift();
+    chProof(S, it, ok, proof);
+    if (ok) {
+      const got = rewardTo(S, it.p, def.reward);
+      p.stats.challenges++;
+      log(S, p.name + ' lulus ' + def.label + ' (' + got + '). Bukti: ' + proof + '.', 'heart', it.p);
+      if (it.source === 'island' && p.island) { release(S, it.p, 'lewat Rindu Challenge'); p.stats.escapes++; }
+    } else {
+      p.stats.failed++;
+      log(S, p.name + ' gagal ' + def.label + '. Bukti: ' + proof + '.' + (it.source === 'island' && p.island ? ' Tetap di Pulau Rindu.' : ''), 'dot', it.p);
+    }
+    if (judgeShare && it.judge >= 0 && !PL(S, it.judge).bankrupt) {
+      const g = rewardTo(S, it.judge, def.judgeReward);
+      if (g) log(S, PL(S, it.judge).name + ' ikut dapat hadiah (' + g + ').', 'heart', it.judge);
+    }
+    ev(S, { t: 'challenge', p: it.p, ok, proof, label: def.label, judge: it.judge });
+  }
   // ---------- pembayaran & utang ----------
   function charge(S, i, amt, to, reason, opts) {
     opts = opts || {};
@@ -596,6 +804,7 @@
   function actor(S) {
     if (S.over) return -1;
     const it = S.queue[0];
+    if (it && it.type === 'CHALLENGE' && it.who != null) return it.who;
     return it ? it.p : S.turn.p;
   }
   function head(S, type, p) {
@@ -937,51 +1146,117 @@
   };
 
   // --- tantangan ---
+  // CH_REDRAW / CH_RESOLVE(skip|choice) oleh pemilik; CH_ANSWER oleh yang sedang beraksi (pemilik atau penilai)
+  const chHead = (S, p) => { const it = S.queue[0]; if (!it || it.type !== 'CHALLENGE') fail('Tidak ada tantangan yang menunggu.'); if (it.p !== p) fail('Ini bukan tantanganmu.'); return it; };
+  const FIRST_PHASE = { secret: 'intro', bluff: 'write', charades: 'act', message: 'write', dare: 'do', photo: 'do', dilemma: 'choose' };
   H.CH_REDRAW = (S, a) => {
-    const it = head(S, 'CHALLENGE', a.p);
+    const it = chHead(S, a.p), ch = CH[it.ch];
+    if (it.who !== it.p || it.phase !== (FIRST_PHASE[ch.type] || 'play')) fail('Tantangan sudah berjalan, tidak bisa diganti.');
     if (it.redraws >= RULES.maxRedraws) fail('Batas ganti tantangan sudah habis.');
-    it.ch = drawChallenge(S, it.cat);
+    it.ch = drawChallenge(S, a.p, it.cat);
+    it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, a.p) : -1;
     it.redraws++;
+    setupCh(S, it);
+  };
+  H.CH_ANSWER = (S, a) => {
+    const it = head(S, 'CHALLENGE', a.p);
+    const ch = CH[it.ch], def = CH_TYPES[ch.type], J = it.judge >= 0 ? PL(S, it.judge).name : '';
+    if (AUTO_TYPES.includes(ch.type)) {
+      const ms = clampInt(a.ms, 0, 3600000), z = it.pz;
+      const late = ms > z.secs * 1000 + 2000;
+      const got = late ? 0 : gradeAuto(it, a.answers);
+      const total = ch.type === 'recall' ? z.seq.length : (z.qs || z.items).length;
+      const shown = ch.type === 'recall' ? (got ? 'urutan ' + total + ' gambar tepat' : 'urutan keliru') : got + '/' + total + ' benar';
+      chFinish(S, it, !late && got >= z.need, (late ? 'waktu habis' : shown + ' dalam ' + secsTxt(ms)) + (it.hard ? ' (mode sulit)' : ''));
+      return;
+    }
+    if (ch.type === 'secret') {
+      const n = it.pz.qs.length, A = Array.isArray(a.answers) ? a.answers.map(Number) : [];
+      if (it.phase === 'intro') { it.phase = 'secret'; it.who = it.judge; return; }
+      if (A.length !== n || A.some((v, k) => !(v >= 0 && v < HEART_QS[it.pz.qs[k]].o.length))) fail('Jawab semua pertanyaan.');
+      if (it.phase === 'secret') { it.pz.secret = A; it.phase = 'guess'; it.who = it.p; return; }
+      const hit = A.reduce((c, v, k) => c + (v === it.pz.secret[k] ? 1 : 0), 0);
+      it.pz.guess = A;
+      const ok = hit >= it.pz.need;
+      chFinish(S, it, ok, hit + '/' + n + ' cocok dengan jawaban rahasia ' + J, ok);
+      return;
+    }
+    if (ch.type === 'bluff') {
+      if (it.phase === 'write') {
+        const L = (Array.isArray(a.lines) ? a.lines : []).map(x => cleanText(x, 90));
+        if (L.length !== 3 || L.some(x => x.length < 8)) fail('Tulis 3 pernyataan, masing-masing minimal 8 karakter.');
+        const lie = Number(a.lie);
+        if (!(lie >= 0 && lie < 3)) fail('Tandai pernyataan yang bohong.');
+        it.pz = { lines: L, lie };
+        it.phase = 'guess'; it.who = it.judge; return;
+      }
+      const pick = Number(a.pick);
+      if (!(pick >= 0 && pick < 3)) fail('Pilih pernyataan yang menurutmu bohong.');
+      it.pz.pick = pick;
+      const fooled = pick !== it.pz.lie;
+      chFinish(S, it, fooled, J + ' menebak #' + (pick + 1) + ', yang bohong #' + (it.pz.lie + 1) + (fooled ? ' (berhasil mengecoh)' : ' (ketahuan)'), !fooled);
+      return;
+    }
+    if (ch.type === 'charades') {
+      const z = it.pz;
+      if (it.phase === 'act') { it.phase = 'guess'; it.who = it.judge; return; }
+      if (a.giveUp) { chFinish(S, it, false, J + ' tidak berhasil menebak "' + z.word + '"' + (z.guesses.length ? ' (' + z.guesses.length + ' tebakan)' : ''), false); return; }
+      const g = cleanText(a.guess, 40);
+      if (!normWord(g)) fail('Ketik tebakanmu.');
+      z.guesses.push(g); z.tries++;
+      if (normWord(g) === normWord(z.word)) { chFinish(S, it, true, J + ' menebak "' + z.word + '" di tebakan ke-' + z.tries, true); return; }
+      if (z.tries >= z.max) chFinish(S, it, false, J + ' salah ' + z.tries + ' kali, jawabannya "' + z.word + '"', false);
+      return;
+    }
+    if (ch.type === 'message') {
+      if (it.phase === 'write') {
+        const text = cleanText(a.text, 400);
+        const bad = messageChecks(ch.rule || {}, text).filter(c => !c.ok);
+        if (bad.length) fail('Belum lolos syarat: ' + bad.map(c => c.label).join(', ') + '.');
+        it.pz = { text };
+        if (it.judge >= 0) { it.phase = 'judge'; it.who = it.judge; return; }
+      } else if (!a.ok) { chFinish(S, it, false, 'lolos syarat, tapi tidak disahkan ' + J, false); return; }
+      const text = it.pz.text, p = PL(S, it.p);
+      S.letters.push({ p: it.p, text, r: S.round }); if (S.letters.length > 40) S.letters.shift();
+      p.stats.letters++; ev(S, { t: 'letter', p: it.p });
+      chFinish(S, it, true, 'lolos semua syarat' + (it.judge >= 0 ? ' · disahkan ' + J : ' (dicek otomatis)'), it.judge >= 0);
+      return;
+    }
+    if (ch.type === 'dare') {
+      if (it.phase === 'do') { it.phase = 'judge'; it.who = it.judge; return; }
+      chFinish(S, it, !!a.ok, a.ok ? 'disahkan oleh ' + J : 'tidak disahkan oleh ' + J, !!a.ok);
+      return;
+    }
+    if (ch.type === 'photo') {
+      if (it.phase === 'do') {
+        const ph = String(a.photo || '');
+        if (!ph || ph.length > PHOTO_MAX || !PHOTO_RE.test(ph)) fail('Ambil foto bukti dulu.');
+        it.pz = { photo: ph };
+        it.phase = 'judge'; it.who = it.judge; return;
+      }
+      // foto disimpan (maksimal 4 terakhir) dan dipajang di papan; yang ditolak tetap tersimpan sebagai bukti
+      S.photos = S.photos || [];
+      S.photos.push({ p: it.p, img: it.pz.photo, text: ch.text.replace(/\{j\}/g, J), ok: !!a.ok, judge: it.judge, r: S.round });
+      while (S.photos.length > PHOTO_KEEP) S.photos.shift();
+      chFinish(S, it, !!a.ok, (a.ok ? 'foto disahkan oleh ' : 'foto tidak disahkan oleh ') + J, !!a.ok);
+      return;
+    }
+    fail('Tantangan ini tidak memakai jawaban.');
   };
   H.CH_RESOLVE = (S, a) => {
-    const it = head(S, 'CHALLENGE', a.p);
+    const it = chHead(S, a.p);
     const ch = CH[it.ch], def = CH_TYPES[ch.type];
     const p = PL(S, a.p);
     const res = a.result;
-    if (ch.type === 'dilemma' && res !== 'skip') {
+    if (res === 'choice') {
+      if (ch.type !== 'dilemma' || it.who !== a.p) fail('Pilihan hanya untuk dilema.');
       const opt = ch.options[a.choice];
       if (!opt) fail('Pilih salah satu opsi.');
       S.queue.shift();
       log(S, p.name + ' memilih: ' + opt.label + '.', 'scale', a.p);
       p.stats.challenges++;
       applyFx(S, a.p, opt.fx);
-      ev(S, { t: 'challenge', p: a.p, ok: true });
-      return;
-    }
-    if (res === 'complete') {
-      let text = '';
-      if (ch.type === 'message') {
-        text = String(a.text || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 280);
-        if (text.length < 10) fail('Tulis pesan minimal 10 karakter.');
-      }
-      S.queue.shift();
-      if (text) { S.letters.push({ p: a.p, text, r: S.round }); if (S.letters.length > 40) S.letters.shift(); p.stats.letters++; ev(S, { t: 'letter', p: a.p }); }
-      if (def.reward.gain) cashAdd(S, a.p, def.reward.gain);
-      if (def.reward.love) loveAdd(S, a.p, def.reward.love);
-      p.stats.challenges++;
-      log(S, p.name + ' menyelesaikan ' + def.label + ' (+' + fmt(def.reward.gain || 0) + ', Love +' + (def.reward.love || 0) + ').', 'heart', a.p);
-      if (it.source === 'island' && p.island) { release(S, a.p, 'lewat Rindu Challenge'); p.stats.escapes++; }
-      ev(S, { t: 'challenge', p: a.p, ok: true });
-      return;
-    }
-    if (res === 'fail') {
-      S.queue.shift();
-      const f = def.fail || {};
-      if (f.gain) cashAdd(S, a.p, f.gain);
-      if (f.love) loveAdd(S, a.p, f.love);
-      p.stats.failed++;
-      log(S, p.name + ' belum berhasil di ' + def.label + '.' + (f.gain || f.love ? ' Hadiah hiburan diberikan.' : ''), 'dot', a.p);
-      ev(S, { t: 'challenge', p: a.p, ok: false });
+      ev(S, { t: 'challenge', p: a.p, ok: true, dilemma: true });
       return;
     }
     if (res === 'skip') {
@@ -992,7 +1267,8 @@
       log(S, p.name + ' melewati ' + def.label + (sk.love ? ' (Love ' + sk.love + ')' : '') + '.', 'dot', a.p);
       return;
     }
-    fail('Hasil tantangan tidak valid.');
+    // "complete"/"fail" dari pemain sendiri tidak diterima lagi: hasil harus dibuktikan lewat CH_ANSWER
+    fail('Hasil tantangan harus dibuktikan lewat jawaban atau penilaian lawan.');
   };
 
   // ---------- dispatch ----------
@@ -1014,6 +1290,7 @@
   function dispatch(S0, action) {
     if (!action || typeof action.type !== 'string' || !Object.prototype.hasOwnProperty.call(H, action.type)) return { ok: false, error: 'Aksi tidak dikenal.' };
     const S = clone(S0);
+    migrate(S);
     S._ev = []; S._new = [];
     try {
       if (S.over) fail('Permainan sudah selesai.');
@@ -1021,7 +1298,9 @@
       if (!Number.isInteger(p) || !S.players[p]) fail('Pemain tidak dikenal.');
       if (S.players[p].bankrupt) fail('Pemain ini sudah bangkrut.');
       if (S.paused && action.type !== 'PAUSE') fail('Permainan sedang dijeda.');
-      if (action.type !== 'PAUSE' && actor(S) !== p) fail('Bukan giliranmu.');
+      // pemilik tantangan boleh membatalkan (skip) walau sedang menunggu penilai, supaya tidak macet bila penilai pergi
+      const chCancel = action.type === 'CH_RESOLVE' && action.result === 'skip' && S.queue[0] && S.queue[0].type === 'CHALLENGE' && S.queue[0].p === p;
+      if (action.type !== 'PAUSE' && !chCancel && actor(S) !== p) fail('Bukan giliranmu.');
       H[action.type](S, action);
       S.queue = S._new.concat(S.queue);
       S._new = [];
@@ -1044,7 +1323,7 @@
   }
 
   G.LoveEngine = {
-    create, dispatch, check, actor, canRoll, canEnd, islandPre,
+    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, migrate,
     rentFor, rentInfo, netWorth, liquidation, tileValue, sellValue, levelCost, costRange, buyCost, upgradeCost,
     buyLevels, upgradeLevels, capLevel, targetCandidates, swapTargets,
     ownsGroup, countGroup, fullGroups, ownedBy, citiesOf, spotsOf, buildingLevels, tierOf, tierInfo,

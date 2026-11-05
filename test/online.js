@@ -270,6 +270,28 @@ const server = http.createServer((req, res) => {
   });
   ok('kembali ke aplikasi: lease host langsung diperpanjang', leaseLeft > 30000, 'sisa ' + leaseLeft + 'ms');
 
+  // tantangan duel lintas perangkat: host (kursi 0) memulai Tebak Isi Hati, tamu menjawab rahasia di tabnya sendiri
+  await settle(host); await settle(guest);
+  await host.evaluate(() => {
+    const N = window.LoveNet, E = window.LoveEngine, S = JSON.parse(JSON.stringify(N.doc.state));
+    S.queue = [{ type: 'CHALLENGE', p: 0, ch: 'hs', cat: 'secret', source: 'card', redraws: 0 }];
+    E.migrate(S); S.seq++; S.lastEvents = []; S.evSeq = S.seq;
+    N.doc.state = S; N.doc.seq = S.seq; window.LoveUI.commit(S); N.writeRoom();
+  });
+  await guest.waitForFunction(() => { const it = window.LoveUI.App.S.queue[0]; return it && it.type === 'CHALLENGE'; }, null, { timeout: 8000 });
+  await act(host, { type: 'CH_ANSWER', p: 0 });
+  await guest.waitForFunction(() => { const S = window.LoveUI.App.S, it = S.queue[0]; return it && it.who === 1 && window.LoveEngine.actor(S) === 1; }, null, { timeout: 8000 });
+  await settle(guest); await guest.evaluate(() => window.LoveUI.syncModal(true)); await guest.waitForTimeout(300);
+  const gTitle = await guest.evaluate(() => (document.querySelector('#modalRoot:not([hidden]) #mTitle') || {}).textContent || '');
+  const hostWait = await host.evaluate(() => !!document.getElementById('cChCancel'));
+  ok('duel online: modal jawaban rahasia muncul di perangkat tamu (tanpa layar serah-HP), host bisa batal', /Jawaban rahasia/.test(gTitle) && hostWait, gTitle + ' · tombol batal host=' + hostWait);
+  await act(guest, { type: 'CH_ANSWER', p: 1, answers: [0, 1, 2] });
+  await host.waitForFunction(() => { const it = window.LoveUI.App.S.queue[0]; return it && it.who === 0 && it.phase === 'guess'; }, null, { timeout: 8000 });
+  await act(host, { type: 'CH_ANSWER', p: 0, answers: [0, 1, 3] });
+  await guest.waitForFunction(() => { const S = window.LoveUI.App.S; return !S.queue.length && S.proofs && S.proofs.length; }, null, { timeout: 8000 });
+  const proofG = await guest.evaluate(() => { const x = window.LoveUI.App.S.proofs.slice(-1)[0]; return x.ok + ' ' + x.proof; });
+  ok('duel online: dinilai host dari jawaban tamu, bukti sama di kedua perangkat', /^true 2\/3 cocok/.test(proofG), proofG);
+
   console.log(results.join('\n'));
   console.log('ERRORS (' + errors.length + '):', errors.slice(0, 10).join('\n'));
   await browser.close();

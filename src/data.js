@@ -57,12 +57,12 @@
     T(0,  'start',  { name: 'START', short: 'START', art: 'start', desc: 'Lewat START dapat gaji. Berhenti tepat di sini: bangun 1 tingkat di salah satu kotamu.' }),
     T(1,  'city',   { group: 'kota', name: 'Kota Tua', short: 'Kota Tua', art: 'kotatua', price: 60, blurb: 'Sepeda onthel dan foto vintage di alun-alun.' }),
     T(2,  'city',   { group: 'kota', name: 'Bandung', short: 'Bandung', art: 'bandung', price: 70, blurb: 'Udara sejuk, kebun teh, dan jalan kaki di Braga.' }),
-    T(3,  'card',   { name: 'Kartu Cinta', short: 'Kartu Cinta', art: 'card', desc: 'Ambil Kartu Cinta: kejutan manis, tiket perjalanan, atau tantangan pasangan.' }),
+    T(3,  'card',   { name: 'Kartu Cinta', short: 'Kartu Cinta', art: 'card', desc: 'Ambil Kartu Cinta: kejutan manis, tiket perjalanan, atau tantangan yang harus dibuktikan.' }),
     T(4,  'city',   { group: 'jawa', name: 'Yogyakarta', short: 'Jogja', art: 'jogja', price: 90, blurb: 'Sunrise di stupa dan angkringan tengah malam.' }),
     T(5,  'spot',   { name: 'Bianglala', short: 'Bianglala', art: 'ferris', price: 150, blurb: 'Kincir raksasa untuk foto berdua di puncak.' }),
     T(6,  'city',   { group: 'jawa', name: 'Bromo', short: 'Bromo', art: 'bromo', price: 90, blurb: 'Menunggu matahari terbit di lautan pasir.' }),
     T(7,  'city',   { group: 'jawa', name: 'Lombok', short: 'Lombok', art: 'lombok', price: 110, blurb: 'Ayunan di laut jernih Gili.' }),
-    T(8,  'island', { name: 'Pulau Rindu', short: 'Pulau Rindu', art: 'island', desc: 'Terdampar sampai 3 giliran. Keluar dengan dadu kembar, bayar 100, Tiket Pulang, atau Rindu Challenge.' }),
+    T(8,  'island', { name: 'Pulau Rindu', short: 'Pulau Rindu', art: 'island', desc: 'Terdampar sampai 3 giliran. Keluar dengan dadu kembar, bayar 100, Tiket Pulang, atau lulus Rindu Challenge (mode sulit).' }),
     T(9,  'city',   { group: 'tropis', name: 'Bali', short: 'Bali', art: 'bali', price: 130, blurb: 'Gerbang pura, pantai, dan sunset Uluwatu.' }),
     T(10, 'city',   { group: 'tropis', name: 'Labuan Bajo', short: 'Labuan Bajo', art: 'komodo', price: 140, blurb: 'Bukit Padar dan si komodo yang (agak) ramah.' }),
     T(11, 'spot',   { name: 'Kebun Bunga', short: 'Kebun Bunga', art: 'garden', price: 160, blurb: 'Jalan bergandengan di antara ladang bunga.' }),
@@ -102,7 +102,7 @@
     escape:   { name: 'Tiket Pulang', icon: 'key', desc: 'Keluar dari Pulau Rindu tanpa biaya.' }
   };
 
-  // ===== KARTU CINTA (47) =====
+  // ===== KARTU CINTA (67) =====
   const C = (id, cat, title, text, more) => Object.assign({ id, cat, title, text }, more);
   const CARDS = [
     C('K01', 'Kartu Simpan', 'Malaikat Cinta', 'Simpan kartu ini. Saat harus bayar tol, kamu boleh memakainya: tol jadi 0.', { power: 'angel' }),
@@ -143,14 +143,14 @@
     C('K33', 'Kartu Aksi', 'Renovasi Gratis', 'Naikkan 1 tingkat bangunan di salah satu kotamu, gratis.', { fx: [{ target: 'renov' }] }),
     C('K34', 'Kejutan Manis', 'Voucher Bangun', 'Pembelian atau pembangunan kota berikutnya diskon 50%.', { fx: [{ discount: 0.5 }] }),
 
-    C('K35', 'Tantangan', 'Tantangan Kilat', 'Selesaikan satu tantangan pasangan untuk hadiah.', { fx: [{ challenge: 'any' }] }),
-    C('K36', 'Tantangan', 'Seberapa Kenal Kamu?', 'Jawab pertanyaan tentang pasanganmu.', { fx: [{ challenge: 'quiz' }] }),
-    C('K37', 'Tantangan', 'Truth or Dare Romantis', 'Pilih jujur atau berani. Hadiahnya lumayan.', { fx: [{ challenge: 'truthdare' }] }),
-    C('K38', 'Tantangan', 'Tulis Pesan Cinta', 'Tulis pesan untuk pasangan. Pesannya tersimpan sampai akhir permainan.', { fx: [{ challenge: 'message' }] }),
-    C('K39', 'Tantangan', 'Tebak Preferensi', 'Seberapa paham kamu selera pasangan?', { fx: [{ challenge: 'guess' }] }),
+    C('K35', 'Tantangan', 'Tantangan Kilat', 'Tantangan acak yang dinilai: skor game atau lawan yang mengesahkan.', { fx: [{ challenge: 'any' }] }),
+    C('K36', 'Tantangan', 'Tebak Isi Hati', 'Lawan menjawab 3 pertanyaan diam-diam, kamu menebak. Butuh 2 cocok.', { fx: [{ challenge: 'secret' }] }),
+    C('K37', 'Tantangan', 'Aksi Berani', 'Lakukan aksi dengan syarat jelas. Lawan yang menilai sah atau tidak.', { fx: [{ challenge: 'dare' }] }),
+    C('K38', 'Tantangan', 'Surat Bersyarat', 'Tulis pesan yang lolos syarat (dicek otomatis). Pesannya tersimpan sampai akhir.', { fx: [{ challenge: 'message' }] }),
+    C('K39', 'Tantangan', 'Dua Fakta Satu Bohong', 'Tulis 3 pernyataan, satu bohong. Kecoh lawanmu!', { fx: [{ challenge: 'bluff' }] }),
     C('K40', 'Tantangan', 'Dilema Lucu', 'Pilihan sulit yang mengubah strategimu.', { fx: [{ challenge: 'dilemma' }] }),
-    C('K41', 'Tantangan', 'Mini-game Pasangan', 'Main cepat di layar ini. Berhasil = hadiah penuh.', { fx: [{ challenge: 'minigame' }] }),
-    C('K42', 'Tantangan', 'Deep Talk', 'Ngobrol serius tentang masa depan kalian.', { fx: [{ challenge: 'deeptalk' }] }),
+    C('K41', 'Tantangan', 'Uji Skill', 'Mini-game berwaktu yang dinilai otomatis oleh game.', { fx: [{ challenge: 'skill' }] }),
+    C('K42', 'Tantangan', 'Peragakan!', 'Peragakan kata rahasia tanpa bicara. Lawan harus menebaknya.', { fx: [{ challenge: 'charades' }] }),
 
     C('K43', 'Masalah LDR', 'Salah Hitung Zona Waktu', 'Kamu ketiduran pas jadwal call. Love −8.', { fx: [{ love: -8 }] }),
     C('K44', 'Masalah LDR', 'Sinyal Putus-putus', '"Halo? Halo?" Kamu sibuk cari sinyal dan kehilangan giliran berikutnya.', { fx: [{ skipTurn: 1 }] }),
@@ -165,78 +165,152 @@
     C('K47', 'Kejutan Manis', 'Rezeki Anak Rantau', 'Pilih hadiahmu.', { choice: [
       { label: 'Ambil 120', fx: [{ gain: 120 }] },
       { label: 'Renovasi gratis 1 tingkat', fx: [{ target: 'renov' }] }
-    ] })
+    ] }),
+    // --- tambahan: variasi untung & rugi untuk permainan panjang ---
+    C('K48', 'Kejutan Manis', 'Cashback Tiket Pesawat', 'Promo maskapai cair! Terima 180.', { fx: [{ gain: 180 }] }),
+    C('K49', 'Kejutan Manis', 'Konten Viral', 'Video jalan-jalanmu FYP. Endorse masuk 250, tapi kamu sibuk: kehilangan giliran berikutnya.', { fx: [{ gain: 250 }, { skipTurn: 1 }] }),
+    C('K50', 'Surat Cinta', 'Paket Misterius', 'Isinya surat manis dan uang saku. +80 dan Love +6.', { fx: [{ gain: 80 }, { love: 6 }] }),
+    C('K51', 'Kejutan Manis', 'Arisan Keluarga', 'Kamu menang arisan! Setiap pemain memberimu 60.', { fx: [{ collectEach: 60 }] }),
+    C('K52', 'Perjalanan', 'Nebeng Kapal Pesiar', 'Maju ke Kapal Pesiar. Lewat START? Ambil gaji.', { fx: [{ moveTo: 27 }] }),
+    C('K53', 'Perjalanan', 'Mampir Kyoto', 'Musim sakura! Maju ke Kyoto.', { fx: [{ moveTo: 15 }] }),
+    C('K54', 'Perjalanan', 'Jalan Pintas', 'Ada jalan tikus! Maju ke tempat wisata terdekat dan dapat 40.', { fx: [{ nearest: 'spot' }, { gain: 40 }] }),
+    C('K55', 'Masalah LDR', 'Koper Tertukar', 'Bolak-balik ke bandara. Mundur 2 petak dan bayar 40.', { fx: [{ moveBack: 2 }, { pay: 40 }] }),
+    C('K56', 'Masalah LDR', 'Kena Tilang', 'Lupa bawa SIM. Bayar 120.', { fx: [{ pay: 120 }] }),
+    C('K57', 'Masalah LDR', 'Ulang Tahun Semua Orang', 'Kamu lupa hari ulang tahun! Bayar 50 ke setiap pemain sebagai kado telat.', { fx: [{ payEach: 50 }] }),
+    C('K58', 'Masalah LDR', 'Renovasi Dadakan', 'Atap bocor di semua properti. Bayar 30 per tingkat bangunan.', { fx: [{ repairs: 30 }] }),
+    C('K59', 'Masalah LDR', 'Salah Kirim Stiker', 'Stiker aneh terkirim ke grup keluarga. Love −6.', { fx: [{ love: -6 }] }),
+    C('K60', 'Kartu Aksi', 'Badai Rindu Ganda', 'Pilih satu kota lawan (bukan landmark): turunkan 1 tingkat.', { fx: [{ target: 'storm' }] }),
+    C('K61', 'Kartu Aksi', 'Festival Dadakan', 'Pilih satu kotamu jadi tuan rumah Festival Cinta sekarang.', { fx: [{ target: 'festival' }] }),
+    C('K62', 'Kejutan Manis', 'Robin Hood Cinta', 'Pemain terkaya memberi 200 ke pemain termiskin.', { fx: [{ richToPoor: 200 }] }),
+    C('K63', 'Masalah LDR', 'Taruhan Nekat', 'Pilih nasibmu.', { choice: [
+      { label: 'Main aman: bayar 50', fx: [{ pay: 50 }] },
+      { label: 'Nekat: dapat 200, tapi ke Pulau Rindu', fx: [{ gain: 200 }, { goIsland: true }] }
+    ] }),
+    C('K64', 'Kejutan Manis', 'Diskon Akhir Tahun', 'Pembelian atau pembangunan berikutnya diskon 40%, plus 50 tunai.', { fx: [{ discount: 0.4 }, { gain: 50 }] }),
+    C('K65', 'Tantangan', 'Foto Bukti', 'Buka kamera dan buktikan aksimu. Fotonya dipajang di papan!', { fx: [{ challenge: 'photo' }] }),
+    C('K66', 'Tantangan', 'Tebak Emoji', 'Tebak tempat di papan dari deretan emoji.', { fx: [{ challenge: 'emoji' }] }),
+    C('K67', 'Tantangan', 'Tantangan Kilat', 'Tantangan acak yang dinilai: skor game atau lawan yang mengesahkan.', { fx: [{ challenge: 'any' }] })
   ];
 
-  // ===== TANTANGAN PASANGAN =====
+  // ===== TANTANGAN =====
+  // Setiap tantangan punya cara pembuktian (verify), tidak ada lagi "klik Selesai" tanpa bukti:
+  //   auto   = mini-game berwaktu; soal dibuat engine dari seed, jawaban dinilai engine (skor & waktu jadi bukti)
+  //   duel   = lawan ikut main (jawaban rahasia, tebakan, peragaan); engine membandingkan jawaban keduanya
+  //   judge  = aksi nyata dengan syarat jelas; lawan (manusia) yang mengesahkan, namanya tercatat di log
+  //   choice = dilema strategi (tanpa benar/salah)
+  // duel & judge butuh lawan manusia lain; main lawan bot hanya memakai auto, message (cek otomatis) & dilema.
+  // need/of/secs = syarat lulus; *Hard = varian Rindu Challenge (Pulau Rindu) yang lebih sulit.
   const CH_TYPES = {
-    quiz:      { label: 'Seberapa Kenal Kamu?', reward: { gain: 100, love: 6 },  skip: { love: -3 }, mode: 'honor', judge: true },
-    memory:    { label: 'Tebak Kenangan Favorit', reward: { gain: 110, love: 7 }, skip: { love: -3 }, mode: 'honor', judge: true },
-    truthdare: { label: 'Truth or Dare Romantis', reward: { gain: 120, love: 8 }, skip: { love: -4 }, mode: 'honor' },
-    deeptalk:  { label: 'Deep Talk', reward: { gain: 150, love: 12 }, skip: { love: 0 }, mode: 'honor' },
-    message:   { label: 'Tantangan Pesan Cinta', reward: { gain: 120, love: 10 }, skip: { love: -2 }, mode: 'text' },
-    guess:     { label: 'Tebak Preferensi Pasangan', reward: { gain: 140, love: 8 }, fail: { love: 2 }, skip: { love: -3 }, mode: 'guess' },
-    dilemma:   { label: 'Pilihan Dilematis', reward: {}, skip: { love: -2 }, mode: 'choice' },
-    minigame:  { label: 'Mini-game Pasangan', reward: { gain: 180, love: 6 }, fail: { gain: 40 }, skip: { love: -2 }, mode: 'game' }
+    trivia:   { label: 'Kuis Keliling Dunia', verify: 'auto', icon: 'globe', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 4, need: 3, secs: 30, ofHard: 5, needHard: 5, secsHard: 35, how: 'Jawab soal tentang papan ini: harga, grup warna, jalur, dan urutan petak.' },
+    price:    { label: 'Tebak Harga Kota', verify: 'auto', icon: 'coins', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 3, need: 2, secs: 25, tol: 0.15, ofHard: 3, needHard: 3, secsHard: 25, tolHard: 0.1, how: 'Ketik harga beli tiap kota tanpa melihat papan. Selisih maksimal 15%.' },
+    recall:   { label: 'Ingat Urutan', verify: 'auto', icon: 'sparkle', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 6, secs: 20, ofHard: 8, secsHard: 22, how: 'Hafalkan urutan gambar selama beberapa detik, lalu ulangi persis sama.' },
+    math:     { label: 'Hitung Ongkos Kilat', verify: 'auto', icon: 'scale', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 3, need: 3, secs: 30, ofHard: 4, needHard: 4, secsHard: 35, how: 'Hitung ongkos perjalanan di kepala. Semua jawaban harus tepat.' },
+    emoji:    { label: 'Tebak Emoji', verify: 'auto', icon: 'sparkle', reward: { gain: 140, love: 4 }, skip: { love: -2 }, of: 4, need: 3, secs: 25, ofHard: 5, needHard: 5, secsHard: 28, how: 'Tebak tempat di papan dari deretan emoji. Cepat sebelum waktu habis!' },
+    scramble: { label: 'Susun Nama Kota', verify: 'auto', icon: 'map', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 2, need: 2, secs: 35, ofHard: 3, needHard: 3, secsHard: 40, how: 'Huruf nama tempat di papan diacak. Susun kembali dengan benar.' },
+    secret:   { label: 'Tebak Isi Hati', verify: 'duel', icon: 'heart', reward: { gain: 140, love: 10 }, judgeReward: { love: 5 }, skip: { love: -3 }, of: 3, need: 2, how: '{j} menjawab 3 pertanyaan diam-diam, lalu {n} menebak. Butuh 2 cocok. Kalau berhasil, kalian berdua dapat hadiah.' },
+    bluff:    { label: 'Dua Fakta Satu Bohong', verify: 'duel', icon: 'question', reward: { gain: 170, love: 6 }, judgeReward: { gain: 80, love: 3 }, skip: { love: -2 }, how: '{n} menulis 3 pernyataan tentang dirinya, satu bohong. {j} menebak yang bohong. Kecoh {j} = {n} menang. Ketahuan = {j} yang dapat hadiah.' },
+    charades: { label: 'Peragakan!', verify: 'duel', icon: 'users', reward: { gain: 150, love: 8 }, judgeReward: { love: 4 }, skip: { love: -2 }, secs: 60, tries: 3, how: '{n} memperagakan kata rahasia tanpa suara dan tanpa menunjuk benda. {j} menebak dalam 60 detik, maksimal 3 tebakan. Tebakan benar = kalian berdua dapat hadiah.' },
+    message:  { label: 'Surat Bersyarat', verify: 'auto', icon: 'letter', reward: { gain: 130, love: 10 }, skip: { love: -2 }, how: 'Tulis pesan untuk {j}. Semua syarat dicek otomatis. Kalau ada lawan manusia, ia ikut mengesahkan.' },
+    dare:     { label: 'Aksi Berani', verify: 'judge', icon: 'bolt', reward: { gain: 160, love: 8 }, judgeReward: { love: 3 }, skip: { love: -3 }, how: 'Lakukan aksinya sesuai syarat. {j} menonton (langsung atau lewat video call) lalu memutuskan sah atau tidak.' },
+    photo:    { label: 'Foto Bukti', verify: 'judge', icon: 'polaroid', reward: { gain: 180, love: 8 }, judgeReward: { love: 3 }, skip: { love: -3 }, how: 'Buka kamera, lakukan aksinya, lalu cekrek! Fotonya dinilai {j} dan dipajang di papan untuk semua pemain.' },
+    dilemma:  { label: 'Pilihan Dilematis', verify: 'choice', icon: 'scale', reward: {}, skip: { love: -2 }, how: 'Pilih salah satu. Tidak ada jawaban salah, hanya strategi.' }
   };
+  const AUTO_TYPES = ['trivia', 'price', 'recall', 'math', 'scramble', 'emoji'];
+  // petunjuk emoji Tebak Emoji (indeks petak → emoji); sengaja tanpa bendera supaya tidak terlalu mudah
+  const EMOJI_CLUES = { 1: '🚲📷🏛️', 2: '🍵⛰️🛍️', 4: '🛕🌅🍢', 5: '🎡🌃📸', 6: '🌋🌄🐎', 7: '🏝️🌊🛶', 8: '🏝️😢⛵', 9: '🌺🛕🌅', 10: '🦎⛰️🛥️', 11: '🌷🌻🌸', 12: '🔒🗼🍜', 13: '🍊🌊🪨', 14: '🚡🏔️😱', 15: '⛩️🌸🍵', 16: '🎉🎆💃', 17: '🏟️🍦🛵', 19: '🏰📜🌉', 20: '🎈🌄🧺', 21: '🗼🥐💕', 22: '🛶🎭🍝', 23: '🏛️💙🌇', 24: '✈️🌍🎫', 25: '🏔️🧀⌚', 26: '🌌❄️♨️', 27: '🛳️🍽️🌊', 29: '🏝️🐠🛖', 30: '💸😭🧾', 31: '🏄🌺🍍' };
+
+  // bank soal Tebak Isi Hati: umum, cocok untuk pasangan, teman, maupun PDKT
+  const HEART_QS = [
+    { q: 'Liburan paling ideal buat {j}?', o: ['Pantai', 'Gunung', 'Kota besar', 'Di rumah saja'] },
+    { q: 'Kalau dapat uang kaget 1 juta, {j} akan…', o: ['Menabung', 'Traktir teman', 'Belanja online', 'Beli tiket jalan-jalan'] },
+    { q: 'Camilan begadang favorit {j}?', o: ['Mi instan', 'Keripik', 'Cokelat', 'Buah'] },
+    { q: 'Minuman yang paling mungkin dipesan {j}?', o: ['Kopi susu', 'Matcha', 'Teh manis', 'Air putih'] },
+    { q: '{j} paling kesal kalau…', o: ['Chat dibalas lama', 'Orang telat', 'Rencana mendadak batal', 'Lapar'] },
+    { q: 'Genre film yang paling dipilih {j}?', o: ['Komedi', 'Horor', 'Romantis', 'Aksi'] },
+    { q: 'Jam paling produktif {j}?', o: ['Pagi', 'Siang', 'Sore', 'Tengah malam'] },
+    { q: 'Kalau jadi hewan, {j} merasa paling mirip…', o: ['Kucing', 'Anjing', 'Panda', 'Burung'] },
+    { q: 'Cara {j} menghilangkan stres?', o: ['Tidur', 'Makan', 'Olahraga', 'Ngobrol'] },
+    { q: 'Hadiah yang paling bikin {j} senang?', o: ['Barang lucu', 'Makanan', 'Surat tulisan tangan', 'Pengalaman bareng'] },
+    { q: 'Musim favorit {j}?', o: ['Hujan', 'Kemarau cerah', 'Salju (impian)', 'Semua sama'] },
+    { q: 'Di pesta, {j} biasanya…', o: ['Jadi pusat perhatian', 'Ngobrol di pojok', 'Dekat meja makanan', 'Pulang duluan'] },
+    { q: 'Tempat di papan yang paling ingin dikunjungi {j}?', o: ['Paris', 'Kyoto', 'Bali', 'Islandia'] },
+    { q: 'Kalau main game, {j} tipe…', o: ['Ambisius', 'Santai', 'Curang dikit', 'Gampang ngambek'] },
+    { q: 'Sarapan ideal {j}?', o: ['Nasi', 'Roti', 'Bubur', 'Skip sarapan'] },
+    { q: 'Lagu yang cocok jadi soundtrack hidup {j}?', o: ['Galau', 'Semangat', 'Santai akustik', 'Dangdut'] },
+    { q: 'Kalau terjebak zombie apocalypse, {j} akan…', o: ['Jadi pemimpin', 'Sembunyi', 'Jadi zombie duluan', 'Cari makanan dulu'] },
+    { q: 'Emoji yang paling sering dipakai {j}?', o: ['😂', '🥺', '😭', '❤️'] },
+    { q: 'Superpower yang paling diinginkan {j}?', o: ['Teleportasi', 'Baca pikiran', 'Menghentikan waktu', 'Terbang'] },
+    { q: 'Kalau bangun jam 4 pagi tanpa alasan, {j}…', o: ['Main HP', 'Tidur lagi', 'Ke dapur', 'Overthinking'] },
+    { q: 'Martabak pilihan {j}?', o: ['Manis cokelat keju', 'Telur', 'Pandan', 'Dua-duanya!'] },
+    { q: 'Tipe {j} kalau nyasar di jalan?', o: ['Buka maps', 'Tanya orang', 'Nekat jalan terus', 'Panik'] },
+    { q: 'Kebiasaan {j} sebelum tidur?', o: ['Scroll medsos', 'Dengar musik', 'Baca', 'Langsung pingsan'] },
+    { q: 'Kalau jadi karakter film, {j} itu…', o: ['Tokoh utama', 'Sahabat lucu', 'Penjahat keren', 'Figuran yang lewat'] }
+  ];
+  // kata Peragakan!: tempat di papan, kegiatan perjalanan, dan hal sehari-hari
+  const CHARADES = ['Selancar', 'Gondola', 'Naik komodo', 'Main bianglala', 'Kereta gantung', 'Balon udara', 'Bermain salju', 'Melihat aurora', 'Makan gelato', 'Naik sepeda onthel',
+    'Mendaki gunung', 'Foto selfie', 'Menangkap ikan', 'Memetik bunga', 'Sunrise', 'Ketinggalan pesawat', 'Koper hilang', 'Mabuk laut', 'Video call sinyal jelek', 'Menunggu balasan chat',
+    'Menari hula', 'Memanggang sate', 'Berdayung', 'Menyelam', 'Pakai sumpit', 'Menara Eiffel', 'Gladiator', 'Ninja', 'Penyanyi opera', 'Pemadam kebakaran',
+    'Kucing jatuh dari meja', 'Tukang parkir', 'Kehujanan tanpa payung', 'Ngantuk di kelas', 'Main gitar', 'Superhero', 'Robot', 'Pelayan restoran', 'Tersengat lebah', 'Diet gagal',
+    'Pinguin', 'Kepiting', 'Joget TikTok', 'Lupa password', 'Selfie dengan monyet', 'Pesawat turbulensi', 'Masak mi instan', 'Pengantin', 'Kehabisan baterai', 'Dikejar angsa'];
 
   const CHALLENGES = [
-    { id: 'q1', type: 'quiz', text: 'Sebutkan 3 makanan favorit pasanganmu. Pasangan menilai benar atau salah.' },
-    { id: 'q2', type: 'quiz', text: 'Lagu apa yang paling sering pasanganmu putar akhir-akhir ini?' },
-    { id: 'q3', type: 'quiz', text: 'Jam berapa biasanya pasanganmu tidur? Toleransi 30 menit.' },
-    { id: 'q4', type: 'quiz', text: 'Apa ketakutan kecil pasanganmu yang jarang diketahui orang?' },
-    { id: 'q5', type: 'quiz', text: 'Sebutkan nama sahabat terdekat pasanganmu dan satu cerita tentang mereka.' },
-    { id: 'q6', type: 'quiz', text: 'Minuman apa yang selalu dipesan pasanganmu di kafe?' },
-    { id: 'q7', type: 'quiz', text: 'Berapa ukuran sepatu pasanganmu?' },
-    { id: 'q8', type: 'quiz', text: 'Hal kecil apa yang paling cepat bikin pasanganmu bad mood?' },
-
-    { id: 'm1', type: 'memory', text: 'Tebak momen favorit pasanganmu dari pertemuan terakhir kalian.' },
-    { id: 'm2', type: 'memory', text: 'Tebak foto berdua yang paling disukai pasanganmu.' },
-    { id: 'm3', type: 'memory', text: 'Ceritakan ulang kencan pertama kalian dalam 3 kalimat. Pasangan menilai detailnya.' },
-    { id: 'm4', type: 'memory', text: 'Tebak kalimat dari chat pertama kalian yang masih diingat pasangan.' },
-    { id: 'm5', type: 'memory', text: 'Tebak hadiah darimu yang paling berkesan buat pasangan.' },
-    { id: 'm6', type: 'memory', text: 'Sebutkan tanggal jadian kalian dan sedang di mana kalian saat itu.' },
-
-    { id: 't1', type: 'truthdare', text: 'Truth: Kapan pertama kali kamu sadar benar-benar sayang dia?' },
-    { id: 't2', type: 'truthdare', text: 'Truth: Hal apa dari pasanganmu yang paling kamu rindukan saat jauh?' },
-    { id: 't3', type: 'truthdare', text: 'Truth: Kebiasaan lucu apa yang diam-diam kamu tiru dari pasangan?' },
-    { id: 't4', type: 'truthdare', text: 'Truth: Hal paling nekat apa yang pernah kamu lakukan demi bertemu dia?' },
-    { id: 'd1', type: 'truthdare', text: 'Dare: Kirim voice note berisi nyanyian 10 detik untuk pasangan.' },
-    { id: 'd2', type: 'truthdare', text: 'Dare: Pasang foto berdua sebagai foto profil selama 24 jam.' },
-    { id: 'd3', type: 'truthdare', text: 'Dare: Ucapkan 5 pujian berbeda untuk pasangan tanpa jeda.' },
-    { id: 'd4', type: 'truthdare', text: 'Dare: Tirukan cara pasanganmu menyapa saat video call.' },
-
-    { id: 'dt1', type: 'deeptalk', text: 'Di kota mana kalian ingin tinggal bersama nanti, dan kenapa?' },
-    { id: 'dt2', type: 'deeptalk', text: 'Satu hal apa yang ingin kalian perbaiki dari cara berkomunikasi saat jauh?' },
-    { id: 'dt3', type: 'deeptalk', text: 'Seperti apa hari Minggu ideal kalian 5 tahun lagi?' },
-    { id: 'dt4', type: 'deeptalk', text: 'Target bersama apa yang ingin kalian capai sebelum LDR selesai?' },
-    { id: 'dt5', type: 'deeptalk', text: 'Kapan kamu merasa paling didukung pasangan selama LDR?' },
-    { id: 'dt6', type: 'deeptalk', text: 'Apa arti "rumah" buat kamu, dan di mana posisi pasangan di dalamnya?' },
-    { id: 'dt7', type: 'deeptalk', text: 'Bagaimana kalian ingin merayakan hari pertama tidak LDR lagi?' },
-    { id: 'dt8', type: 'deeptalk', text: 'Kalau bisa liburan berdua ke satu kota di papan ini, pilih yang mana dan kenapa?' },
-
-    { id: 'ms1', type: 'message', text: 'Tulis pesan cinta singkat untuk dibaca pasangan sebelum tidur.' },
-    { id: 'ms2', type: 'message', text: 'Tulis 3 alasan kamu bangga pada pasanganmu.' },
-    { id: 'ms3', type: 'message', text: 'Tulis pesan penyemangat untuk hari tersibuk pasangan minggu ini.' },
-    { id: 'ms4', type: 'message', text: 'Tulis "surat dari masa depan" untuk kalian berdua.' },
-    { id: 'ms5', type: 'message', text: 'Tulis pantun gombal untuk pasangan.' },
-
-    { id: 'g1', type: 'guess', text: 'Kalau ada kencan dadakan malam ini, pasangan pilih apa?', options: ['Nonton film', 'Makan enak', 'Jalan sore', 'Rebahan sambil video call'] },
-    { id: 'g2', type: 'guess', text: 'Minuman yang paling mungkin dipesan pasangan?', options: ['Kopi susu', 'Matcha', 'Teh manis', 'Air putih saja'] },
-    { id: 'g3', type: 'guess', text: 'Destinasi liburan impian pasangan?', options: ['Pantai', 'Gunung', 'Kota besar', 'Luar negeri'] },
-    { id: 'g4', type: 'guess', text: 'Bahasa cinta utama pasangan?', options: ['Kata-kata manis', 'Waktu berkualitas', 'Hadiah', 'Pelukan', 'Bantuan nyata'] },
-    { id: 'g5', type: 'guess', text: 'Camilan begadang favorit pasangan?', options: ['Mi instan', 'Keripik', 'Cokelat', 'Buah'] },
-    { id: 'g6', type: 'guess', text: 'Kalau dapat uang kaget satu juta, pasangan akan…', options: ['Menabung', 'Traktir kamu', 'Belanja online', 'Beli tiket ketemu kamu'] },
-
+    // --- auto: soal dibuat engine ---
+    { id: 'tv', type: 'trivia', text: 'Kuis Keliling Dunia: jawab soal tentang papan Loveopoly.' },
+    { id: 'pr', type: 'price', text: 'Tebak Harga Kota: berapa harga beli kota-kota ini?' },
+    { id: 'rc', type: 'recall', text: 'Ingat Urutan: hafalkan urutan gambar, lalu ulangi persis.' },
+    { id: 'mt', type: 'math', text: 'Hitung Ongkos Kilat: hitung tanpa kalkulator.' },
+    { id: 'sc', type: 'scramble', text: 'Susun Nama Kota: huruf-hurufnya diacak.' },
+    { id: 'em', type: 'emoji', text: 'Tebak Emoji: tempat mana yang digambarkan emoji ini?' },
+    // --- duel ---
+    { id: 'hs', type: 'secret', text: 'Tebak Isi Hati: seberapa kenal kamu dengan {j}?' },
+    { id: 'bl', type: 'bluff', text: 'Dua Fakta Satu Bohong: tulis 3 pernyataan tentang dirimu, satu di antaranya bohong.' },
+    { id: 'cr', type: 'charades', text: 'Peragakan! Tanpa suara, tanpa menunjuk benda, tanpa mengeja huruf.' },
+    // --- surat bersyarat: syarat dicek otomatis ---
+    { id: 'ms1', type: 'message', text: 'Akrostik: tulis 5 baris untuk {j}, baris ke-1 sampai ke-5 diawali huruf C, I, N, T, A.', rule: { acrostic: 'CINTA' } },
+    { id: 'ms2', type: 'message', text: 'Tulis pesan penyemangat untuk {j} yang memuat nama 3 kota berbeda di papan ini.', rule: { cities: 3, minWords: 12 } },
+    { id: 'ms3', type: 'message', text: 'Tulis pesan manis minimal 10 kata untuk {j} tanpa memakai huruf "a" sama sekali.', rule: { noLetter: 'a', minWords: 10 } },
+    { id: 'ms4', type: 'message', text: 'Pantun 4 baris untuk {j}: rima a-b-a-b (baris 1 & 3 berakhiran sama, baris 2 & 4 berakhiran sama).', rule: { lines: 4, rhyme: 'abab' } },
+    { id: 'ms5', type: 'message', text: 'Akrostik: tulis 4 baris untuk {j}, diawali huruf R, I, N, D.', rule: { acrostic: 'RIND' } },
+    { id: 'ms6', type: 'message', text: 'Tulis 3 alasan kamu senang main bareng {j}, tiap alasan di baris sendiri dan minimal 5 kata.', rule: { lines: 3, wordsPerLine: 5 } },
+    { id: 'ms7', type: 'message', text: 'Tulis ulasan bintang 5 tentang {j} seolah {j} adalah restoran. Minimal 15 kata dan tanpa huruf "e".', rule: { noLetter: 'e', minWords: 15 } },
+    { id: 'ms8', type: 'message', text: 'Akrostik nama tempat: tulis 4 baris untuk {j}, diawali huruf B, A, L, I.', rule: { acrostic: 'BALI' } },
+    { id: 'ms9', type: 'message', text: 'Tulis rencana liburan impian bareng {j}: tepat 4 baris dan memuat 2 nama kota di papan.', rule: { lines: 4, cities: 2 } },
+    // --- aksi berani: syarat lulus jelas, lawan yang mengesahkan ---
+    { id: 'dr1', type: 'dare', secs: 20, text: 'Sebutkan 10 nama kota/tempat di papan ini dalam 20 detik tanpa melihat papan.', crit: 'Sah bila 10 nama benar diucapkan sebelum waktu habis.' },
+    { id: 'dr2', type: 'dare', secs: 30, text: 'Bicara 30 detik tentang "kenapa mi instan adalah makanan terhebat" tanpa jeda lebih dari 2 detik dan tanpa bilang "eh/hmm".', crit: 'Sah bila tidak ada jeda panjang dan tidak ada "eh/hmm".' },
+    { id: 'dr3', type: 'dare', secs: 20, text: 'Tahan tidak tertawa atau tersenyum selama {j} melawak 20 detik.', crit: 'Sah bila tidak ada tawa atau senyum sedikit pun.' },
+    { id: 'dr4', type: 'dare', secs: 30, text: '{j} menyebut 3 ekspresi (misal: kaget, curiga, jatuh cinta). Peragakan berurutan, masing-masing 5 detik.', crit: 'Sah bila ketiga ekspresi jelas terlihat dan berurutan.' },
+    { id: 'dr5', type: 'dare', secs: 45, text: 'Nyanyikan reff lagu yang judulnya dipilih {j}. Lirik minimal 80% benar.', crit: 'Sah bila lirik hampir semuanya benar dan nadanya bisa dikenali.' },
+    { id: 'dr6', type: 'dare', secs: 30, text: 'Tatap mata {j} (langsung atau di kamera) selama 30 detik tanpa tertawa dan tanpa membuang muka.', crit: 'Sah bila tatapan bertahan 30 detik penuh.' },
+    { id: 'dr7', type: 'dare', secs: 40, text: 'Lakukan 15 squat sambil mengucapkan alfabet mundur dari Z. Salah urut = ulang dari Z.', crit: 'Sah bila 15 squat selesai dan alfabet mundur benar.' },
+    { id: 'dr8', type: 'dare', secs: 30, text: 'Ceritakan kisah 4 kalimat yang memuat kata "komodo", "gelato", "aurora", dan "onthel".', crit: 'Sah bila keempat kata muncul dan ceritanya nyambung.' },
+    { id: 'dr9', type: 'dare', secs: 20, text: 'Berpose seperti 3 landmark berbeda (misal menara, gerbang, patung). {j} harus menebak semuanya.', crit: 'Sah bila {j} berhasil menebak ketiga landmark.' },
+    { id: 'dr10', type: 'dare', secs: 30, text: 'Gombali {j} dengan pantun spontan 4 baris, berima a-b-a-b, tanpa melihat catatan.', crit: 'Sah bila 4 baris, rimanya benar, dan {j} tersenyum.' },
+    { id: 'dr11', type: 'dare', secs: 30, text: 'Pura-pura jadi pemandu wisata salah satu kota di papan selama 30 detik, lengkap dengan 3 fakta tentang kotanya.', crit: 'Sah bila ada 3 fakta dan gaya pemandunya meyakinkan.' },
+    { id: 'dr12', type: 'dare', secs: 15, text: 'Ucapkan "kereta gantung goyang-goyang di Kyoto" 3 kali secepatnya tanpa salah.', crit: 'Sah bila 3 kali berturut-turut tanpa keseleo.' },
+    { id: 'dr13', type: 'dare', secs: 30, text: 'Jadi komentator bola yang heboh untuk 30 detik terakhir permainan ini.', crit: 'Sah bila heboh tanpa berhenti dan {j} tertawa minimal sekali.' },
+    { id: 'dr14', type: 'dare', secs: 20, text: 'Tirukan suara 5 hewan berbeda berturut-turut dalam 20 detik.', crit: 'Sah bila 5 suara berbeda dan bisa dikenali.' },
+    { id: 'dr15', type: 'dare', secs: 30, text: 'Bacakan berita palsu yang serius tentang "Merpi kehilangan surat cinta", gaya presenter TV.', crit: 'Sah bila tanpa tertawa dan ada pembuka & penutup berita.' },
+    { id: 'dr16', type: 'dare', secs: 20, text: 'Jelaskan cara memakai sendok kepada alien dalam 20 detik, tanpa memakai kata "makan".', crit: 'Sah bila kata "makan" tidak terucap sama sekali.' },
+    // --- foto bukti: buka kamera, cekrek, dinilai lawan, dipajang di papan ---
+    { id: 'ph1', type: 'photo', text: 'Foto dirimu berpose seperti patung landmark di papan (pilih sendiri, {j} harus bisa menebaknya).', crit: 'Sah bila {j} bisa menebak landmark-nya dari foto.' },
+    { id: 'ph2', type: 'photo', text: 'Foto ekspresi "baru sadar uang habis kena tol Hawaii". Makin dramatis makin bagus.', crit: 'Sah bila ekspresinya dramatis dan bikin {j} tertawa.' },
+    { id: 'ph3', type: 'photo', text: 'Foto 3 benda berwarna merah muda di sekitarmu dalam satu frame. Waktu 45 detik!', crit: 'Sah bila ada 3 benda merah muda yang jelas di foto.' },
+    { id: 'ph4', type: 'photo', text: 'Selfie meniru ekspresi avatar pionmu.', crit: 'Sah bila mirip menurut {j}.' },
+    { id: 'ph5', type: 'photo', text: 'Foto tanganmu membentuk hati dengan latar benda paling random di ruanganmu.', crit: 'Sah bila bentuk hatinya jelas dan bendanya memang random.' },
+    { id: 'ph6', type: 'photo', text: 'Foto "oleh-oleh" dari kota terakhir yang kamu kunjungi di papan, pakai benda apa saja di sekitarmu.', crit: 'Sah bila {j} paham hubungannya dengan kota itu.' },
+    { id: 'ph7', type: 'photo', text: 'Foto pose superhero lengkap dengan "jubah" dari benda apa pun.', crit: 'Sah bila ada jubah dan posenya meyakinkan.' },
+    { id: 'ph8', type: 'photo', text: 'Foto wajah dengan tulisan tangan "Loveopoly" di kertas, dalam 40 detik.', crit: 'Sah bila tulisannya terbaca dan wajahmu kelihatan.' },
+    // --- dilema ---
     { id: 'dl1', type: 'dilemma', text: 'Tiket promo muncul jam 3 pagi! Beli sekarang atau tidur?', options: [
       { label: 'Beli: bayar 100, maju ke wisata terdekat', fx: [{ pay: 100 }, { nearest: 'spot' }] },
       { label: 'Tidur: Love −3, hemat begadang +60', fx: [{ love: -3 }, { gain: 60 }] }
     ] },
-    { id: 'dl2', type: 'dilemma', text: 'Pasangan minta video call saat kamu sedang rapat penting.', options: [
+    { id: 'dl2', type: 'dilemma', text: 'Ada yang minta video call saat kamu sedang rapat penting.', options: [
       { label: 'Angkat sebentar: Love +8, bayar 50', fx: [{ love: 8 }, { pay: 50 }] },
       { label: 'Chat "nanti ya": dapat 100, Love −4', fx: [{ gain: 100 }, { love: -4 }] }
     ] },
-    { id: 'dl3', type: 'dilemma', text: 'Uang kado anniversary: hadiah mewah atau tabung untuk tiket ketemu?', options: [
+    { id: 'dl3', type: 'dilemma', text: 'Uang kado: hadiah mewah atau tabung untuk tiket ketemu?', options: [
       { label: 'Hadiah mewah: bayar 150, Love +12', fx: [{ pay: 150 }, { love: 12 }] },
       { label: 'Tabung: dapat 100, Love +2', fx: [{ gain: 100 }, { love: 2 }] }
     ] },
@@ -244,18 +318,14 @@
       { label: 'Pakai bareng teman: dapat 80', fx: [{ gain: 80 }] },
       { label: 'Simpan sampai ketemu: Love +8', fx: [{ love: 8 }] }
     ] },
-    { id: 'dl5', type: 'dilemma', text: 'Pasangan ngambek karena kamu lupa kabar. Cara baikan?', options: [
+    { id: 'dl5', type: 'dilemma', text: 'Ada yang ngambek karena kamu lupa kabar. Cara baikan?', options: [
       { label: 'Kirim makanan: bayar 60, Love +10', fx: [{ pay: 60 }, { love: 10 }] },
       { label: 'Telepon 3 jam: Love +6, kehilangan giliran berikutnya', fx: [{ love: 6 }, { skipTurn: 1 }] }
     ] },
     { id: 'dl6', type: 'dilemma', text: 'Ada promo "beli 1 dapat bonus" untukmu.', options: [
       { label: 'Investasi kota: diskon 30% untuk beli/bangun berikutnya', fx: [{ discount: 0.3 }] },
       { label: 'Investasi hubungan: Love +10', fx: [{ love: 10 }] }
-    ] },
-
-    { id: 'mg1', type: 'minigame', game: 'match', pairs: 6, seconds: 40, text: 'Memory Match Kenangan: cocokkan 6 pasang kartu dalam 40 detik.' },
-    { id: 'mg2', type: 'minigame', game: 'match', pairs: 4, seconds: 20, text: 'Memory Match Kilat: cocokkan 4 pasang kartu dalam 20 detik.' },
-    { id: 'mg3', type: 'minigame', game: 'heartbeat', taps: 5, need: 3, text: 'Sinkronkan Detak: ketuk saat hati berada di zona merah muda. Butuh 3 dari 5 ketukan tepat.' }
+    ] }
   ];
 
   const ACHIEVEMENTS = [
@@ -333,6 +403,6 @@
 
   G.LOVE_DATA = {
     RULES, SIDES, GROUPS, TILES, LEVELS, POWER, CARDS, CH_TYPES, CHALLENGES, ACHIEVEMENTS, TITLES,
-    WIN_MESSAGES, AI_LETTERS, MERPI, AVATARS, TOKEN_COLORS, AI_NAMES
+    WIN_MESSAGES, AI_LETTERS, MERPI, AUTO_TYPES, HEART_QS, CHARADES, EMOJI_CLUES, AVATARS, TOKEN_COLORS, AI_NAMES
   };
 })(typeof window !== 'undefined' ? window : globalThis);

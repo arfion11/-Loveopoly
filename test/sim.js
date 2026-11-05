@@ -109,3 +109,55 @@ console.log(JSON.stringify({
 }, null, 1));
 // kode keluar untuk npm test / CI: gagal bila ada crash, invariant rusak, atau aksi tidak valid
 if (stats.errors) process.exitCode = 1;
+
+// ---------- uji aturan tantangan terbukti (deterministik) ----------
+let chFails = 0;
+(() => {
+const ok = (n, c, d) => { if (!c) { chFails++; console.log('FAIL tantangan: ' + n + (d ? ' — ' + d : '')); } };
+const mk = (type, src, players) => { const S = E.create({ players: players || [{ name: 'A' }, { name: 'B' }], seed: 11 }); const id = D.CHALLENGES.find(c => c.type === type).id; S.queue.push({ type: 'CHALLENGE', p: 0, ch: id, cat: type, source: src || 'card', redraws: 0 }); return E.migrate(S); };
+const d = (S, a) => { const r = E.dispatch(S, a); if (!r.ok) return { err: r.error, S }; return { S: r.state }; };
+// self-report ditolak
+let S = mk('trivia'); ok('klik "complete" ditolak', !!d(S, { type: 'CH_RESOLVE', p: 0, result: 'complete' }).err);
+for (const t of D.AUTO_TYPES) {
+  S = mk(t); const it = S.queue[0], sol = E.chSolve(it);
+  let r = d(S, { type: 'CH_ANSWER', p: 0, answers: sol, ms: 5000 });
+  ok(t + ': jawaban benar lulus', r.S && r.S.players[0].cash > 2500 && !r.S.queue.length, r.err || r.S.log[r.S.log.length - 1].text);
+  const wrong = sol.map(x => typeof x === 'number' ? x + 99999 : 'zzz');
+  r = d(S, { type: 'CH_ANSWER', p: 0, answers: wrong, ms: 5000 }); ok(t + ': jawaban salah gagal', r.S && r.S.players[0].cash === 2500, r.err);
+  r = d(S, { type: 'CH_ANSWER', p: 0, answers: sol, ms: 999999 }); ok(t + ': lewat waktu gagal', r.S && r.S.players[0].cash === 2500);
+}
+// pulau rindu: hanya keluar jika benar
+S = E.create({ players: [{ name: 'A' }, { name: 'B', kind: 'ai' }], seed: 3 }); S.players[0].pos = 8; S.players[0].island = true;
+let r = d(S, { type: 'ISLAND_CH', p: 0 }); const it = r.S.queue[0];
+ok('rindu: lawan bot → hanya auto & mode sulit', D.AUTO_TYPES.includes(E.CH[it.ch].type) && it.hard, E.CH[it.ch].type);
+let r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: [], ms: 3000 }); ok('rindu: salah → tetap di pulau', r2.S.players[0].island);
+r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: E.chSolve(it), ms: 3000 }); ok('rindu: benar → keluar', r2.S && !r2.S.players[0].island, r2.err);
+// secret
+S = mk('secret'); r = d(S, { type: 'CH_ANSWER', p: 0 }); ok('secret: giliran penilai', E.actor(r.S) === 1);
+ok('secret: pemilik tak bisa menjawab rahasia', !!d(r.S, { type: 'CH_ANSWER', p: 0, answers: [0, 0, 0] }).err);
+r = d(r.S, { type: 'CH_ANSWER', p: 1, answers: [1, 2, 3] }); ok('secret: kembali ke pemilik', E.actor(r.S) === 0);
+r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: [1, 2, 0] }); ok('secret: 2/3 cocok lulus + penilai dapat Love', r2.S.players[0].cash > 2500 && r2.S.players[1].love > S.players[1].love);
+r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: [0, 0, 0] }); ok('secret: 0/3 gagal', r2.S.players[0].cash === 2500);
+// bluff
+S = mk('bluff'); r = d(S, { type: 'CH_ANSWER', p: 0, lines: ['Aku pernah ke Bali', 'Aku takut kucing', 'Aku bisa main gitar'], lie: 1 });
+r2 = d(r.S, { type: 'CH_ANSWER', p: 1, pick: 1 }); ok('bluff: ketahuan → penilai dapat hadiah', r2.S.players[1].cash > 2500 && r2.S.players[0].cash === 2500);
+r2 = d(r.S, { type: 'CH_ANSWER', p: 1, pick: 0 }); ok('bluff: berhasil mengecoh → pemilik dapat hadiah', r2.S.players[0].cash > 2500);
+// charades
+S = mk('charades'); const word = S.queue[0].pz.word; r = d(S, { type: 'CH_ANSWER', p: 0 });
+r2 = d(r.S, { type: 'CH_ANSWER', p: 1, guess: 'salah' }); r2 = d(r2.S, { type: 'CH_ANSWER', p: 1, guess: word.toUpperCase() });
+ok('charades: tebakan benar ke-2 lulus', r2.S.players[0].cash > 2500 && /ke-2/.test(r2.S.log[r2.S.log.length - 2].text), r2.S.log.slice(-2).map(x => x.text).join(' | '));
+// message
+S = mk('message'); const rule = E.CH[S.queue[0].ch];
+ok('message: teks asal ditolak', !!d(S, { type: 'CH_ANSWER', p: 0, text: 'halo kamu' }).err, rule.text);
+// photo
+S = mk('photo'); ok('photo: tanpa foto ditolak', !!d(S, { type: 'CH_ANSWER', p: 0 }).err);
+r = d(S, { type: 'CH_ANSWER', p: 0, photo: 'data:image/jpeg;base64,AAAA' }); r2 = d(r.S, { type: 'CH_ANSWER', p: 1, ok: true });
+ok('photo: disahkan & tersimpan', r2.S.photos.length === 1 && r2.S.players[0].cash > 2500);
+// batal saat menunggu penilai
+r2 = d(r.S, { type: 'CH_RESOLVE', p: 0, result: 'skip' }); ok('pemilik bisa batal saat menunggu penilai', !!r2.S && !r2.S.queue.length, r2.err);
+// lawan bot: kartu secret → auto
+S = mk('secret', 'card', [{ name: 'A' }, { name: 'B', kind: 'ai' }]); ok('vs bot: secret diganti auto', D.AUTO_TYPES.includes(E.CH[S.queue[0].ch].type), E.CH[S.queue[0].ch].type);
+
+})();
+console.log('tantangan: ' + (chFails ? chFails + ' gagal' : 'semua aturan lulus'));
+if (chFails) process.exitCode = 1;

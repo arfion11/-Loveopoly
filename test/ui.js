@@ -23,7 +23,7 @@ const MONKEY = () => {
     // utang: jual dulu kalau belum bisa bayar
     const pd = modal.querySelector('#bPayDebt');
     if (pd && pd.disabled) { const s = modal.querySelector('[data-sell]:not(:disabled)'); if (s) { s.click(); return 'sell'; } }
-    const prefs = ['#bTkBuy', '#bTkSkip', '#bBuy', '#bUp', '#bCard', '[data-ch="0"]', '#bPay', '#bTax', '#bDone', '[data-opt="0"]', '#bGStart', '[data-gp]', '#bGEnd', '#bPlay', '#bMgEnd', '#bPayDebt', '#bBk', '#bSkip'];
+    const prefs = ['#bTkBuy', '#bTkSkip', '#bBuy', '#bUp', '#bCard', '[data-ch="0"]', '#bPay', '#bTax', '#bDone', '[data-opt="0"]', '#bGStart', '[data-gp]', '#bGEnd', '#bGate', '#bJudgeOk', '#bPayDebt', '#bBk', '#bSkip'];
     for (const s of prefs) { const el = modal.querySelector(s); if (vis(el)) { el.click(); return s; } }
     const mc = Array.from(modal.querySelectorAll('.mcard:not(.done):not(.open)'));
     if (mc.length) { mc[Math.floor(Math.random() * mc.length)].click(); return 'mcard'; }

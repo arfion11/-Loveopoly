@@ -61,7 +61,7 @@
       '<button type="button" class="mode-card mc-ai mc-sm" id="hAI"><span class="mc-art">' + ART.art('bot') + '</span><span class="mc-txt"><b>Lawan AI</b><span>Easy, Normal, atau Hard</span></span>' + ic('chevron') + '</button>' +
       '<button type="button" class="mode-card mc-local mc-sm" id="hLocal"><span class="mc-art">' + ART.art('festival') + '</span><span class="mc-txt"><b>Main Bareng</b><span>2–4 orang, satu perangkat</span></span>' + ic('chevron') + '</button>' +
       '</div></div>' +
-      '<div class="home-secondary"><button type="button" class="btn soft" id="hHow">' + ic('book') + '<span>Buku Panduan</span></button><span class="tiny muted">' + TILES.length + ' petak · ' + TILES.filter(t => t.type === 'city').length + ' kota romantis · ' + TILES.filter(t => t.type === 'spot').length + ' wisata · ' + D.CARDS.length + ' Kartu Cinta · ' + D.CHALLENGES.length + ' tantangan pasangan</span></div>' +
+      '<div class="home-secondary"><button type="button" class="btn soft" id="hHow">' + ic('book') + '<span>Buku Panduan</span></button><span class="tiny muted">' + TILES.length + ' petak · ' + TILES.filter(t => t.type === 'city').length + ' kota romantis · ' + TILES.filter(t => t.type === 'spot').length + ' wisata · ' + D.CARDS.length + ' Kartu Cinta · ' + D.CHALLENGES.length + ' tantangan</span></div>' +
       '</div></div>';
     const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };
     on('hLocal', () => openSetup('local'));
@@ -452,6 +452,13 @@
     const statRows = S.players.map(p => '<tr><td>' + esc(p.avatar + ' ' + p.name) + '</td><td>' + E.ownedBy(S, p.i).length + '</td><td>' + p.stats.landmarks + '</td><td>' + fmt(p.stats.tollIn) + '</td><td>' + p.stats.takeovers + '</td><td>' + p.stats.challenges + '</td><td>' + p.love + '</td></tr>').join('');
     const ach = S.players.map(p => '<div><b>' + esc(p.avatar + ' ' + p.name) + '</b><div class="ach-list">' + (p.achievements.length ? p.achievements.map(id => '<span class="ach">' + ic(E.ACH[id].icon in G.LoveIcons.paths ? E.ACH[id].icon : 'trophy') + esc(E.ACH[id].name) + '</span>').join('') : '<span class="tiny muted">Belum ada achievement.</span>') + '</div></div>').join('');
     const letters = S.letters.length ? '<div class="letters">' + S.letters.slice().reverse().map(l => '<div class="letter"><span class="from">' + ic('letter') + ' Dari ' + esc(S.players[l.p].name) + ' · ronde ' + l.r + '</span>' + esc(l.text) + '</div>').join('') + '</div>' : '<div class="empty">' + ic('letter') + 'Belum ada surat cinta di permainan ini.</div>';
+    const proofsPanel = S => {
+      const ph = S.photos || [], pr = S.proofs || [];
+      if (!ph.length && !pr.length) return '';
+      return '<div class="panel stack"><h3>' + ic('polaroid') + 'Bukti tantangan</h3>' +
+        (ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + x.img + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? 'Disahkan' : 'Ditolak') + '</span></figcaption></figure>').join('') + '</div>' : '') +
+        (pr.length ? '<ul class="proof-list">' + pr.slice().reverse().slice(0, 10).map(x => '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + '<span><b>' + esc(S.players[x.p].name) + '</b> · ' + esc(x.label) + '<small>' + esc(x.proof) + '</small></span></li>').join('') + '</ul>' : '') + '</div>';
+    };
     const el = document.createElement('div');
     el.className = 'win'; el.id = 'winOv';
     el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'winName');
@@ -465,6 +472,7 @@
       '<div class="panel"><h3>' + ic('level') + 'Statistik</h3><div class="stats-wrap"><table class="stats"><thead><tr><th>Pemain</th><th>Kota</th><th>Landmark</th><th>Tol masuk</th><th>Ambil alih</th><th>Tantangan</th><th>Love</th></tr></thead><tbody>' + statRows + '</tbody></table></div></div>' +
       '<div class="panel stack"><h3>' + ic('sparkle') + 'Achievement</h3>' + ach + '</div>' +
       '<div class="panel stack"><h3>' + ic('letter') + 'Surat cinta selama permainan</h3>' + letters + '</div>' +
+      proofsPanel(S) +
       '<div class="setup-foot"><button type="button" class="btn ghost" id="wBoard">' + ic('map') + '<span>Lihat Papan</span></button>' + (App.mode === 'online' && !Net.isHost() ? '' : '<button type="button" class="btn soft" id="wAgain">' + ic('refresh') + '<span>Main Lagi</span></button>') + '<button type="button" class="btn primary" id="wHome">' + ic('home') + '<span>Menu Utama</span></button></div>' +
       '</div>';
     root.appendChild(el);

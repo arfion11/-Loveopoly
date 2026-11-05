@@ -351,16 +351,23 @@
       ch.options.forEach((o, i) => { const sc = fxScore(S, p, o.fx, lvl); if (sc > bestS) { bestS = sc; best = i; } });
       return { type: 'CH_RESOLVE', p, result: 'choice', choice: best };
     }
-    const prob = lvl === 'easy' ? 0.55 : lvl === 'normal' ? 0.75 : 0.9;
-    const r = aiRand(S, p, 'ch' + it.ch + it.redraws);
-    if (ch.type === 'message') {
-      const txt = D.AI_LETTERS[Math.floor(aiRand(S, p, 'letter') * D.AI_LETTERS.length)];
-      return r < prob ? { type: 'CH_RESOLVE', p, result: 'complete', text: txt } : { type: 'CH_RESOLVE', p, result: 'skip' };
+    // bot sebagai penilai (seharusnya tidak terjadi: penilai selalu manusia) → jawab netral supaya tidak macet
+    if (it.who !== it.p) {
+      const r = k => aiRand(S, p, 'jd' + k);
+      if (ch.type === 'secret') return { type: 'CH_ANSWER', p, answers: it.pz.qs.map((q, k) => Math.floor(r(k) * D.HEART_QS[q].o.length)) };
+      if (ch.type === 'bluff') return { type: 'CH_ANSWER', p, pick: Math.floor(r(0) * 3) };
+      if (ch.type === 'charades') return { type: 'CH_ANSWER', p, giveUp: true };
+      return { type: 'CH_ANSWER', p, ok: true };
     }
-    if (ch.type === 'guess' || ch.type === 'minigame') return { type: 'CH_RESOLVE', p, result: r < prob ? 'complete' : 'fail' };
-    if (r < prob) return { type: 'CH_RESOLVE', p, result: 'complete' };
-    if (it.redraws < RULES.maxRedraws && r < prob + 0.12) return { type: 'CH_REDRAW', p };
-    return { type: 'CH_RESOLVE', p, result: 'skip' };
+    // bot memainkan mini-game sungguhan: tiap jawaban benar dengan peluang sesuai level
+    const sol = E.chSolve(it);
+    if (!sol) return { type: 'CH_RESOLVE', p, result: 'skip' };
+    const acc = lvl === 'easy' ? 0.6 : lvl === 'normal' ? 0.8 : 0.93;
+    const answers = ch.type === 'recall'
+      ? (aiRand(S, p, 'rc' + it.redraws) < acc * acc ? sol : sol.slice().reverse())
+      : sol.map((x, k) => aiRand(S, p, 'ca' + k + it.redraws) < acc ? x : (typeof x === 'number' ? x + 1 + k : 'salah'));
+    const ms = Math.round(it.pz.secs * 1000 * (0.35 + aiRand(S, p, 'cms') * 0.5));
+    return { type: 'CH_ANSWER', p, answers, ms };
   }
 
   // ---------- utang ----------

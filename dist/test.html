@@ -189,7 +189,8 @@ textarea.input { min-height: 84px; resize: vertical; font-weight: 500; line-heig
 .opt-list { display: grid; gap: 14px; }
 .opt { display: grid; gap: 8px; }
 .note { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; border-radius: 14px; background: var(--sky-soft); color: var(--ink); font-size: 14px; line-height: 1.45; }
-.note > .ic { color: var(--sky-d); margin-top: 1px; width: 18px; height: 18px; }
+.note > .ic { color: var(--sky-d); margin-top: 1px; width: 18px; height: 18px; flex: none; }
+.note > span { min-width: 0; overflow-wrap: anywhere; }
 .note-steps { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 3px; }
 .note.warn { background: var(--danger-soft); }
 .note.warn > .ic { color: var(--danger-d); }
@@ -335,7 +336,7 @@ main { position: relative; }
 .pick-row.swatches .swatch { width: 100%; height: auto; aspect-ratio: 1; }
 .add-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 .setup-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding-top: 6px; }
-.online { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.online { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .panel.wide { grid-column: 1 / -1; }
 .code-box { font: 700 40px/1 var(--fd); letter-spacing: .22em; text-align: center; padding: 16px; border-radius: 18px; background: var(--brand-soft); color: var(--brand-ink); -webkit-user-select: all; user-select: all; }
 .code-in { text-transform: uppercase; letter-spacing: .22em; font-size: 20px; }
@@ -5982,7 +5983,7 @@ main { position: relative; }
         const can = p.cash >= cost;
         const src = { visit: 'Mampir ke kotamu', start: 'Bonus berhenti di START', takeover: 'Kota baru hasil ambil alih' }[it.src] || '';
         let body = cityHero(S, it.tile, { owner: false }) + levelCards(S, it.p, it.tile, st.level, sel, allowed, costFn);
-        if (st.level === 3) body += '<div class="note gold">' + ic('crown') + ' Landmark: tol tertinggi dan <b>kebal diambil alih</b>.</div>';
+        if (st.level === 3) body += '<div class="note gold">' + ic('crown') + '<span>Landmark: tol tertinggi dan <b>kebal diambil alih</b>.</span></div>';
         else if (E.capLevel(S, it.p) < 3) body += '<div class="note">' + ic('info') + ' Hotel terbuka setelah kamu melewati START sekali.</div>';
         if (p.discount) body += '<div class="note good">' + ic('ticket') + ' Voucher diskon ' + Math.round(p.discount * 100) + '% dipakai.</div>';
         body += sumRow(p.cash, cost, can);
@@ -6574,7 +6575,7 @@ main { position: relative; }
       key: 'exit', size: 'mid',
       build: () => ({
         title: 'Keluar ke Menu?', kicker: ic('exit') + 'Keluar',
-        body: App.mode === 'online' ? '<div class="note">' + ic('info') + ' Kamu bisa kembali kapan saja dengan kode room <b class="mono">' + esc(App.net ? App.net.code : '') + '</b>.</div>' : '<div class="note">' + ic('info') + ' Progres tersimpan otomatis di perangkat ini. Lanjutkan dari menu utama kapan saja.</div>',
+        body: App.mode === 'online' ? '<div class="note">' + ic('info') + '<span>Kamu bisa kembali kapan saja dengan kode room <b class="mono">' + esc(App.net ? App.net.code : '') + '</b>.</span></div>' : '<div class="note">' + ic('info') + ' Progres tersimpan otomatis di perangkat ini. Lanjutkan dari menu utama kapan saja.</div>',
         foot: btn('id="xNo"', 'ghost', 'back', 'Tetap Main') + '<span class="grow"></span>' + btn('id="xYes"', 'primary', 'exit', 'Keluar')
       }),
       mount: m => { on(m, '#xNo', () => closeModal()); on(m, '#xYes', () => { closeModal(); UI.exitToHome(); }); }
@@ -7740,7 +7741,7 @@ main { position: relative; }
       (onlineErr ? '<div class="note warn page">' + ic('alert') + ' ' + esc(onlineErr) + '</div>' : '') +
       '<div class="online"><div class="panel stack"><h3>' + ic('globe') + 'Kode room</h3><div class="code-box" id="codeBox">' + esc(Net.code) + '</div>' +
       '<button type="button" class="btn soft" id="oCopy">' + ic('copy') + '<span>Salin kode</span></button>' +
-      '<div class="note">' + ic('info') + ' Kirim kode ini ke pasanganmu. Minta dia buka <b>' + esc(location.host || 'Loveopoly') + '</b>, pilih <b>Main Online</b>, ketik kodenya di <b>Gabung dengan kode</b>, lalu tekan Gabung Room. Tanpa daftar akun, langsung main!</div>' +
+      '<div class="note">' + ic('info') + '<span>Kirim kode ini ke pasanganmu. Minta dia buka <b>' + esc(location.host || 'Loveopoly') + '</b>, pilih <b>Main Online</b>, ketik kodenya di <b>Gabung dengan kode</b>, lalu tekan Gabung Room. Tanpa daftar akun, langsung main!</span></div>' +
       '<div class="tiny muted">Uang awal ' + fmt(st.startCash || RULES.startCash) + (st.roundLimit ? ' · ' + st.roundLimit + ' ronde' : ' · tanpa batas ronde') + ' · aturan ' + (st.takeover ? 'lengkap' : 'santai') + '</div></div>' +
       '<div class="panel stack"><h3>' + ic('users') + 'Pemain <span class="muted">' + d.seats.length + '/4</span></h3>' + seats +
       (pending ? '<div class="note">' + ic('clock') + ' Menunggu host menerima kamu…</div>' : '') +

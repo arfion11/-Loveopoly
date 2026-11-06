@@ -1,1 +1,19 @@
-{ "projects": { "default": "demo-loveopoly", "prod": "loveopoly-5b227" } }
+{
+  "projects": {
+    "default": "demo-loveopoly",
+    "prod": "loveopoly-5b227"
+  },
+  "targets": {
+    "loveopoly-5b227": {
+      "hosting": {
+        "main": [
+          "loveopoly"
+        ],
+        "legacy": [
+          "loveopoly-5b227"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

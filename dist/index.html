@@ -4868,6 +4868,29 @@ main { position: relative; }
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* abaikan */ } }
   };
+  // Pindah alamat (loveopoly-5b227.web.app → loveopoly.web.app): halaman pengalih di alamat lama mengirim data
+  // perangkat lewat #lv-import=<base64url JSON>. Dipasang sebelum pengaturan dibaca. Hanya kunci loveopoly.* yang
+  // BELUM ada di alamat baru (tidak pernah menimpa); isinya tetap disaring saat dipakai (passport(), validSave, cleanState).
+  const imported = (() => {
+    try {
+      const m = /[#&]lv-import=([A-Za-z0-9_-]+)/.exec(location.hash || '');
+      if (!m) return 0;
+      history.replaceState(null, '', location.pathname + location.search);
+      const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(escape(atob(b64 + '==='.slice((b64.length + 3) % 4))));
+      const data = JSON.parse(json);
+      let n = 0;
+      Object.keys(data || {}).forEach(k => {
+        const v = data[k];
+        if (!/^loveopoly\.v\d\.[a-z0-9]+$/.test(k) || typeof v !== 'string' || v.length > 200000 || localStorage.getItem(k) != null) return;
+        try { JSON.parse(v); localStorage.setItem(k, v); n++; } catch (e) { /* abaikan nilai rusak */ }
+      });
+      return n;
+    } catch (e) { return 0; }
+  })();
+  // gambar dari state (foto bukti) hanya boleh data URI gambar; selain itu dibuang (state bisa datang dari host
+  // online atau impor data, jangan pernah disisipkan apa adanya ke HTML)
+  const safeImg = u => (typeof u === 'string' && u.length < 60000 && /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/.test(u) ? u : '');
   const KEYS = { save: 'loveopoly.v2.save', prefs: 'loveopoly.v1.prefs', online: 'loveopoly.v2.online', setup: 'loveopoly.v2.setup', tour: 'loveopoly.v2.tour', guide: 'loveopoly.v2.guide' };
   const reduceMotion = () => { try { return G.matchMedia && G.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
   const coin = '<i class="coin-ic" aria-hidden="true"></i>';
@@ -6495,7 +6518,7 @@ main { position: relative; }
     if (pin.dataset.k === k) return;
     pin.dataset.k = k;
     pin.setAttribute('aria-label', 'Galeri foto bukti (' + S.photos.length + ')');
-    pin.innerHTML = '<img src="' + ph.img + '" alt=""><span class="pp-cap">' + esc(S.players[ph.p].name) + ' ' + (ph.ok ? '✓' : '✗') + '</span>' + (S.photos.length > 1 ? '<b class="pp-n">' + S.photos.length + '</b>' : '');
+    pin.innerHTML = '<img src="' + safeImg(ph.img) + '" alt=""><span class="pp-cap">' + esc(S.players[ph.p].name) + ' ' + (ph.ok ? '✓' : '✗') + '</span>' + (S.photos.length > 1 ? '<b class="pp-n">' + S.photos.length + '</b>' : '');
   }
   // foto bukti baru muncul besar di atas papan sebentar, lalu "jatuh" ke polaroid di papan
   function showPhotoPop(ph, S) {
@@ -6504,7 +6527,7 @@ main { position: relative; }
     const el = document.createElement('div');
     el.className = 'photo-pop' + (ph.ok ? '' : ' no');
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<figure><img src="' + ph.img + '" alt=""><figcaption><b>' + esc(S.players[ph.p].name) + '</b><span>' + (ph.ok ? 'Disahkan' : 'Ditolak') + (ph.judge >= 0 ? ' ' + esc(S.players[ph.judge].name) : '') + '</span></figcaption></figure>';
+    el.innerHTML = '<figure><img src="' + safeImg(ph.img) + '" alt=""><figcaption><b>' + esc(S.players[ph.p].name) + '</b><span>' + (ph.ok ? 'Disahkan' : 'Ditolak') + (ph.judge >= 0 ? ' ' + esc(S.players[ph.judge].name) : '') + '</span></figcaption></figure>';
     vp.appendChild(el);
     setTimeout(() => el.classList.add('out'), reduceMotion() ? 2400 : 2600);
     setTimeout(() => el.remove(), 3200);
@@ -6812,6 +6835,8 @@ main { position: relative; }
   const HEX = /^#[0-9a-fA-F]{6}$/;
   function cleanState(S) {
     if (!S || !Array.isArray(S.players)) return S;
+    if (Array.isArray(S.photos)) S.photos = S.photos.filter(x => x && safeImg(x.img) && S.players[x.p]);
+    (S.queue || []).forEach(it => { if (it && it.type === 'CHALLENGE' && it.pz && it.pz.photo != null && !safeImg(it.pz.photo)) it.pz.photo = ''; });
     S.players.forEach((p, k) => {
       p.name = String(p.name == null ? 'Pemain' : p.name).slice(0, 16);
       if (!HEX.test(p.color || '')) p.color = D.TOKEN_COLORS[k % D.TOKEN_COLORS.length];
@@ -6969,7 +6994,7 @@ main { position: relative; }
 
   G.LoveUI = Object.assign(G.LoveUI || {}, {
     App, D, E, AI, SND, ART, TILES, GROUPS, RULES, KEYS, N,
-    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote,
+    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported,
     applyLayout, sizeBoard, bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax,
     buildBoard, renderBoard, renderTokens, renderPlayers, renderHeader, renderStage, renderCenter: renderStage, renderTicker, renderAll,
     startPick, renderPick, endPick, merpiSay, merpiPoke, pulse, restart, tileEl,
@@ -6981,7 +7006,7 @@ main { position: relative; }
 (function (G) {
   'use strict';
   const UI = G.LoveUI;
-  const { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $, $$, toast, controls, viewer, pname, act, coin, avatarHTML } = UI;
+  const { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $, $$, toast, controls, viewer, pname, act, coin, avatarHTML, safeImg } = UI;
 
   // ---------- infrastruktur modal ----------
   let escHandler = null;
@@ -7488,7 +7513,7 @@ main { position: relative; }
             }
           } else {
             title = 'Sah atau tidak?';
-            body = (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + it.pz.photo + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
+            body = (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + safeImg(it.pz.photo) + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
               '<div class="tiny muted">Nilai dengan adil. Kalau sah, kamu juga dapat Love.</div>';
             foot = btn('id="bJudgeNo"', 'soft', 'x', 'Tidak sah') + '<span class="grow"></span>' + btn('id="bJudgeOk" data-focus', 'primary big', 'check', 'Sah!');
           }
@@ -7682,7 +7707,7 @@ main { position: relative; }
     function draw() {
       const live = !!stream && !url;
       el.innerHTML = '<div class="cam-frame' + (url ? ' shot' : '') + '">' +
-        (url ? '<img src="' + url + '" alt="Foto bukti">' : live ? '<video id="camVid" playsinline muted autoplay></video>' : '<div class="cam-empty">' + ic('polaroid') + '<span>' + esc(err || 'Buka kamera untuk foto bukti') + '</span></div>') +
+        (url ? '<img src="' + safeImg(url) + '" alt="Foto bukti">' : live ? '<video id="camVid" playsinline muted autoplay></video>' : '<div class="cam-empty">' + ic('polaroid') + '<span>' + esc(err || 'Buka kamera untuk foto bukti') + '</span></div>') +
         (counting ? '<b class="cam-cd" aria-live="assertive">' + counting + '</b>' : '') + '</div>' +
         '<div class="cam-bar">' + (url ? btn('id="camRetake"', 'soft', 'refresh', 'Foto ulang') : live ? btn('id="camSnap" data-focus', 'go', 'polaroid', counting ? 'Siap…' : 'Cekrek (3 dtk)', !!counting) : btn('id="camOpen"', 'primary', 'polaroid', 'Buka kamera')) +
         '<label class="btn ghost cam-file">' + ic('plus') + '<span>Unggah foto</span><input type="file" accept="image/*" capture="user" id="camFile" class="sr-only"></label></div>' +
@@ -7723,7 +7748,7 @@ main { position: relative; }
       key: 'proofs', size: 'mid',
       build: () => {
         const S = App.S, ph = (S && S.photos) || [], pr = (S && S.proofs) || [];
-        const photos = ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + x.img + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + (x.ok ? 'Disahkan' : 'Ditolak') + (x.judge >= 0 ? ' ' + esc(S.players[x.judge].name) : '') + '</span><small>' + esc(x.text) + '</small></figcaption></figure>').join('') + '</div>' : '<div class="empty">' + ic('polaroid') + 'Belum ada foto bukti. Kartu Foto Bukti membuka kamera.</div>';
+        const photos = ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + safeImg(x.img) + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + (x.ok ? 'Disahkan' : 'Ditolak') + (x.judge >= 0 ? ' ' + esc(S.players[x.judge].name) : '') + '</span><small>' + esc(x.text) + '</small></figcaption></figure>').join('') + '</div>' : '<div class="empty">' + ic('polaroid') + 'Belum ada foto bukti. Kartu Foto Bukti membuka kamera.</div>';
         const list = pr.length ? '<ul class="proof-list">' + pr.slice().reverse().slice(0, 12).map(x => '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + '<span><b>' + esc(S.players[x.p].name) + '</b> · ' + esc(x.label) + '<small>' + esc(x.proof) + '</small></span></li>').join('') + '</ul>' : '';
         return { kicker: ic('polaroid') + 'Bukti tantangan', title: 'Galeri Bukti', body: photos + (list ? '<h3 class="mini-h">Riwayat tantangan</h3>' + list : ''), foot: '<span class="grow"></span>' + btn('id="bPfClose" data-focus', 'primary', 'check', 'Tutup') };
       },
@@ -9695,7 +9720,7 @@ main { position: relative; }
       const ph = S.photos || [], pr = S.proofs || [];
       if (!ph.length && !pr.length) return '';
       return '<div class="panel stack"><h3>' + ic('polaroid') + 'Bukti tantangan</h3>' +
-        (ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + x.img + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? 'Disahkan' : 'Ditolak') + '</span></figcaption></figure>').join('') + '</div>' : '') +
+        (ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + UI.safeImg(x.img) + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? 'Disahkan' : 'Ditolak') + '</span></figcaption></figure>').join('') + '</div>' : '') +
         (pr.length ? '<ul class="proof-list">' + pr.slice().reverse().slice(0, 10).map(x => '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + '<span><b>' + esc(S.players[x.p].name) + '</b> · ' + esc(x.label) + '<small>' + esc(x.proof) + '</small></span></li>').join('') + '</ul>' : '') + '</div>';
     };
     const el = document.createElement('div');
@@ -9842,6 +9867,7 @@ main { position: relative; }
     document.addEventListener('pointerdown', () => SND.unlock(), { once: true });
     show('scrHome');
     renderHome();
+    if (UI.imported) setTimeout(() => toast('Loveopoly pindah ke ' + location.host + '. Paspor, simpanan game, dan pengaturanmu ikut pindah.', { title: 'Alamat baru', icon: 'heart', kind: 'good', ms: 7000 }), 600);
     const pp = passport();
     if (!pp.name && !pp.skipped) setTimeout(() => { if (!$('#scrHome').hidden && !App.S) openPassport({ first: true }); }, UI.reduceMotion() ? 0 : 350);
   }

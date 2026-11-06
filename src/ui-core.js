@@ -16,6 +16,29 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* abaikan */ } }
   };
+  // Pindah alamat (loveopoly-5b227.web.app → loveopoly.web.app): halaman pengalih di alamat lama mengirim data
+  // perangkat lewat #lv-import=<base64url JSON>. Dipasang sebelum pengaturan dibaca. Hanya kunci loveopoly.* yang
+  // BELUM ada di alamat baru (tidak pernah menimpa); isinya tetap disaring saat dipakai (passport(), validSave, cleanState).
+  const imported = (() => {
+    try {
+      const m = /[#&]lv-import=([A-Za-z0-9_-]+)/.exec(location.hash || '');
+      if (!m) return 0;
+      history.replaceState(null, '', location.pathname + location.search);
+      const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(escape(atob(b64 + '==='.slice((b64.length + 3) % 4))));
+      const data = JSON.parse(json);
+      let n = 0;
+      Object.keys(data || {}).forEach(k => {
+        const v = data[k];
+        if (!/^loveopoly\.v\d\.[a-z0-9]+$/.test(k) || typeof v !== 'string' || v.length > 200000 || localStorage.getItem(k) != null) return;
+        try { JSON.parse(v); localStorage.setItem(k, v); n++; } catch (e) { /* abaikan nilai rusak */ }
+      });
+      return n;
+    } catch (e) { return 0; }
+  })();
+  // gambar dari state (foto bukti) hanya boleh data URI gambar; selain itu dibuang (state bisa datang dari host
+  // online atau impor data, jangan pernah disisipkan apa adanya ke HTML)
+  const safeImg = u => (typeof u === 'string' && u.length < 60000 && /^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/=]+$/.test(u) ? u : '');
   const KEYS = { save: 'loveopoly.v2.save', prefs: 'loveopoly.v1.prefs', online: 'loveopoly.v2.online', setup: 'loveopoly.v2.setup', tour: 'loveopoly.v2.tour', guide: 'loveopoly.v2.guide' };
   const reduceMotion = () => { try { return G.matchMedia && G.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
   const coin = '<i class="coin-ic" aria-hidden="true"></i>';
@@ -1643,7 +1666,7 @@
     if (pin.dataset.k === k) return;
     pin.dataset.k = k;
     pin.setAttribute('aria-label', 'Galeri foto bukti (' + S.photos.length + ')');
-    pin.innerHTML = '<img src="' + ph.img + '" alt=""><span class="pp-cap">' + esc(S.players[ph.p].name) + ' ' + (ph.ok ? '✓' : '✗') + '</span>' + (S.photos.length > 1 ? '<b class="pp-n">' + S.photos.length + '</b>' : '');
+    pin.innerHTML = '<img src="' + safeImg(ph.img) + '" alt=""><span class="pp-cap">' + esc(S.players[ph.p].name) + ' ' + (ph.ok ? '✓' : '✗') + '</span>' + (S.photos.length > 1 ? '<b class="pp-n">' + S.photos.length + '</b>' : '');
   }
   // foto bukti baru muncul besar di atas papan sebentar, lalu "jatuh" ke polaroid di papan
   function showPhotoPop(ph, S) {
@@ -1652,7 +1675,7 @@
     const el = document.createElement('div');
     el.className = 'photo-pop' + (ph.ok ? '' : ' no');
     el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = '<figure><img src="' + ph.img + '" alt=""><figcaption><b>' + esc(S.players[ph.p].name) + '</b><span>' + (ph.ok ? 'Disahkan' : 'Ditolak') + (ph.judge >= 0 ? ' ' + esc(S.players[ph.judge].name) : '') + '</span></figcaption></figure>';
+    el.innerHTML = '<figure><img src="' + safeImg(ph.img) + '" alt=""><figcaption><b>' + esc(S.players[ph.p].name) + '</b><span>' + (ph.ok ? 'Disahkan' : 'Ditolak') + (ph.judge >= 0 ? ' ' + esc(S.players[ph.judge].name) : '') + '</span></figcaption></figure>';
     vp.appendChild(el);
     setTimeout(() => el.classList.add('out'), reduceMotion() ? 2400 : 2600);
     setTimeout(() => el.remove(), 3200);
@@ -1960,6 +1983,8 @@
   const HEX = /^#[0-9a-fA-F]{6}$/;
   function cleanState(S) {
     if (!S || !Array.isArray(S.players)) return S;
+    if (Array.isArray(S.photos)) S.photos = S.photos.filter(x => x && safeImg(x.img) && S.players[x.p]);
+    (S.queue || []).forEach(it => { if (it && it.type === 'CHALLENGE' && it.pz && it.pz.photo != null && !safeImg(it.pz.photo)) it.pz.photo = ''; });
     S.players.forEach((p, k) => {
       p.name = String(p.name == null ? 'Pemain' : p.name).slice(0, 16);
       if (!HEX.test(p.color || '')) p.color = D.TOKEN_COLORS[k % D.TOKEN_COLORS.length];
@@ -2117,7 +2142,7 @@
 
   G.LoveUI = Object.assign(G.LoveUI || {}, {
     App, D, E, AI, SND, ART, TILES, GROUPS, RULES, KEYS, N,
-    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote,
+    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported,
     applyLayout, sizeBoard, bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax,
     buildBoard, renderBoard, renderTokens, renderPlayers, renderHeader, renderStage, renderCenter: renderStage, renderTicker, renderAll,
     startPick, renderPick, endPick, merpiSay, merpiPoke, pulse, restart, tileEl,

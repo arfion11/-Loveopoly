@@ -2,7 +2,7 @@
 (function (G) {
   'use strict';
   const UI = G.LoveUI;
-  const { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $, $$, toast, controls, viewer, pname, act, coin, avatarHTML } = UI;
+  const { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $, $$, toast, controls, viewer, pname, act, coin, avatarHTML, safeImg } = UI;
 
   // ---------- infrastruktur modal ----------
   let escHandler = null;
@@ -509,7 +509,7 @@
             }
           } else {
             title = 'Sah atau tidak?';
-            body = (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + it.pz.photo + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
+            body = (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + safeImg(it.pz.photo) + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
               '<div class="tiny muted">Nilai dengan adil. Kalau sah, kamu juga dapat Love.</div>';
             foot = btn('id="bJudgeNo"', 'soft', 'x', 'Tidak sah') + '<span class="grow"></span>' + btn('id="bJudgeOk" data-focus', 'primary big', 'check', 'Sah!');
           }
@@ -703,7 +703,7 @@
     function draw() {
       const live = !!stream && !url;
       el.innerHTML = '<div class="cam-frame' + (url ? ' shot' : '') + '">' +
-        (url ? '<img src="' + url + '" alt="Foto bukti">' : live ? '<video id="camVid" playsinline muted autoplay></video>' : '<div class="cam-empty">' + ic('polaroid') + '<span>' + esc(err || 'Buka kamera untuk foto bukti') + '</span></div>') +
+        (url ? '<img src="' + safeImg(url) + '" alt="Foto bukti">' : live ? '<video id="camVid" playsinline muted autoplay></video>' : '<div class="cam-empty">' + ic('polaroid') + '<span>' + esc(err || 'Buka kamera untuk foto bukti') + '</span></div>') +
         (counting ? '<b class="cam-cd" aria-live="assertive">' + counting + '</b>' : '') + '</div>' +
         '<div class="cam-bar">' + (url ? btn('id="camRetake"', 'soft', 'refresh', 'Foto ulang') : live ? btn('id="camSnap" data-focus', 'go', 'polaroid', counting ? 'Siap…' : 'Cekrek (3 dtk)', !!counting) : btn('id="camOpen"', 'primary', 'polaroid', 'Buka kamera')) +
         '<label class="btn ghost cam-file">' + ic('plus') + '<span>Unggah foto</span><input type="file" accept="image/*" capture="user" id="camFile" class="sr-only"></label></div>' +
@@ -744,7 +744,7 @@
       key: 'proofs', size: 'mid',
       build: () => {
         const S = App.S, ph = (S && S.photos) || [], pr = (S && S.proofs) || [];
-        const photos = ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + x.img + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + (x.ok ? 'Disahkan' : 'Ditolak') + (x.judge >= 0 ? ' ' + esc(S.players[x.judge].name) : '') + '</span><small>' + esc(x.text) + '</small></figcaption></figure>').join('') + '</div>' : '<div class="empty">' + ic('polaroid') + 'Belum ada foto bukti. Kartu Foto Bukti membuka kamera.</div>';
+        const photos = ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + safeImg(x.img) + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + (x.ok ? 'Disahkan' : 'Ditolak') + (x.judge >= 0 ? ' ' + esc(S.players[x.judge].name) : '') + '</span><small>' + esc(x.text) + '</small></figcaption></figure>').join('') + '</div>' : '<div class="empty">' + ic('polaroid') + 'Belum ada foto bukti. Kartu Foto Bukti membuka kamera.</div>';
         const list = pr.length ? '<ul class="proof-list">' + pr.slice().reverse().slice(0, 12).map(x => '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + '<span><b>' + esc(S.players[x.p].name) + '</b> · ' + esc(x.label) + '<small>' + esc(x.proof) + '</small></span></li>').join('') + '</ul>' : '';
         return { kicker: ic('polaroid') + 'Bukti tantangan', title: 'Galeri Bukti', body: photos + (list ? '<h3 class="mini-h">Riwayat tantangan</h3>' + list : ''), foot: '<span class="grow"></span>' + btn('id="bPfClose" data-focus', 'primary', 'check', 'Tutup') };
       },

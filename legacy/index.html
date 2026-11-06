@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loveopoly pindah ke loveopoly.web.app</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://loveopoly.web.app/">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; box-sizing: border-box; font: 16px/1.5 system-ui, sans-serif; text-align: center; background: #FFF0F6; color: #3A2148; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  a { color: #B4285A; font-weight: 700; }
+  @media (prefers-color-scheme: dark) { body { background: #170F25; color: #FFF2F8; } a { color: #FF9EC4; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Loveopoly pindah alamat 💌</h1>
+  <p>Mengantar kamu ke <a id="go" href="https://loveopoly.web.app/">loveopoly.web.app</a>…<br>Paspor Cinta dan simpanan game ikut pindah.</p>
+</main>
+<script>
+// Alamat lama loveopoly-5b227.web.app: bawa data perangkat (kunci loveopoly.*) ke alamat baru lewat hash,
+// lalu alihkan. Game tersimpan dilewati bila terlalu besar untuk link; room online tidak dibawa (akun anonim
+// berbeda per alamat).
+(function () {
+  var NEW = 'https://loveopoly.web.app';
+  var data = {};
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf('loveopoly.') !== 0 || k === 'loveopoly.v2.online') continue;
+      var v = localStorage.getItem(k);
+      if (v != null && v.length < 200000) data[k] = v;
+    }
+  } catch (e) { /* penyimpanan diblokir: alihkan saja */ }
+  function enc(o) {
+    if (!Object.keys(o).length) return '';
+    return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  var h = enc(data);
+  if (h.length > 60000) { delete data['loveopoly.v2.save']; h = enc(data); }
+  if (h.length > 60000) h = '';
+  var url = NEW + (location.pathname || '/') + location.search + (h ? '#lv-import=' + h : '');
+  document.getElementById('go').href = url;
+  location.replace(url);
+})();
+</script>
+</body>
+</html>

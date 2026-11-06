@@ -6,7 +6,7 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 
 - Build: `npm run build` (wajib setelah mengubah `src/`; uji membaca `dist/test.html`)
 - Pratinjau: `npm run dev` → http://localhost:5173
-- Uji: `npm test`, atau per bagian `npm run test:sim | test:flows | test:online | test:ui | test:a11y | test:rules | test:backend` (dua terakhir menjalankan Firebase Emulator, butuh Java 11+). `test:a11y` = axe-core WCAG 2.1 AA di layar & dialog utama, terang/gelap, desktop/HP; tambah tampilan baru ke sana.
+- Uji: `npm test`, atau per bagian `npm run test:sim | test:flows | test:online | test:ui | test:a11y | test:migrate | test:rules | test:backend` (dua terakhir menjalankan Firebase Emulator, butuh Java 11+). `test:a11y` = axe-core WCAG 2.1 AA di layar & dialog utama, terang/gelap, desktop/HP; tambah tampilan baru ke sana.
 - Deploy: `npm run deploy -- --project prod`
 - Sebelum menyatakan selesai: build + uji yang relevan harus lulus dan **tanpa error konsol**. Perubahan tampilan: cek juga screenshot di `test/out/`, minimal ukuran 1366×768, 820×1180, 390×844, 844×390, tema terang & gelap.
 
@@ -67,3 +67,5 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 ## Publikasi
 
 - `npm run deploy -- --project prod` (build + hosting + aturan). Config web di `src/firebase-config.js` (publik), project di `.firebaserc`. Langkah setup project ada di README.
+- Alamat game: **https://loveopoly.web.app** (site Hosting `loveopoly`, target `main` → `dist/`). Alamat lama `loveopoly-5b227.web.app` (target `legacy` → `legacy/index.html`) hanya halaman pengalih yang membawa data perangkat (`loveopoly.*` kecuali `v2.online`) lewat `#lv-import=` ke alamat baru; impornya di awal `ui-core.js` (tidak menimpa, kunci disaring). Target tersimpan di `.firebaserc`. Domain sendiri nanti: hubungkan ke site `loveopoly` (Firebase Console → Hosting → Add custom domain).
+- Gambar dari state (foto bukti) selalu lewat `UI.safeImg()` dan disaring `cleanState()`: state bisa datang dari host online atau impor data.

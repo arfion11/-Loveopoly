@@ -708,7 +708,7 @@
       const ph = S.photos || [], pr = S.proofs || [];
       if (!ph.length && !pr.length) return '';
       return '<div class="panel stack"><h3>' + ic('polaroid') + 'Bukti tantangan</h3>' +
-        (ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + x.img + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? 'Disahkan' : 'Ditolak') + '</span></figcaption></figure>').join('') + '</div>' : '') +
+        (ph.length ? '<div class="proof-grid">' + ph.slice().reverse().map(x => '<figure class="proof-photo' + (x.ok ? '' : ' no') + '"><img src="' + UI.safeImg(x.img) + '" alt="Foto bukti ' + esc(S.players[x.p].name) + '"><figcaption><span class="pc-who"><b>' + esc(S.players[x.p].name) + '</b> · ronde ' + x.r + '</span><span class="' + (x.ok ? 'ok' : 'bad') + '">' + (x.ok ? 'Disahkan' : 'Ditolak') + '</span></figcaption></figure>').join('') + '</div>' : '') +
         (pr.length ? '<ul class="proof-list">' + pr.slice().reverse().slice(0, 10).map(x => '<li class="' + (x.ok ? 'ok' : 'bad') + '">' + ic(x.ok ? 'check' : 'x') + '<span><b>' + esc(S.players[x.p].name) + '</b> · ' + esc(x.label) + '<small>' + esc(x.proof) + '</small></span></li>').join('') + '</ul>' : '') + '</div>';
     };
     const el = document.createElement('div');
@@ -855,6 +855,7 @@
     document.addEventListener('pointerdown', () => SND.unlock(), { once: true });
     show('scrHome');
     renderHome();
+    if (UI.imported) setTimeout(() => toast('Loveopoly pindah ke ' + location.host + '. Paspor, simpanan game, dan pengaturanmu ikut pindah.', { title: 'Alamat baru', icon: 'heart', kind: 'good', ms: 7000 }), 600);
     const pp = passport();
     if (!pp.name && !pp.skipped) setTimeout(() => { if (!$('#scrHome').hidden && !App.S) openPassport({ first: true }); }, UI.reduceMotion() ? 0 : 350);
   }

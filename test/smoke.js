@@ -1,10 +1,10 @@
 // Uji asap di URL hosting sungguhan: dua browser terpisah (uid anonim berbeda) membuat & bergabung room,
 // main beberapa ronde, lalu tamu menutup tab → host melihat Offline. Room uji dihapus di akhir.
-// node test/smoke.js [URL]   (bawaan https://loveopoly-5b227.web.app)
+// node test/smoke.js [URL]   (bawaan https://loveopoly.web.app)
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const URL = process.argv[2] || 'https://loveopoly-5b227.web.app';
+const URL = process.argv[2] || 'https://loveopoly.web.app';
 const OUT = path.join(__dirname, 'out', 'smoke');
 fs.mkdirSync(OUT, { recursive: true });
 

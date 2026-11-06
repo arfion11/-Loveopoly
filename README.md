@@ -79,7 +79,7 @@ Host memvalidasi setiap aksi dengan engine. Dokumen disimpan sebagai JSON di fie
    (termasuk `databaseURL`).
 6. Di terminal: `npx firebase login`, lalu tambahkan project ke `.firebaserc` sebagai alias `prod`.
 
-Deploy: `npm run deploy -- --project prod` → game tersedia di `https://<project-id>.web.app`.
+Deploy: `npm run deploy -- --project prod` → game tersedia di `https://loveopoly.web.app` (site `loveopoly`, target `main`); alamat lama `https://loveopoly-5b227.web.app` (target `legacy`) mengalihkan ke sana sambil membawa data perangkat.
 
 Kuota gratis Spark (Firestore ±50 rb baca & 20 rb tulis per hari) jauh di atas pemakaian pribadi. Room lama tidak
 terhapus otomatis (ukurannya kecil); bisa dibersihkan manual dari Firebase Console bila perlu.

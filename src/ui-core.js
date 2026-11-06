@@ -25,7 +25,7 @@
     pending: [], animating: false,
     prefs: Object.assign({ sound: true, speed: 'normal', aiSpeed: 'normal', theme: 'system', autoEnd: true }, store.get(KEYS.prefs, {})),
     modal: null, focus: -1, aiTimer: null, net: null, rollSpin: 0,
-    cashShown: {}, loveShown: {}, turnKey: '', aim: null, threatKeys: null, tour: false,
+    cashShown: {}, loveShown: {}, turnKey: '', aim: null, threatKeys: null, tour: false, tourPending: false,
     layout: 'wide', cam: { pref: store.get('loveopoly.v2.cam', 'auto') === 'near' ? 'near' : 'auto', pref3d: store.get('loveopoly.v3.cam3d', 'all') === 'near' ? 'near' : 'all', zoomed: false, x: 0, y: 0, s: 1, manualUntil: 0, L: 0, top: 0, bot: 0, outTimer: null }, pick: null, lastLogN: 0
   };
 
@@ -2093,9 +2093,9 @@
     const a = E.actor(S);
     if (!runsAI(a)) return;
     if (App.modal && App.modal.blocksAI) return;
-    if (App.tour || document.getElementById('guideOv')) return;
+    if (App.tour || App.tourPending || document.getElementById('guideOv')) return;
     App.aiTimer = setTimeout(() => {
-      if (App.animating || App.S !== S) return;
+      if (App.animating || App.S !== S || App.tour || App.tourPending) return;
       let action;
       try { action = AI.decide(S, a); } catch (e) { console.error(e); action = fallbackAction(S, a); }
       let ok;

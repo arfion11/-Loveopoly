@@ -384,6 +384,16 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await page.waitForSelector('.tour-card', { timeout: 6000 }).catch(() => {});
   ok('tur: kartu tur muncul di game pertama', !!(await page.$('.tour-card')));
   await shot('25-tour');
+  await page.evaluate(() => window.LoveUI.endTour(true));
+  // tur saat bot jalan duluan: bot menunggu sampai tur selesai, kartu menyorot panel giliran
+  await page.evaluate(() => { localStorage.removeItem('loveopoly.v2.tour'); const E = window.LoveEngine; const S = E.create({ players: [{ name: 'Arfi', avatar: '🐻' }, { name: 'Bot', avatar: '🐰', kind: 'ai' }], settings: { debug: true }, seed: 3, first: 1 }); window.LoveUI.enterGame('local', -1, S); });
+  await page.waitForSelector('.tour-card', { timeout: 6000 }).catch(() => {});
+  await page.waitForTimeout(2200);
+  const tb = await page.evaluate(() => ({ seq: window.LoveUI.App.S.seq, near: (() => { const c = document.querySelector('.tour-card'), st = document.getElementById('stage'); if (!c || !st) return false; const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); return Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) < innerHeight * 0.6 && a.top > 8; })() }));
+  ok('tur: bot tidak jalan sebelum tur selesai & kartu dekat panel giliran', tb.seq === 0 && tb.near, JSON.stringify(tb));
+  await page.evaluate(() => window.LoveUI.endTour(true));
+  await page.waitForFunction(() => window.LoveUI.App.S.seq > 0, null, { timeout: 8000 }).catch(() => {});
+  ok('tur: bot jalan setelah tur ditutup', await page.evaluate(() => window.LoveUI.App.S.seq > 0));
 
   // 26. Paspor Cinta: muncul saat pertama kali, terbit, mengisi Pemain 1, mencatat hasil game
   await page.evaluate(() => { sessionStorage.setItem('passTest', '1'); localStorage.removeItem('loveopoly.v1.profile'); localStorage.removeItem('loveopoly.v2.save'); });

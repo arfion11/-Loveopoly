@@ -504,6 +504,8 @@
       addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (App.S && !$('#scrGame').hidden) { UI.applyLayout(); UI.renderAll(); } }, 80); });
     }
     UI.persist();
+    // tahan bot sejak awal bila tur akan tampil (afterSettle menjadwalkan AI)
+    App.tourPending = !S.over && store.get(KEYS.tour, null) !== 'done';
     afterSettle();
     if (!S.over) setTimeout(startTour, UI.reduceMotion() ? 50 : 1300);
     // permainan baru dengan undian giliran: umumkan siapa yang jalan duluan
@@ -513,6 +515,7 @@
   }
   function exitToHome() {
     clearTimeout(App.aiTimer);
+    App.tourPending = false;
     UI.closeModal(true);
     closeOverlay();
     endTour(false);
@@ -647,7 +650,9 @@
   // ---------- tur singkat di game pertama ----------
   function tourSteps(S) {
     const st = S.settings, steps = [];
-    steps.push({ sel: '#centerActions', title: 'Mulai dari sini', text: st.diceControl ? 'Pilih bidikan dadu (opsional), lalu tekan Lempar. Dadu kembar = lempar lagi!' : 'Tekan Lempar untuk berjalan. Dadu kembar = lempar lagi!' });
+    const howRoll = st.diceControl ? 'pilih bidikan dadu (opsional), lalu tekan Lempar. Dadu kembar = lempar lagi!' : 'tekan Lempar untuk berjalan. Dadu kembar = lempar lagi!';
+    const mine = UI.controls(S.turn.p);
+    steps.push({ sel: '#stage', title: 'Mulai dari sini', text: mine ? howRoll.charAt(0).toUpperCase() + howRoll.slice(1) : 'Undian giliran: ' + S.players[S.turn.p].name + ' jalan duluan. Saat giliranmu, ' + howRoll });
     steps.push({ sel: '#boardVP', title: 'Beli kota, bangun, tarik tol', text: 'Mendarat di kota kosong: beli tanah + villa/gedung/hotel sekaligus. Ketuk petak mana pun untuk melihat detailnya.' });
     if (st.instantWin) steps.push({ sel: '#game .pcard', title: 'Menang lebih cepat', text: 'Kuasai 3 grup warna, satu jalur penuh, atau 5 tempat wisata. Petak berdenyut = ada yang hampir menang!' });
     steps.push({ sel: '#hMenu', title: 'Menu & panduan', text: 'Buku Panduan bergambar, riwayat, dan pengaturan ada di sini.' });
@@ -665,9 +670,11 @@
   }
   function startTour() {
     const S = App.S;
-    if (!S || S.over || $('#scrGame').hidden || store.get(KEYS.tour, null) === 'done' || $('#tourOv') || $('#winOv') || $('#guideOv')) return;
-    const steps = tourSteps(S).filter(s => $(s.sel));
-    if (!steps.length) return;
+    if (!S || S.over || $('#scrGame').hidden || store.get(KEYS.tour, null) === 'done' || $('#tourOv') || $('#winOv') || $('#guideOv')) { if (App.tourPending) { App.tourPending = false; UI.scheduleAI(); } return; }
+    const visible = sel => { const el = $(sel); if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 4 && r.height > 4; };
+    const steps = tourSteps(S).filter(s => visible(s.sel));
+    App.tourPending = false;
+    if (!steps.length) { UI.scheduleAI(); return; }
     let k = 0;
     App.tour = true;
     clearTimeout(App.aiTimer);
@@ -680,7 +687,8 @@
     const ring = $('.tour-ring', ov), card = $('.tour-card', ov);
     tourPlace = () => {
       const el = $(steps[k].sel);
-      const r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0, right: innerWidth / 2, bottom: innerHeight / 2 };
+      let r = el ? el.getBoundingClientRect() : null;
+      if (!r || r.width < 4 || r.height < 4) r = { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0, right: innerWidth / 2, bottom: innerHeight / 2 };
       const pad = 8, top = Math.max(4, r.top - pad), left = Math.max(4, r.left - pad);
       const h = Math.min(innerHeight - 8, r.bottom + pad) - top, w = Math.min(innerWidth - 8, r.right + pad) - left;
       Object.assign(ring.style, { top: top + 'px', left: left + 'px', width: Math.max(0, w) + 'px', height: Math.max(0, h) + 'px' });

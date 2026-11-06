@@ -27,7 +27,7 @@
       (v.hero ? '<div class="modal-hero">' + v.hero + '</div>' : '') +
       '<div class="modal-head"><div class="mh-txt">' + (v.kicker ? '<div class="kicker">' + v.kicker + '</div>' : '') + '<h2 id="mTitle">' + esc(v.title) + '</h2>' + (v.who ? '<div class="who">' + v.who + '</div>' : '') + '</div>' +
       (def.closable !== false ? '<button type="button" class="icon-btn" data-x aria-label="Tutup">' + ic('x') + '</button>' : '') + '</div>' +
-      '<div class="modal-body">' + v.body + '</div>' + (v.foot ? '<div class="modal-foot">' + v.foot + '</div>' : '') + '</div>';
+      '<div class="modal-body" tabindex="0">' + v.body + '</div>' + (v.foot ? '<div class="modal-foot">' + v.foot + '</div>' : '') + '</div>';
     if (!first) root.querySelector('.modal').classList.add('still');
     const body = root.querySelector('.modal-body');
     if (body && !first) body.scrollTop = scroll;
@@ -681,7 +681,8 @@
         (url ? '<img src="' + url + '" alt="Foto bukti">' : live ? '<video id="camVid" playsinline muted autoplay></video>' : '<div class="cam-empty">' + ic('polaroid') + '<span>' + esc(err || 'Buka kamera untuk foto bukti') + '</span></div>') +
         (counting ? '<b class="cam-cd" aria-live="assertive">' + counting + '</b>' : '') + '</div>' +
         '<div class="cam-bar">' + (url ? btn('id="camRetake"', 'soft', 'refresh', 'Foto ulang') : live ? btn('id="camSnap" data-focus', 'go', 'polaroid', counting ? 'Siap…' : 'Cekrek (3 dtk)', !!counting) : btn('id="camOpen"', 'primary', 'polaroid', 'Buka kamera')) +
-        '<label class="btn ghost cam-file">' + ic('plus') + '<span>Unggah foto</span><input type="file" accept="image/*" capture="user" id="camFile" class="sr-only"></label></div>';
+        '<label class="btn ghost cam-file">' + ic('plus') + '<span>Unggah foto</span><input type="file" accept="image/*" capture="user" id="camFile" class="sr-only"></label></div>' +
+        '<p class="cam-note">' + ic('shield') + '<span>Foto dikecilkan dan hanya dilihat pemain di permainan ini. Online: terhapus otomatis 7 hari setelah room tidak aktif. <button type="button" class="link-btn" id="camPriv">Privasi</button></span></p>';
       const v = el.querySelector('#camVid'); if (v && stream) { v.srcObject = stream; v.play().catch(() => {}); }
       const o = el.querySelector('#camOpen'); if (o) o.addEventListener('click', open);
       const r = el.querySelector('#camRetake'); if (r) r.addEventListener('click', () => { url = ''; onShot(''); if (!stream) open(); else draw(); });
@@ -699,6 +700,7 @@
           onShot(url); draw();
         }, 800);
       });
+      const pv = el.querySelector('#camPriv'); if (pv) pv.addEventListener('click', () => toast('Foto Bukti dikecilkan (±20 KB), hanya dilihat pemain di permainan yang sama, dan room online terhapus otomatis 7 hari setelah tidak aktif. Detail: Pengaturan → Privasi & data.', { title: 'Privasi foto', icon: 'shield', ms: 7000 }));
       const f = el.querySelector('#camFile');
       if (f) f.addEventListener('change', () => {
         const file = f.files && f.files[0]; if (!file) return;
@@ -1018,7 +1020,7 @@
           '<div class="opt"><span class="label">Kecepatan AI</span>' + seg('sAi', [['slow', 'Santai'], ['normal', 'Normal'], ['fast', 'Cepat']], App.prefs.aiSpeed) + '</div>' +
           '<div class="opt"><span class="label">Tema</span>' + seg('sTheme', [['system', 'Ikuti sistem'], ['light', 'Terang'], ['dark', 'Gelap']], App.prefs.theme) + '</div>' +
           '</div>',
-        foot: '<span class="grow"></span>' + btn('id="sDone"', 'primary', 'check', 'Selesai')
+        foot: btn('id="sPrivacy"', 'ghost', 'shield', 'Privasi & data') + '<span class="grow"></span>' + btn('id="sDone"', 'primary', 'check', 'Selesai')
       }),
       mount: m => {
         on(m, '#sSound', () => { App.prefs.sound = !App.prefs.sound; SND.setEnabled(App.prefs.sound); UI.savePrefs(); UI.syncSoundBtn && UI.syncSoundBtn(); refreshModal(); });
@@ -1027,11 +1029,48 @@
         on(m, '#sWalkCam', () => { App.prefs.walkCam = App.prefs.walkCam === false; UI.savePrefs(); if (!App.prefs.walkCam && UI.camRelax) UI.camRelax(); refreshModal(); });
         [['#sSpeed', 'speed'], ['#sAi', 'aiSpeed'], ['#sTheme', 'theme']].forEach(([sel, k]) => $$(sel + ' [data-v]', m).forEach(b => b.addEventListener('click', () => { App.prefs[k] = b.dataset.v; UI.savePrefs(); UI.applyTheme(); refreshModal(); })));
         on(m, '#sDone', () => closeModal());
+        on(m, '#sPrivacy', () => openPrivacy());
+      }
+    });
+  }
+
+  // ---------- privasi: data apa yang disimpan, di mana, berapa lama; hapus data perangkat ----------
+  function openPrivacy() {
+    let confirmDel = false;
+    showModal({
+      key: 'privacy', size: 'mid',
+      build: () => {
+        const row = (icon, title, text) => '<div class="pv-row">' + ic(icon) + '<div><b>' + title + '</b><p>' + text + '</p></div></div>';
+        return {
+          kicker: ic('shield') + 'Privasi', title: 'Data kamu di Loveopoly',
+          body: '<div class="pv-list">' +
+            row('heart', 'Tanpa iklan, tanpa pelacak', 'Loveopoly tidak memakai iklan, analitik, atau pelacak pihak ketiga. Kami tidak menjual data apa pun.') +
+            row('user', 'Paspor Cinta & simpanan game', 'Nama, avatar, warna pion, statistik, cap kota, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser).') +
+            row('globe', 'Main online', 'Saat main online kamu masuk tanpa akun (login anonim Firebase: kode acak, tanpa email/nomor HP). Nama, avatar, isi permainan, surat, dan Foto Bukti disimpan di room (Google Firebase) dan hanya bisa dibuka oleh orang yang tahu kode room-nya.') +
+            row('polaroid', 'Foto Bukti', 'Foto hanya diambil saat kamu menekan tombol kamera, dikecilkan sebelum dikirim, dan hanya dilihat pemain di permainan yang sama. Di perangkat: maksimal 4 foto terakhir per permainan.') +
+            row('clock', 'Dihapus otomatis', 'Room online beserta Foto Bukti dan surat di dalamnya terhapus otomatis 7 hari setelah tidak ada aktivitas. Host juga bisa menghapus room kapan saja lewat Keluar Room.') +
+            '</div>' +
+            '<div class="pv-del">' + (confirmDel ? '<div class="note warn">' + ic('alert') + '<span>Hapus Paspor Cinta, simpanan game, dan pengaturan di perangkat ini? Tidak bisa dibatalkan.</span></div>' : '') +
+            btn('id="pvDel"', confirmDel ? 'danger' : 'ghost', 'x', confirmDel ? 'Ya, hapus data perangkat ini' : 'Hapus data di perangkat ini') + '</div>',
+          foot: '<span class="grow"></span>' + btn('id="pvOk" data-focus', 'primary', 'check', 'Mengerti')
+        };
+      },
+      mount: m => {
+        on(m, '#pvOk', () => closeModal());
+        on(m, '#pvDel', () => {
+          if (!confirmDel) { confirmDel = true; refreshModal(); return; }
+          try { Object.keys(localStorage).filter(k => k.indexOf('loveopoly.') === 0).forEach(k => localStorage.removeItem(k)); } catch (e) { /* abaikan */ }
+          closeModal(true);
+          toast('Data Loveopoly di perangkat ini sudah dihapus.', { kind: 'good', icon: 'check' });
+          if (UI.exitToHome) UI.exitToHome(true);
+          setTimeout(() => location.reload(), 900);
+        });
       }
     });
   }
 
   Object.assign(UI, {
+    openPrivacy,
     showModal, refreshModal, closeModal, syncModal, openDecision, openPortfolio, onTileClick, openMenu, openHistory, openSettings, openExit, btn, cityHero, openProofs
   });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,6 +4,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function authed() { return request.auth != null; }
+    // expireAt (TTL penghapusan otomatis) boleh tidak ada, tapi bila ada maksimal 8 hari ke depan
+    function keepOk() { return !('expireAt' in request.resource.data) || (request.resource.data.expireAt is timestamp && request.resource.data.expireAt < request.time + duration.value(8, 'd')); }
     function lockPath(code) { return /databases/$(database)/documents/rooms/$(code)/locks/host; }
     function holdsLease(code) {
       let lk = get(lockPath(code));
@@ -14,8 +16,9 @@ service cloud.firestore {
       // hanya baca per kode (get), bukan daftar (list): kode 6 huruf berfungsi sebagai rahasia room
       allow get: if authed();
       // room baru: penulisnya harus host; sesudah itu hanya pemegang lease host yang masih berlaku
-      allow create: if authed() && request.resource.data.hostUid == request.auth.uid;
-      allow update, delete: if authed() && holdsLease(code);
+      allow create: if authed() && request.resource.data.hostUid == request.auth.uid && keepOk();
+      allow update: if authed() && holdsLease(code) && keepOk();
+      allow delete: if authed() && holdsLease(code);
 
       match /locks/host {
         allow get: if authed();
@@ -24,18 +27,21 @@ service cloud.firestore {
           && request.resource.data.exp is int
           // batas 5 menit (lease klien 45 detik) supaya jam HP yang sedikit cepat tetap bisa jadi host
           && request.resource.data.exp <= request.time.toMillis() + 300000
-          && (resource == null || resource.data.uid == request.auth.uid || resource.data.exp < request.time.toMillis());
+          && (resource == null || resource.data.uid == request.auth.uid || resource.data.exp < request.time.toMillis())
+          && keepOk();
         allow delete: if authed() && (resource.data.uid == request.auth.uid || resource.data.exp < request.time.toMillis());
       }
     }
     // permintaan gabung & aksi pemain: hanya pemilik uid yang menulis (identitas dijamin Firebase Auth)
     match /lobby/{uid} {
       allow read: if authed();
-      allow write: if authed() && request.auth.uid == uid;
+      allow create, update: if authed() && request.auth.uid == uid && keepOk();
+      allow delete: if authed() && request.auth.uid == uid;
     }
     match /inbox/{uid}/intents/{id} {
       allow read: if authed();
-      allow write: if authed() && request.auth.uid == uid;
+      allow create, update: if authed() && request.auth.uid == uid && keepOk();
+      allow delete: if authed() && request.auth.uid == uid;
     }
   }
 }

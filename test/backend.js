@@ -47,10 +47,11 @@ const server = http.createServer((req, res) => { res.writeHead(200, { 'content-t
     await db.doc('rooms/RT0001').set({ hostUid: me, state: { grid: [[1, [2]], [3]] }, x: undefined });
     const s = await db.doc('rooms/RT0001').get();
     const raw = (await firebase.firestore().doc('rooms/RT0001').get()).data();
-    return { exists: s.exists, data: s.data(), me, rawKeys: Object.keys(raw).sort() };
+    return { exists: s.exists, data: s.data(), me, rawKeys: Object.keys(raw).sort(), keepDays: raw.expireAt && raw.expireAt.toMillis ? (raw.expireAt.toMillis() - Date.now()) / 864e5 : -1 };
   }).catch(e => ({ err: String(e && (e.code || e.message || e)) }));
   ok('round-trip __j', rt.exists && JSON.stringify(rt.data) === JSON.stringify({ hostUid: rt.me, state: { grid: [[1, [2]], [3]] } }), JSON.stringify(rt.data || rt.err));
-  ok('kunci indeks di tingkat atas', JSON.stringify(rt.rawKeys) === JSON.stringify(['__j', 'hostUid']), JSON.stringify(rt.rawKeys));
+  ok('kunci indeks di tingkat atas (+ expireAt TTL)', JSON.stringify(rt.rawKeys) === JSON.stringify(['__j', 'expireAt', 'hostUid']), JSON.stringify(rt.rawKeys));
+  ok('expireAt = Timestamp ±7 hari (hapus otomatis)', rt.keepDays > 6.9 && rt.keepDays <= 7, String(rt.keepDays));
 
   // --- db: where + docChanges ---
   const wc = await A.evaluate(async () => {

@@ -47,6 +47,8 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   // kamera 3D bergerak dulu (transisi) sebelum petak diketuk, seperti pemain menunggu papan diam
   const boardStill = () => page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.id === 'board'), null, { timeout: 5000 });
   const tapTile = async i => { await boardStill(); await page.click('#board .tile[data-i="' + i + '"]'); await page.waitForTimeout(120); };
+  // kursi ke-2 membawa uang saku tambahan (keadilan kursi)
+  const RULES1 = await page.evaluate(() => window.LOVE_DATA.RULES.seatCash);
   const HUMANS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Nadia', avatar: '🐰', color: '#7B61FF' }];
   // state baru; mut = kode yang memodifikasi S (string)
   const newGame = async (mut, extra, players) => {
@@ -97,12 +99,12 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await shot('04-rent');
   await click('#bPay');
   st = await S();
-  ok('tol: uang pindah ke Nadia', st.players[0].cash === 2500 - toll && st.players[1].cash === 2500 + toll, 'toll=' + toll);
+  ok('tol: uang pindah ke Nadia', st.players[0].cash === 2500 - toll && st.players[1].cash === 2500 + RULES1 + toll, 'toll=' + toll);
   ok('ambil alih: dialog "Rebut Bali?"', (await title()) === 'Rebut Bali?', await title());
   const price = await page.evaluate(() => window.LoveEngine.takeoverPrice(window.LoveUI.App.S, 9));
   await click('#bTkBuy');
   st = await S();
-  ok('ambil alih: Bali milik Arfi, Nadia dibayar', st.tiles[9].owner === 0 && st.players[1].cash === 2500 + toll + price, 'price=' + price);
+  ok('ambil alih: Bali milik Arfi, Nadia dibayar', st.tiles[9].owner === 0 && st.players[1].cash === 2500 + RULES1 + toll + price, 'price=' + price);
   ok('ambil alih: lanjut tawaran bangun', /Bangun di Bali\?/.test(await title()), await title());
   await click('#bSkip');
 

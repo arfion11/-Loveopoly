@@ -6,7 +6,7 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 
 - Build: `npm run build` (wajib setelah mengubah `src/`; uji membaca `dist/test.html`)
 - Pratinjau: `npm run dev` → http://localhost:5173
-- Uji: `npm test`, atau per bagian `npm run test:sim | test:flows | test:online | test:ui | test:rules | test:backend` (dua terakhir menjalankan Firebase Emulator, butuh Java 11+)
+- Uji: `npm test`, atau per bagian `npm run test:sim | test:flows | test:online | test:ui | test:a11y | test:rules | test:backend` (dua terakhir menjalankan Firebase Emulator, butuh Java 11+). `test:a11y` = axe-core WCAG 2.1 AA di layar & dialog utama, terang/gelap, desktop/HP; tambah tampilan baru ke sana.
 - Deploy: `npm run deploy -- --project prod`
 - Sebelum menyatakan selesai: build + uji yang relevan harus lulus dan **tanpa error konsol**. Perubahan tampilan: cek juga screenshot di `test/out/`, minimal ukuran 1366×768, 820×1180, 390×844, 844×390, tema terang & gelap.
 
@@ -14,10 +14,12 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 
 - Semua teks UI Bahasa Indonesia, santai & hangat. Angka pakai format `id-ID` (`fmt()`).
 - Seni orisinal (SVG di `src/art.js`). Jangan meniru aset, karakter, atau branding Get Rich / game lain.
+- Ikon tab/layar utama: `assets/icon.svg` (sumber), `assets/icon-32.png` & `assets/apple-touch-icon.png` (180 px, tanpa sudut membulat). `build.mjs` menyisipkannya sebagai data URI di `<head>` + `theme-color`, dan menyalin `apple-touch-icon.png` ke `dist/`. Ubah SVG → buat ulang kedua PNG.
 - Satu file: jangan menambah dependensi runtime atau CDN baru. Pustaka luar hanya SDK Firebase compat 10.14.1 (gstatic) yang dimuat malas oleh `backend.js` saat menu online dibuka (uji memakai `node_modules/firebase`).
 - Latar halaman diam & ringan (gradasi CSS `.page-sky`, tanpa animasi/WebGL). Tengah papan (kamera 3D & ponsel) memakai Merpi besar `#mascot` (SVG + CSS 3D, tanpa WebGL): alas globe & bayangan rebah di papan, Merpi berdiri tegak. Reaksi lewat `mascotAct()` (kelas `act-*`), `mascotEmote()`, `mascotLook(petak)`; mood ikut `merpiSay()`, tertidur setelah 30 detik diam. Merpi kecil di panel disembunyikan di mode ini; `#bubble` (aria-live) dipindah `placeStage()` ke `#boardVP` dan diposisikan `trackBubble()` di atas kepala Merpi besar.
 - Warna lewat token CSS di `:root` + dua blok tema gelap (media query & `[data-theme="dark"]`). Jangan menaruh warna literal yang hanya terbaca di satu tema.
-- Aksesibilitas: target axe WCAG 2.1 AA 0 pelanggaran; hormati `prefers-reduced-motion` (`reduceMotion()`); tombol punya label.
+- Aksesibilitas: axe WCAG 2.1 AA 0 pelanggaran (`npm run test:a11y`); hormati `prefers-reduced-motion` (`reduceMotion()`); tombol punya label. Nama aksesibel harus memuat teks yang terlihat (pakai `.sr-only` sebagai pelengkap, bukan `aria-label` yang berbeda); area yang bisa digulir diberi `tabindex="0"`.
+- Privasi: dokumen online diberi `expireAt` (+7 hari, `backend.js` `encode`) dan dihapus otomatis oleh kebijakan TTL Firestore (`firestore.indexes.json` fieldOverrides; ter-deploy lewat `npm run deploy`). Aturan membatasi `expireAt` ≤ 8 hari. Penjelasan untuk pemain: `UI.openPrivacy()` (beranda, Pengaturan, kamera Foto Bukti).
 
 ## Arsitektur
 
@@ -38,7 +40,7 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 
 ## Aturan peluncuran (keseimbangan & kejutan)
 
-- Keadilan kursi: kursi ke-n mulai di petak n dan membawa voucher diskon `n × RULES.seatDiscount` (maks 60%) di `create()`. Disetel lewat simulasi; menang per kursi ±25% (4 pemain), ±50% (2 pemain).
+- Keadilan kursi: semua pemain mulai di START; kursi ke-n membawa uang saku `n × RULES.seatCash` dan voucher diskon `n × RULES.seatDiscount` (maks 60%) di `create()`. Disetel lewat simulasi: menang per kursi 28/26/22/24% (4 pemain), 35/31/34% (3), 52/48% (2).
 - Cara menang instan: Trio Warna (`triple`, wajib ada grup 3 kota → `tripleOk`), Raja Jalur (`line`), Kolektor Wisata (`spots`). Jangan memakai kata "Monopoli/Monopoly" (merek dagang) di teks.
 - Ketemuan! (`meetUp` di `land`): berhenti di petak pemain lain → semua yang bertemu dapat `meetCash` & `meetLove`, sekali per giliran, event `meet`.
 - Kabar Merpi (`S.news`, `drawNews` di `startRound` tiap `newsEvery` ronde, berlaku `newsLasts` ronde; matikan dengan `settings.news = false`): rain/holiday (tol satu jalur ×0,5/×1,5), sale (diskon 20%), promo (World Tour gratis, `E.travelFee(S)`), bonus (gaji +100), love (Love berlipat). `E.newsInfo(S)` untuk UI.

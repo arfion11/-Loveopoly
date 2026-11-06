@@ -105,6 +105,7 @@
         (edit ? '<div class="pp-lbl">Cap kota · ' + p.stamps.length + '/' + CITY_TILES.length + ' · ' + p.games + ' main · ' + p.wins + ' menang</div>' + stampGrid(p, 'sm') : '') +
         '<div class="pp-foot">' + (edit ? '<button type="button" class="pp-ghost" id="ppCancel">Tutup</button>' : '<button type="button" class="pp-ghost" id="ppSkip">Nanti saja</button>') +
         '<button type="submit" class="pp-gold" id="ppGo"' + (valid ? '' : ' disabled') + '>' + ic('check') + '<span>' + (edit ? 'Simpan Paspor' : 'Terbitkan Paspor') + '</span></button></div>' +
+        '<p class="pp-priv">' + ic('shield') + '<span>Paspor hanya tersimpan di perangkat ini. Tanpa email, tanpa kata sandi.</span></p>' +
         '<div class="pp-mrz" aria-hidden="true">P&lt;LOV' + esc((st.name || 'TAMU').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)) + '&lt;&lt;RINDU&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>' +
         '<div class="pp-stamp" aria-hidden="true"><b>DISETUJUI</b><span>' + ic('heart') + ' Loveopoly</span></div>' +
         '</form>' +
@@ -153,7 +154,7 @@
     const p = passport();
     if (!p.name) return '<button type="button" class="pass-card empty" id="hPass"><span class="pc-book" aria-hidden="true">' + ic('book') + '</span><span class="grow"><b>Buat Paspor Cinta</b><span>Simpan nama & pionmu, kumpulkan cap kota tiap kali main.</span></span>' + ic('chevron') + '</button>';
     const rate = p.games ? Math.round(p.wins / p.games * 100) : 0;
-    return '<button type="button" class="pass-card" id="hPass" aria-label="Paspor Cinta ' + esc(p.name) + ', ketuk untuk mengubah"><span class="pc-photo" style="--c:' + p.color + '">' + esc(p.avatar) + '</span>' +
+    return '<button type="button" class="pass-card" id="hPass"><span class="pc-photo" style="--c:' + p.color + '" aria-hidden="true">' + esc(p.avatar) + '</span>' +
       '<span class="grow"><span class="pc-k">Paspor Cinta · ' + esc(passNo(p)) + '</span><b>Halo, ' + esc(p.name) + '!</b>' +
       '<span class="pc-stats"><span><b>' + p.games + '</b> main</span><span><b>' + p.wins + '</b> menang' + (p.games ? ' (' + rate + '%)' : '') + '</span><span><b>' + p.stamps.length + '</b>/' + CITY_TILES.length + ' cap kota</span></span></span>' +
       '<span class="pc-foil" aria-hidden="true">' + ic('heart') + '</span></button>';
@@ -193,7 +194,7 @@
       '<button type="button" class="mode-card mc-ai mc-sm" id="hAI"><span class="mc-art">' + ART.art('bot') + '</span><span class="mc-txt"><b>Lawan AI</b><span>Easy, Normal, atau Hard</span></span>' + ic('chevron') + '</button>' +
       '<button type="button" class="mode-card mc-local mc-sm" id="hLocal"><span class="mc-art">' + ART.art('festival') + '</span><span class="mc-txt"><b>Main Bareng</b><span>2–4 orang, satu perangkat</span></span>' + ic('chevron') + '</button>' +
       '</div></div>' +
-      '<div class="home-secondary"><button type="button" class="btn soft" id="hHow">' + ic('book') + '<span>Buku Panduan</span></button><span class="tiny muted">' + TILES.length + ' petak · ' + TILES.filter(t => t.type === 'city').length + ' kota romantis · ' + TILES.filter(t => t.type === 'spot').length + ' wisata · ' + D.CARDS.length + ' Kartu Cinta · ' + D.CHALLENGES.length + ' tantangan</span></div>' +
+      '<div class="home-secondary"><button type="button" class="btn soft" id="hHow">' + ic('book') + '<span>Buku Panduan</span></button><button type="button" class="btn ghost sm" id="hPrivacy">' + ic('shield') + '<span>Privasi</span></button><span class="tiny muted">' + TILES.length + ' petak · ' + TILES.filter(t => t.type === 'city').length + ' kota romantis · ' + TILES.filter(t => t.type === 'spot').length + ' wisata · ' + D.CARDS.length + ' Kartu Cinta · ' + D.CHALLENGES.length + ' tantangan</span></div>' +
       '</div></div>';
     const on = (id, f) => { const el = $('#' + id); if (el) el.onclick = f; };
     on('hLocal', () => openSetup('local'));
@@ -201,6 +202,7 @@
     on('hOnline', openOnline);
     on('hHow', () => UI.openGuide());
     on('hPass', () => openPassport());
+    on('hPrivacy', () => UI.openPrivacy());
     on('hResume', () => { const s = store.get(KEYS.save, null); if (validSave(s)) enterGame('local', -1, s.S); });
     on('hDiscard', () => { store.del(KEYS.save); renderHome(); });
     on('hRejoin', () => openOnline(true));
@@ -615,7 +617,7 @@
       '<p class="win-msg" id="winMsg">“' + esc(msg) + '”</p>' +
       '<div class="field msg-edit"><label for="winMsgIn">Ubah pesan romantis</label><textarea class="input" id="winMsgIn" maxlength="240">' + esc(msg) + '</textarea></div></div>' +
       '<div class="panel"><h3>' + ic('trophy') + 'Peringkat</h3><div class="rank-list">' + rows + '</div></div>' +
-      '<div class="panel"><h3>' + ic('level') + 'Statistik</h3><div class="stats-wrap"><table class="stats"><thead><tr><th>Pemain</th><th>Kota</th><th>Landmark</th><th>Tol masuk</th><th>Ambil alih</th><th>Tantangan</th><th>Love</th></tr></thead><tbody>' + statRows + '</tbody></table></div></div>' +
+      '<div class="panel"><h3>' + ic('level') + 'Statistik</h3><div class="stats-wrap" tabindex="0" role="region" aria-label="Tabel statistik (bisa digulir)"><table class="stats"><thead><tr><th>Pemain</th><th>Kota</th><th>Landmark</th><th>Tol masuk</th><th>Ambil alih</th><th>Tantangan</th><th>Love</th></tr></thead><tbody>' + statRows + '</tbody></table></div></div>' +
       '<div class="panel stack"><h3>' + ic('sparkle') + 'Achievement</h3>' + ach + '</div>' +
       '<div class="panel stack"><h3>' + ic('letter') + 'Surat cinta selama permainan</h3>' + letters + '</div>' +
       proofsPanel(S) +

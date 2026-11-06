@@ -42,6 +42,12 @@ const { initializeTestEnvironment, assertFails, assertSucceeds } = require('@fir
   await check('bob tulis inbox alice ditolak', assertFails(bob.doc('inbox/alice/intents/i1').set({ __j: '{}', room: 'R1' })));
   await check('alice baca inbox bob (host membaca aksi)', assertSucceeds(alice.doc('inbox/bob/intents/i1').get()));
   await check('path lain ditolak', assertFails(alice.doc('foo/bar').set({ a: 1 })));
+  // TTL privasi: expireAt maksimal 8 hari ke depan (room, lobby, intent)
+  const inDays = d => new Date(now + d * 864e5);
+  await check('room dengan expireAt 7 hari diterima', assertSucceeds(alice.doc('rooms/R5').set(Object.assign(room('R5', 'alice'), { expireAt: inDays(7) }))));
+  await check('room dengan expireAt 1 tahun ditolak', assertFails(alice.doc('rooms/R6').set(Object.assign(room('R6', 'alice'), { expireAt: inDays(365) }))));
+  await check('lobby dengan expireAt 1 tahun ditolak', assertFails(bob.doc('lobby/bob').set({ __j: '{}', room: 'R1', expireAt: inDays(365) })));
+  await check('intent dengan expireAt 7 hari diterima', assertSucceeds(bob.doc('inbox/bob/intents/i2').set({ __j: '{}', room: 'R1', expireAt: inDays(7) })));
   await check('alice (lease habis) hapus room ditolak', assertFails(alice.doc('rooms/R1').delete()));
   await check('bob (host) hapus room', assertSucceeds(bob.doc('rooms/R1').delete()));
 

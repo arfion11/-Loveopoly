@@ -258,12 +258,12 @@
       log: [], logN: 0, letters: [], proofs: [],
       lastEvents: [], evSeq: 0, over: null, paused: false
     };
-    // kursi belakang kalah tempo: mulai selangkah lebih maju per kursi + voucher diskon pembuka (20% per kursi)
-    S.players.forEach((p, i) => { if (i > 0) { p.pos = i % N; p.discount = Math.min(RULES.seatDiscountMax, i * RULES.seatDiscount); } });
+    // semua mulai di START; kursi belakang kalah tempo → uang tambahan & voucher diskon pembuka per kursi
+    S.players.forEach((p, i) => { if (i > 0) { p.cash += i * RULES.seatCash; p.discount = Math.min(RULES.seatDiscountMax, i * RULES.seatDiscount); } });
     S.decks.card = shuffle(S, CARDS.map(c => c.id));
     chDecks(S);
     log(S, 'Permainan dimulai. Selamat keliling dunia berdua!', 'heart');
-    if (S.players.length > 1) log(S, 'Biar adil: pemain berikutnya mulai selangkah lebih maju dan membawa voucher diskon pembuka.', 'ticket');
+    if (S.players.length > 1) log(S, 'Biar adil: pemain yang jalan belakangan membawa uang saku tambahan dan voucher diskon pembuka.', 'ticket');
     return S;
   }
 

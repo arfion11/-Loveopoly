@@ -1259,11 +1259,15 @@
     if (!btn || btn._b) return;
     btn._b = true;
     pal.innerHTML = EMOTES.map(e => '<button type="button" data-emo="' + e + '" aria-label="Reaksi ' + e + '"><span aria-hidden="true">' + e + '</span></button>').join('');
-    const close = () => { pal.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
-    btn.addEventListener('click', () => { const open = pal.hidden; pal.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+    // buka/tutup halus: tampilkan dulu (hidden=false), lalu transisi opacity+geser; tutup = transisi lalu hidden
+    let tHide = 0;
+    const open = () => { clearTimeout(tHide); pal.hidden = false; void pal.offsetWidth; pal.classList.add('on'); btn.setAttribute('aria-expanded', 'true'); };
+    const close = () => { if (pal.hidden) return; pal.classList.remove('on'); btn.setAttribute('aria-expanded', 'false'); tHide = setTimeout(() => { pal.hidden = true; }, reduceMotion() ? 0 : 180); };
+    btn.addEventListener('click', () => { if (btn.getAttribute('aria-expanded') === 'true') close(); else open(); });
     pal.addEventListener('click', ev => { const t = ev.target.closest('[data-emo]'); if (!t) return; sendEmote(t.dataset.emo); close(); });
     document.addEventListener('pointerdown', ev => { if (!pal.hidden && !ev.target.closest('#emote')) close(); });
     document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !pal.hidden) close(); });
+    pal.hidden = true;
   }
 
   // ---------- Merpi besar di tengah papan (ponsel & kamera 3D, menggantikan globe) ----------
@@ -1419,11 +1423,11 @@
     const kind = p.kind === 'ai' ? 'AI ' + ({ easy: 'Easy', normal: 'Normal', hard: 'Hard' }[p.ai]) : App.mode === 'online' ? (p.i === App.seat ? 'Kamu' : 'Online') : 'Pemain';
     const presence = App.mode === 'online' && App.net ? App.net.presenceDot(p.i) : '';
     if (compact) {
-      return '<button type="button" class="pcard mini' + (active ? ' active' : '') + (p.bankrupt ? ' bankrupt' : '') + '" data-p="' + p.i + '" style="--c:' + p.color + '" aria-label="' + esc(p.name) + ', uang ' + fmt(p.cash) + '">' +
+      return '<button type="button" class="pcard mini' + (active ? ' active' : '') + (p.bankrupt ? ' bankrupt' : '') + '" data-p="' + p.i + '" style="--c:' + p.color + '">' +
         avatarHTML(p, 'sm') + '<span class="pc-txt"><span class="pc-name">' + esc(p.name) + presence + '</span><span class="pc-cash">' + coin + '<b class="num" data-cash="' + p.i + '">' + fmt(App.cashShown[p.i]) + '</b></span></span>' +
         (p.island ? '<span class="pc-flag">' + ic('island') + '</span>' : p.tour ? '<span class="pc-flag">' + ic('plane') + '</span>' : '') + '</button>';
     }
-    return '<button type="button" class="pcard' + (active ? ' active' : '') + (p.bankrupt ? ' bankrupt' : '') + '" data-p="' + p.i + '" style="--c:' + p.color + '" aria-label="Lihat aset ' + esc(p.name) + '">' +
+    return '<button type="button" class="pcard' + (active ? ' active' : '') + (p.bankrupt ? ' bankrupt' : '') + '" data-p="' + p.i + '" style="--c:' + p.color + '"><span class="sr-only">Lihat aset: </span>' +
       (active ? '<span class="turn-pill">Giliran</span>' : '') +
       '<span class="pc-top">' + avatarHTML(p) + '<span class="pc-id"><span class="pc-name">' + esc(p.name) + presence + '</span><span class="pc-kind">' + esc(kind) + '</span></span></span>' +
       '<span class="pc-cash">' + coin + '<b class="num" data-cash="' + p.i + '">' + fmt(App.cashShown[p.i]) + '</b></span>' +
@@ -1482,8 +1486,8 @@
   function newsPillHTML(S) {
     const { n, peak } = newsBits(S);
     if (!n && !peak) return '';
-    return '<button type="button" class="news-pill' + (peak ? ' peak' : '') + '" data-news aria-label="Kabar Merpi: ' + esc([n ? n.label : '', peak ? 'Musim Puncak' : ''].filter(Boolean).join(', ')) + '">' +
-      (n ? ic(NEWS_ICON[n.id] || 'sparkle') + '<span class="np-t">' + esc(n.label) + '</span>' : '') + (peak ? ic('bolt') + '<span class="np-t">Puncak</span>' : '') + '</button>';
+    return '<button type="button" class="news-pill' + (peak ? ' peak' : '') + '" data-news><span class="sr-only">Kabar Merpi: </span>' +
+      (n ? ic(NEWS_ICON[n.id] || 'sparkle') + '<span class="np-t">' + esc(n.label) + '</span>' : '') + (peak ? '<span class="sr-only">' + (n ? ', ' : '') + 'Musim </span>' + ic('bolt') + '<span class="np-t">Puncak</span>' : '') + '</button>';
   }
   const NEWS_ICON = { rain: 'umbrella', holiday: 'sun', sale: 'ticket', promo: 'plane', bonus: 'coins', love: 'heart' };
   function newsCardHTML(S) {

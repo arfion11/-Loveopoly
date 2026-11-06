@@ -10,6 +10,9 @@
   const VER = '10.14.1';
   const SDK = ['app', 'auth', 'firestore', 'database'].map(n => 'https://www.gstatic.com/firebasejs/' + VER + '/firebase-' + n + '-compat.js');
   const INDEX_KEYS = ['hostUid', 'status', 'room', 'uid', 'exp', 'holder'];
+  // privasi: setiap dokumen (room + Foto Bukti, lease, lobby, intent) kedaluwarsa 7 hari setelah tulisan terakhir;
+  // kebijakan TTL Firestore (firestore.indexes.json → fieldOverrides expireAt) menghapusnya otomatis
+  const KEEP_DAYS = 7;
 
   let loading = null, authing = null, app = null;
   const loaded = new Set();
@@ -82,7 +85,7 @@
 
   // ---------- penyandian dokumen ----------
   function encode(data) {
-    const out = { __j: JSON.stringify(data) };
+    const out = { __j: JSON.stringify(data), expireAt: G.firebase.firestore.Timestamp.fromMillis(Date.now() + KEEP_DAYS * 864e5) };
     INDEX_KEYS.forEach(k => { const v = data && data[k]; if (v != null && typeof v !== 'object') out[k] = v; });
     return out;
   }

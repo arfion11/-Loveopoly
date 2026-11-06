@@ -14,7 +14,7 @@
   const PAGES = [
     {
       id: 'hello', title: 'Halo! Aku Merpi', say: 'Aku kurir cinta kalian. Yuk keliling dunia berdua!',
-      pts: ['Keliling 19 kota romantis dan 5 tempat wisata.', 'Beli kota, bangun sampai landmark, tarik tol dari lawan.', 'Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata, atau bikin lawan bangkrut.', 'Biar adil: pemain berikutnya mulai selangkah lebih maju dan membawa voucher diskon pembuka.'],
+      pts: ['Keliling 19 kota romantis dan 5 tempat wisata.', 'Beli kota, bangun sampai landmark, tarik tol dari lawan.', 'Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata, atau bikin lawan bangkrut.', 'Semua mulai dari START. Biar adil, pemain yang jalan belakangan membawa uang saku +' + RULES.seatCash + ' per urutan dan voucher diskon pembuka.'],
       scene: () => '<div class="sc sc-hello"><div class="g-orbit">' + ['paris', 'bali', 'kyoto', 'santorini', 'hawaii', 'swiss'].map((a, k) => '<span class="go-item" style="--k:' + k + '">' + ART.art(a) + '</span>').join('') + '</div><span class="g-merpi">' + ART.merpi('is-happy') + '</span><span class="g-hearts"><i></i><i></i><i></i><i></i></span></div>'
     },
     {
@@ -142,7 +142,7 @@
     ov.setAttribute('aria-labelledby', 'gTitle');
     ov.innerHTML = '<div class="g-card"><div class="g-top"><span class="g-book">' + ic('book') + 'Buku Panduan</span><span class="g-step"></span><button type="button" class="icon-btn" id="gClose" aria-label="Tutup panduan">' + ic('x') + '</button></div>' +
       '<div class="g-body"><div class="g-scene" aria-hidden="true"></div><div class="g-text"><div class="g-merpi-say"><span class="gm">' + ART.merpi('is-happy') + '</span><span class="g-say"></span></div><h2 id="gTitle"></h2><ul class="g-pts"></ul></div></div>' +
-      '<div class="g-nav"><button type="button" class="btn ghost" id="gPrev" aria-label="Halaman sebelumnya">' + ic('back') + '<span>Kembali</span></button><div class="g-dots"></div><button type="button" class="btn primary" id="gNext"></button></div></div>';
+      '<div class="g-nav"><button type="button" class="btn ghost" id="gPrev" aria-label="Kembali ke halaman sebelumnya">' + ic('back') + '<span>Kembali</span></button><div class="g-dots"></div><button type="button" class="btn primary" id="gNext"></button></div></div>';
     document.body.appendChild(ov);
     $('#gClose', ov).onclick = close;
     $('#gPrev', ov).onclick = () => go(k - 1);

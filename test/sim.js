@@ -169,7 +169,7 @@ if (chFails) process.exitCode = 1;
   const R = D.RULES;
   const mk = (n, st) => E.create({ players: Array.from({ length: n }, (_, i) => ({ name: 'P' + i })), settings: Object.assign({ debug: true }, st || {}), seed: 9 });
   let S = mk(4);
-  ok('kursi belakang mulai lebih maju + voucher', S.players.map(p => p.pos).join() === '0,1,2,3' && S.players[3].discount === 0.6 && S.players[0].discount === 0);
+  ok('semua mulai di START; kursi belakang dapat uang saku + voucher', S.players.every(p => p.pos === 0) && S.players.map(p => p.cash - S.settings.startCash).join() === [0, 1, 2, 3].map(i => i * R.seatCash).join() && S.players[3].discount === 0.6 && S.players[0].discount === 0);
   // Trio Warna wajib berisi grup 3 kota
   S = mk(2); S.players[0].laps = 1;
   [1, 2, 9, 10, 17].forEach(t => { S.tiles[t].owner = 0; });   // kota(2) tropis(2) + Roma; Praha (19) melengkapi klasik(2) → 3 grup kecil
@@ -181,7 +181,7 @@ if (chFails) process.exitCode = 1;
   // Ketemuan
   S = mk(2); S.players[0].pos = 0; S.players[1].pos = 4;
   r = E.dispatch(S, { type: 'ROLL', p: 0, dice: [1, 3] });
-  ok('Ketemuan: keduanya dapat uang & Love', r.ok && r.state.players[1].cash === 2500 + R.meetCash && r.state.players[0].love >= R.loveStart + R.meetLove && r.state.lastEvents.some(e => e.t === 'meet'), r.error);
+  ok('Ketemuan: keduanya dapat uang & Love', r.ok && r.state.players[1].cash === S.players[1].cash + R.meetCash && r.state.players[0].love >= R.loveStart + R.meetLove && r.state.lastEvents.some(e => e.t === 'meet'), r.error);
   // Kabar Merpi & Musim Puncak
   S = mk(2, { roundLimit: 10 });
   let k = 0;

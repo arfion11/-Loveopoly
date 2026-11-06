@@ -729,6 +729,15 @@ main { position: relative; }
 .board.b3d .tile.s-left .t-bld, .board.b3d.far .tile.s-left .t-bld { --sx: -1; }
 .board.b3d .tile .t-fb { --sx: -1; top: auto; left: calc(var(--px) + var(--pw) * .4 * var(--sx)); bottom: calc(var(--pb) - .8cqi); translate: -50% 0; }
 .board.b3d .tile.s-left .t-fb { --sx: 1; }
+/* kolom kiri/kanan: kaki kartu tertutup label harga kartu petak di depannya, jadi bangunan & lencana festival
+   diangkat "ke atas layar" setinggi label (tanpa transform supaya animasi naik/turun bangunan tidak bentrok) */
+.board.b3d .tile.s-left, .board.b3d .tile.s-right { --bl: 3.1cqi; }
+.board.b3d.far .tile.s-left, .board.b3d.far .tile.s-right { --bl: 3.3cqi; }
+.game.layout-compact .board.b3d.far .tile.s-left, .game.layout-compact .board.b3d.far .tile.s-right { --bl: 3.9cqi; }
+/* sedikit lebih kecil supaya setelah diangkat tetap di bawah label harga kartunya sendiri */
+.board.b3d .tile.s-left .t-bld, .board.b3d .tile.s-right .t-bld, .board.b3d.far .tile.s-left .t-bld, .board.b3d.far .tile.s-right .t-bld { width: 4cqi; }
+.board.b3d .tile.s-left .t-bld, .board.b3d .tile.s-right .t-bld, .board.b3d.far .tile.s-left .t-bld, .board.b3d.far .tile.s-right .t-bld,
+.board.b3d .tile.s-left .t-fb, .board.b3d .tile.s-right .t-fb { translate: -50% calc(var(--bl) * -1 * cos(var(--tilt, 0deg))) calc(var(--bl) * sin(var(--tilt, 0deg))); }
 /* tanda ancaman melayang di sudut kanan atas kartu: diangkat searah "atas" layar (vektor (0, -cos, sin) di
    bidang papan), bukan transform, supaya animasinya tidak bentrok */
 .board.b3d .tile.threat::after { --lift: 7.4cqi; right: auto; left: calc(var(--px) + var(--pw) * .5); bottom: var(--pb); translate: -65% calc(var(--lift) * -1 * cos(var(--tilt, 0deg))) calc(var(--lift) * sin(var(--tilt, 0deg))); rotate: x calc(var(--tilt, 0deg) * -1); transform-origin: 50% 100%; }

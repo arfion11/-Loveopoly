@@ -139,6 +139,7 @@ r = d(r.S, { type: 'CH_ANSWER', p: 1, answers: [1, 2, 3] }); ok('secret: kembali
 r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: [1, 2, 0] }); ok('secret: 2/3 cocok lulus + penilai dapat Love', r2.S.players[0].cash > 2500 && r2.S.players[1].love > S.players[1].love);
 r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: [0, 0, 0] }); ok('secret: 0/3 gagal', r2.S.players[0].cash === 2500);
 // bluff
+ok('bluff: pernyataan pendek (3 huruf) diterima, 2 huruf ditolak', !d(mk('bluff'), { type: 'CH_ANSWER', p: 0, lines: ['Anak 1', 'Jomblo', 'Gay'], lie: 0 }).err && !!d(mk('bluff'), { type: 'CH_ANSWER', p: 0, lines: ['Ok', 'Jomblo', 'Anak 1'], lie: 0 }).err);
 S = mk('bluff'); r = d(S, { type: 'CH_ANSWER', p: 0, lines: ['Aku pernah ke Bali', 'Aku takut kucing', 'Aku bisa main gitar'], lie: 1 });
 r2 = d(r.S, { type: 'CH_ANSWER', p: 1, pick: 1 }); ok('bluff: ketahuan → penilai dapat hadiah', r2.S.players[1].cash > 2500 && r2.S.players[0].cash === 2500);
 r2 = d(r.S, { type: 'CH_ANSWER', p: 1, pick: 0 }); ok('bluff: berhasil mengecoh → pemilik dapat hadiah', r2.S.players[0].cash > 2500);

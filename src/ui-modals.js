@@ -383,6 +383,15 @@
   function dChallenge(key) {
     const local = { answers: [], idx: 0, text: '', lines: ['', '', ''], lie: -1, pick: -1, guess: '', reveal: false, photo: '', tick: null, game: null, cam: null, fb: '' };
     const stopTick = () => { if (local.tick) { clearInterval(local.tick); local.tick = null; } };
+    // Dua Fakta Satu Bohong: syarat kirim (sama dengan engine: 3 pernyataan ≥ RULES.bluffMin huruf + 1 ditandai)
+    const bluffFilled = () => local.lines.filter(x => x.trim().length >= RULES.bluffMin).length;
+    const bluffOk = () => bluffFilled() === 3 && local.lie >= 0;
+    // label tombol kirim = langkah yang masih kurang (tombol mati tidak pernah tanpa alasan)
+    const bluffLabel = jn => bluffFilled() < 3 ? 'Isi 3 pernyataan (' + bluffFilled() + '/3)' : local.lie < 0 ? 'Ketuk Bohong dulu' : 'Kirim ke ' + jn;
+    const bluffChecks = () => [
+      { ok: bluffFilled() === 3, label: 'Isi 3 pernyataan (' + bluffFilled() + '/3)' },
+      { ok: local.lie >= 0, label: local.lie >= 0 ? 'Yang bohong: pernyataan ' + (local.lie + 1) : 'Ketuk Bohong di salah satu pernyataan' }
+    ].map(c => '<li class="' + (c.ok ? 'ok' : '') + '">' + ic(c.ok ? 'check' : 'dot') + esc(c.label) + '</li>').join('');
     showModal({
       key, decision: true, size: 'mid', blocksAI: false, closable: false,
       cleanup: () => { stopTick(); if (local.cam) local.cam.stop(); },
@@ -446,10 +455,11 @@
         }
         if (ch.type === 'bluff') {
           if (it.phase === 'write') {
-            body = task + how + rewardChips(def, ch, it) + [0, 1, 2].map(i => '<div class="bluff-row"><label class="sr-only" for="bl' + i + '">Pernyataan ' + (i + 1) + '</label><input class="input" id="bl' + i + '" maxlength="90" placeholder="Pernyataan ' + (i + 1) + '" value="' + esc(local.lines[i]) + '"><button type="button" class="lie-btn" data-lie="' + i + '" aria-pressed="' + (local.lie === i) + '">' + ic('question') + '<span>Bohong</span></button></div>').join('') +
-              '<div class="tiny muted">Tandai satu yang bohong. ' + esc(jName) + ' tidak melihat tandanya.</div>';
-            const okW = local.lines.every(x => x.trim().length >= 8) && local.lie >= 0;
-            foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChSend"', 'primary big', 'chevron', 'Kirim ke ' + jName, !okW);
+            body = task + rewardChips(def, ch, it) +
+              '<div class="note">' + ic('info') + '<span>Tulis 3 hal tentang dirimu, lalu ketuk <b>Bohong</b> di samping yang palsu. ' + esc(jName) + ' tidak melihat tandanya.</span></div>' +
+              [0, 1, 2].map(i => '<div class="bluff-row"><label class="sr-only" for="bl' + i + '">Pernyataan ' + (i + 1) + '</label><input class="input" id="bl' + i + '" maxlength="90" autocomplete="off" enterkeyhint="' + (i < 2 ? 'next' : 'done') + '" placeholder="' + ['mis. Aku pernah ke Bali', 'mis. Aku takut kucing', 'mis. Aku bisa main gitar'][i] + '" value="' + esc(local.lines[i]) + '"><button type="button" class="lie-btn" data-lie="' + i + '" aria-pressed="' + (local.lie === i) + '">' + ic(local.lie === i ? 'check' : 'question') + '<span>Bohong</span></button></div>').join('') +
+              '<ul class="ch-checks" id="blChecks">' + bluffChecks() + '</ul>';
+            foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChSend" data-jn="' + esc(jName) + '"', 'primary big', 'chevron', bluffLabel(jName), !bluffOk());
           } else {
             title = 'Mana yang bohong?';
             body = '<div class="note">' + ic('question') + ' ' + esc(owner.name) + ' menulis 3 pernyataan. Satu bohong. Tebak yang mana!</div><div class="bluff-pick">' + it.pz.lines.map((l, i) => '<button type="button" class="ch-opt big" data-pick="' + i + '" aria-pressed="' + (local.pick === i) + '"><b>#' + (i + 1) + '</b> ' + esc(l) + '</button>').join('') + '</div>';
@@ -531,7 +541,22 @@
         $$('[data-sa]', m).forEach(b => b.addEventListener('click', () => { const [q, o] = b.dataset.sa.split(':').map(Number); local.answers[q] = o; SND.play('click'); refreshModal(); }));
         $$('[data-lie]', m).forEach(b => b.addEventListener('click', () => { local.lie = Number(b.dataset.lie); refreshModal(); }));
         $$('[data-pick]', m).forEach(b => b.addEventListener('click', () => { local.pick = Number(b.dataset.pick); SND.play('click'); refreshModal(); }));
-        [0, 1, 2].forEach(i => { const el = m.querySelector('#bl' + i); if (el) el.addEventListener('input', () => { local.lines[i] = el.value; const sb = m.querySelector('#bChSend'); if (sb) sb.disabled = !(local.lines.every(x => x.trim().length >= 8) && local.lie >= 0); }); });
+        [0, 1, 2].forEach(i => {
+          const el = m.querySelector('#bl' + i);
+          if (!el) return;
+          el.addEventListener('input', () => {
+            local.lines[i] = el.value;
+            const sb = m.querySelector('#bChSend'); if (sb) { sb.disabled = !bluffOk(); const t = sb.querySelector('span'); if (t) t.textContent = bluffLabel(sb.dataset.jn || 'lawan'); }
+            const ul = m.querySelector('#blChecks'); if (ul) ul.innerHTML = bluffChecks();
+          });
+          // Enter: ke kolom berikutnya; di kolom terakhir kirim bila sudah lengkap
+          el.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const nx = m.querySelector('#bl' + (i + 1));
+            if (nx) nx.focus(); else { const sb = m.querySelector('#bChSend'); if (sb && !sb.disabled) sb.click(); else el.blur(); }
+          });
+        });
         on(m, '#bReveal', () => { local.reveal = !local.reveal; refreshModal(); });
         const gi = m.querySelector('#chGuess');
         if (gi) {

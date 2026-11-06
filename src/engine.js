@@ -1242,7 +1242,7 @@
     if (ch.type === 'bluff') {
       if (it.phase === 'write') {
         const L = (Array.isArray(a.lines) ? a.lines : []).map(x => cleanText(x, 90));
-        if (L.length !== 3 || L.some(x => x.length < 8)) fail('Tulis 3 pernyataan, masing-masing minimal 8 karakter.');
+        if (L.length !== 3 || L.some(x => x.length < RULES.bluffMin)) fail('Tulis 3 pernyataan, masing-masing minimal ' + RULES.bluffMin + ' huruf.');
         const lie = Number(a.lie);
         if (!(lie >= 0 && lie < 3)) fail('Tandai pernyataan yang bohong.');
         it.pz = { lines: L, lie };

@@ -66,12 +66,29 @@
       return '<span class="pp-st' + (got ? ' got' : '') + '" style="--k:' + k + ';--g:' + D.GROUPS[t.group].color + '" title="' + esc(t.name) + (got ? '' : ' (belum)') + '">' + ART.art(t.art) + '</span>';
     }).join('') + '</div>';
   }
+  // bagian dalam sampul (terlihat setelah paspor terbuka): halaman pemilik + cap kota + segel, dekoratif
+  function coverInside(p) {
+    const since = p.since ? new Date(p.since).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const got = p.stamps.slice(-6).reverse().map(i => TILES[i]).filter(Boolean);
+    const stamps = got.length
+      ? got.map((t, k) => '<span class="pp-cb-st" style="--k:' + k + ';--g:' + D.GROUPS[t.group].color + '"><span class="cbs-art">' + ART.art(t.art) + '</span><b>' + esc(t.short || t.name) + '</b></span>').join('')
+      : [0, 1, 2].map(k => '<span class="pp-cb-st empty" style="--k:' + k + '"><span class="cbs-art">' + ic('plane') + '</span><b>Cap kota</b></span>').join('');
+    return '<div class="pp-cv-back" aria-hidden="true"><div class="pp-cb-in">' +
+      '<span class="pp-cb-k">Halaman pemilik · Holder</span>' +
+      '<span class="pp-cb-merpi">' + ART.merpi(p.name ? 'is-love' : 'is-happy') + '</span>' +
+      '<b class="pp-cb-name">' + esc(p.name || 'Calon pelancong cinta') + '</b>' +
+      '<span class="pp-cb-sub">' + (since ? 'Pelancong cinta sejak ' + esc(since) : 'Selamat datang di Republik Rindu') + '</span>' +
+      '<div class="pp-cb-stamps">' + stamps + '</div>' +
+      '<span class="pp-cb-note">' + (got.length ? p.stamps.length + ' cap kota terkumpul · ' + p.games + ' main · ' + p.wins + ' menang' : 'Main dan kuasai kota untuk mengumpulkan cap di sini') + '</span>' +
+      '<span class="pp-cb-seal"><svg viewBox="0 0 100 100"><defs><path id="ppSealArc" d="M50 50 m-36 0 a36 36 0 1 1 72 0 a36 36 0 1 1 -72 0"/></defs><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/><text font-size="10.5" font-weight="700" letter-spacing="2" fill="currentColor"><textPath href="#ppSealArc">REPUBLIK RINDU ✦ LOVEOPOLY ✦</textPath></text><path d="M50 62c-9-7-15-12-15-18a7.5 7.5 0 0 1 15-3 7.5 7.5 0 0 1 15 3c0 6-6 11-15 18z" fill="currentColor"/></svg></span>' +
+      '</div></div>';
+  }
   function openPassport(opts) {
     opts = opts || {};
     if ($('#passOv')) return;
     const p = passport();
     const edit = !!p.name;
-    const st = { name: p.name, avatar: p.avatar, color: p.color, open: edit || UI.reduceMotion(), done: false };
+    const st = { name: p.name, avatar: p.avatar, color: p.color, open: UI.reduceMotion(), done: false };
     const ov = document.createElement('div');
     ov.className = 'pass-ov';
     ov.id = 'passOv';
@@ -87,7 +104,7 @@
       const valid = st.name.trim().length >= 1 && st.name.trim().length <= 16;
       ov.innerHTML = '<div class="pp-sky" aria-hidden="true">' + sparks + '</div>' +
         '<div class="pp-wrap">' +
-        '<div class="pp-book' + (st.open ? ' open' : '') + (edit ? ' pre' : '') + (st.done ? ' done' : '') + '">' +
+        '<div class="pp-book' + (st.open ? ' open' : '') + (st.done ? ' done' : '') + '">' +
         // halaman dalam (formulir)
         '<form class="pp-page" id="ppForm" novalidate>' +
         '<div class="pp-page-top"><span class="pp-k">Republik Rindu · Loveopoly</span><span class="pp-no">' + esc(passNo(Object.assign({}, p, { since: p.since || Date.now() }))) + '</span></div>' +
@@ -111,10 +128,10 @@
         '<span class="pp-emblem">' + ART.merpi('is-happy') + '</span>' +
         '<span class="pp-foil pp-cv-title">PASPOR<br>CINTA</span>' +
         '<span class="pp-foil pp-cv-sub">LOVEOPOLY · PASSPORT OF LOVE</span>' +
-        '<span class="pp-chip" aria-hidden="true"></span>' +
+        (edit ? '<span class="pp-foil pp-cv-name">' + esc(p.name.toUpperCase()) + '</span>' : '<span class="pp-chip" aria-hidden="true"></span>') +
         '<button type="button" class="pp-gold pp-open" id="ppOpen"' + (st.open ? ' tabindex="-1"' : '') + '>' + ic('book') + '<span>Buka Paspor</span></button>' +
-        '<button type="button" class="pp-ghost pp-skip-c" id="ppSkip2"' + (st.open ? ' tabindex="-1"' : '') + '>Nanti saja</button>' +
-        '</div></div>' +
+        '<button type="button" class="pp-ghost pp-skip-c" id="ppSkip2"' + (st.open ? ' tabindex="-1"' : '') + '>' + (edit ? 'Tutup' : 'Nanti saja') + '</button>' +
+        '</div>' + coverInside(p) + '</div>' +
         '</div></div>';
       bind();
     };
@@ -123,7 +140,8 @@
     function bind() {
       const o = $('#ppOpen', ov);
       if (o) o.onclick = () => { st.open = true; SND.play('page'); $('.pp-book', ov).classList.add('open'); $('.pp-cover', ov).setAttribute('aria-hidden', 'true'); setTimeout(() => { const n = $('#ppName', ov); if (n) n.focus({ preventScroll: true }); }, UI.reduceMotion() ? 0 : 750); };
-      [$('#ppSkip', ov), $('#ppSkip2', ov)].forEach(b => { if (b) b.onclick = skip; });
+      const sk = $('#ppSkip', ov); if (sk) sk.onclick = skip;
+      const sk2 = $('#ppSkip2', ov); if (sk2) sk2.onclick = edit ? close : skip;
       const c = $('#ppCancel', ov); if (c) c.onclick = close;
       const n = $('#ppName', ov);
       if (n) n.addEventListener('input', () => { st.name = n.value; syncBtn(); });
@@ -145,6 +163,7 @@
       if (first && !opts.noFocus) setTimeout(() => { try { first.focus({ preventScroll: true }); } catch (e) { /* abaikan */ } }, 60);
     }
     paint();
+    if (edit && !st.open) setTimeout(() => { const o = $('#ppOpen', ov); if (o && !st.open && ov.isConnected) o.click(); }, 650);
   }
   function passportCard() {
     const p = passport();
@@ -477,8 +496,72 @@
 
   // ---------- masuk / keluar game ----------
   let resizeBound = false;
+  // ---------- undian giliran: sorotan berputar dari pemain ke pemain, melambat, lalu berhenti di yang jalan duluan ----------
+  // Hasilnya sudah ditentukan engine (S.turn.p); animasi hanya mengungkapkan, jadi semua perangkat online melihat hasil sama.
+  let drawEnd = null;
+  function closeDraw() { const ov = $('#drawOv'); if (ov) ov.remove(); if (drawEnd) { const f = drawEnd; drawEnd = null; f(); } }
+  function drawReveal(S) {
+    return new Promise(resolve => {
+      closeDraw();
+      const n = S.players.length, win = S.turn.p, rm = UI.reduceMotion();
+      const order = Array.from({ length: n }, (_, k) => S.players[(win + k) % n]).filter(p => !p.bankrupt);
+      const ov = document.createElement('div');
+      ov.className = 'draw-ov'; ov.id = 'drawOv';
+      ov.innerHTML = '<div class="draw-card" role="dialog" aria-modal="true" aria-labelledby="drawT">' +
+        '<span class="draw-merpi" aria-hidden="true">' + ART.merpi('is-think') + '</span>' +
+        '<div class="draw-k">' + ic('dice') + 'Undian giliran</div>' +
+        '<h2 class="draw-t" id="drawT">Siapa jalan duluan?</h2>' +
+        '<div class="draw-row" aria-hidden="true">' + S.players.map((p, i) => '<span class="draw-p" data-dp="' + i + '" style="--c:' + p.color + '"><span class="dp-av">' + esc(p.avatar) + '</span><b>' + esc(p.name) + '</b><span class="dp-tag">' + ic('crown') + 'Duluan!</span></span>').join('') + '</div>' +
+        '<p class="draw-res" role="status" aria-live="polite"></p>' +
+        '<div class="draw-order" hidden><span class="do-k">Urutan main</span><ol>' + order.map((p, k) => '<li style="--c:' + p.color + '"><b>' + (k + 1) + '</b>' + esc(p.avatar) + ' ' + esc(p.name) + '</li>').join('') + '</ol></div>' +
+        '<button type="button" class="btn primary" id="drawGo"><span>Lewati</span></button>' +
+        '</div>';
+      document.body.appendChild(ov);
+      const chips = $$('.draw-p', ov), go = $('#drawGo', ov);
+      let timer = 0, done = false, closing = 0;
+      const mark = k => chips.forEach((c, j) => c.classList.toggle('dp-on', j === k));
+      const finish = () => {
+        if (done) return;
+        done = true; clearTimeout(timer);
+        mark(win);
+        chips[win].classList.add('dp-win');
+        ov.classList.add('dw-done');
+        $('.draw-merpi', ov).innerHTML = ART.merpi('is-love');
+        $('#drawT', ov).textContent = S.players[win].name + ' jalan duluan!';
+        $('.draw-res', ov).textContent = 'Undian giliran: ' + S.players[win].name + ' jalan duluan. Urutan main: ' + order.map(p => p.name).join(', ') + '.';
+        $('.draw-order', ov).hidden = n < 3;
+        go.querySelector('span').textContent = 'Ayo main!';
+        if (!rm) chips[win].insertAdjacentHTML('beforeend', Array.from({ length: 10 }, (_, k) => '<i class="dp-spark" style="--a:' + (k * 36) + 'deg;--k:' + k + '" aria-hidden="true"></i>').join(''));
+        SND.play('fanfare');
+        closing = setTimeout(close, rm ? 2600 : 2400);
+      };
+      const close = () => {
+        clearTimeout(timer); clearTimeout(closing);
+        if (!ov.isConnected) return;
+        ov.classList.add('dw-out');
+        setTimeout(() => { ov.remove(); if (drawEnd) { drawEnd = null; resolve(); } }, rm ? 0 : 320);
+      };
+      drawEnd = resolve;
+      go.onclick = () => { if (!done) finish(); else close(); };
+      setTimeout(() => { try { go.focus({ preventScroll: true }); } catch (e) { /* abaikan */ } }, 60);
+      if (rm || n < 2) { finish(); return; }
+      // langkah sorotan: berakhir tepat di pemenang; jeda membesar (cepat → pelan) supaya terasa mendebarkan
+      const base = 3 * n + 4, T = base + (((win - base) % n) + n) % n;
+      let k = 0;
+      const step = () => {
+        mark(k % n);
+        SND.play('step');
+        if (k >= T) { timer = setTimeout(finish, 380); return; }
+        const x = k / T;
+        k++;
+        timer = setTimeout(step, 55 + 360 * Math.pow(x, 2.6));
+      };
+      step();
+    });
+  }
   function enterGame(mode, seat, S) {
     UI.cleanState(S);
+    closeDraw();
     clearTimeout(App.aiTimer);
     UI.closeModal(true);
     closeOverlay();
@@ -500,18 +583,37 @@
       addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { if (App.S && !$('#scrGame').hidden) { UI.applyLayout(); UI.renderAll(); } }, 80); });
     }
     UI.persist();
-    // tahan bot sejak awal bila tur akan tampil (afterSettle menjadwalkan AI)
+    // Urutan pembuka di SETIAP perangkat: undian giliran (game baru) → tur (hanya perangkat yang belum pernah) → main.
+    // Bot (dijalankan host) menunggu undian & tur di perangkat host saja; tur teman baru tidak menahan permainan
+    // orang lain (bila teman itu yang jalan duluan, yang lain menunggu gilirannya seperti biasa).
+    const drawn = !S.over && S.seq === 0 && S.log.some(l => /^Undian giliran:/.test(l.text));
     App.tourPending = !S.over && store.get(KEYS.tour, null) !== 'done';
+    App.revealing = drawn;
+    // nomor game (bukan objek state): state berganti tiap aksi, termasuk aksi pemain lain selama undian berjalan
+    const gid = App.gameId = (App.gameId || 0) + 1;
     afterSettle();
-    if (!S.over) setTimeout(startTour, UI.reduceMotion() ? 50 : 1300);
-    // permainan baru dengan undian giliran: umumkan siapa yang jalan duluan
-    const drawn = S.seq === 0 && S.log.some(l => /^Undian giliran:/.test(l.text));
-    if (drawn) setTimeout(() => { if (App.S === S) UI.banner('UNDIAN GILIRAN', S.players[S.turn.p].name + ' jalan duluan!', 'goal', 2400); }, 450);
-    setTimeout(() => { if (App.S === S && !App.tour) UI.merpiSay(drawn ? 'Undian beres! ' + S.players[S.turn.p].name + ' jalan duluan~' : UI.pick(D.MERPI.hello), 'happy', 2600); }, drawn ? 1200 : 700);
+    if (drawn) {
+      setTimeout(() => {
+        if (App.gameId !== gid) return;
+        drawReveal(S).then(() => {
+          if (App.gameId !== gid) return;
+          App.revealing = false;
+          UI.merpiSay(S.players[S.start || 0].name + ' jalan duluan~ Semangat!', 'happy', 2400);
+          if (App.tourPending) setTimeout(startTour, UI.reduceMotion() ? 50 : 350);
+          else { UI.renderStage(); UI.scheduleAI(); }
+        });
+      }, UI.reduceMotion() ? 50 : 450);
+    } else {
+      if (!S.over) setTimeout(startTour, UI.reduceMotion() ? 50 : 1300);
+      setTimeout(() => { if (App.gameId === gid && !App.tour) UI.merpiSay(UI.pick(D.MERPI.hello), 'happy', 2600); }, 700);
+    }
   }
   function exitToHome() {
     clearTimeout(App.aiTimer);
     App.tourPending = false;
+    App.revealing = false;
+    App.gameId = (App.gameId || 0) + 1;
+    closeDraw();
     UI.closeModal(true);
     closeOverlay();
     endTour(false);

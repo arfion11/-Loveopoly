@@ -83,6 +83,13 @@ const PLAYERS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Na
       await click(p, '#emoteBtn');
       await audit(p, tag + ' palet reaksi', '#emote');
       await click(p, '#emoteBtn');
+      // undian giliran (hasil)
+      await p.evaluate(() => { const E = window.LoveEngine; const S = E.create({ players: [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Nadia', avatar: '🐰', color: '#7B61FF' }, { name: 'Dimas', avatar: '🦊', color: '#FF8A3D' }], settings: { debug: true }, seed: 9, first: 'random' }); window.LoveUI.enterGame('local', -1, S); });
+      await p.waitForSelector('#drawOv.dw-done', { timeout: 6000 });
+      await audit(p, tag + ' undian giliran', '#drawOv');
+      await p.$eval('#drawGo', e => e.click()); await p.waitForSelector('#drawOv', { state: 'detached' });
+      await newGame(p, "S.round = 9; S.news = { id: 'holiday', side: 'top', from: 9, to: 10 }; [1, 2].forEach(t => { S.tiles[t].owner = 1; S.tiles[t].level = 2; });");
+      await settle(p);
       // dialog beli kota
       await p.evaluate(() => window.LoveUI.act({ type: 'ROLL', p: 0, dice: [2, 2] })); await settle(p);
       await p.waitForSelector('#modalRoot:not([hidden]) .modal', { timeout: 8000 }).catch(() => {});
@@ -93,6 +100,9 @@ const PLAYERS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Na
       await audit(p, tag + ' tantangan: pembuka', '#modalRoot');
       await click(p, '#bChGo'); await p.waitForTimeout(200);
       await audit(p, tag + ' tantangan: kuis berjalan', '#modalRoot');
+      await newGame(p, 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "bl", cat: "card", source: "card", redraws: 0 }); E.migrate(S);');
+      await settle(p); await p.evaluate(() => window.LoveUI.syncModal(true)); await p.waitForTimeout(200);
+      await audit(p, tag + ' tantangan: dua fakta satu bohong', '#modalRoot');
       await newGame(p, 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "ph1", cat: "card", source: "card", redraws: 0 }); E.migrate(S); S.queue[0].pz = { photo: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=" }; S.queue[0].phase = "judge"; S.queue[0].who = 1;');
       await settle(p); await p.evaluate(() => window.LoveUI.syncModal(true)); await p.waitForTimeout(200);
       if (await p.$('#modalRoot #bGate')) { await click(p, '#bGate'); await p.waitForTimeout(150); }

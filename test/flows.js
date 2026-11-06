@@ -241,6 +241,16 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await jsClick('#bChSend');
   st = await S();
   ok('tebak isi hati: 2/3 cocok → keduanya dapat hadiah', st.players[0].cash > 2500 && st.players[1].love > st.players[0].love - 20 && /2\/3 cocok/.test(st.proofs[0].proof), st.proofs[0] && st.proofs[0].proof);
+  // Dua Fakta Satu Bohong: pernyataan pendek bisa dikirim; tombol memberi tahu langkah yang kurang
+  await chGame('bl');
+  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  for (const [i, t] of [[0, 'Anak 1'], [1, 'Jomblo'], [2, 'Suka 🍜']]) await page.fill('#bl' + i, t);
+  const blLabel = await page.$eval('#bChSend', b => b.disabled + ' ' + b.textContent);
+  await page.$eval('[data-lie="2"]', e => e.click()); await page.waitForTimeout(120);
+  await jsClick('#bChSend');
+  st = await S();
+  ok('dua fakta satu bohong: pernyataan pendek terkirim, tombol menjelaskan langkah kurang', /^true Ketuk Bohong dulu$/.test(blLabel) && st.queue[0] && st.queue[0].phase === 'guess', blLabel + ' → ' + (st.queue[0] && st.queue[0].phase));
+
   // Foto Bukti lewat unggah foto → dinilai lawan → dipajang di papan
   await chGame('ph1');
   await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
@@ -394,6 +404,30 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await page.evaluate(() => window.LoveUI.endTour(true));
   await page.waitForFunction(() => window.LoveUI.App.S.seq > 0, null, { timeout: 8000 }).catch(() => {});
   ok('tur: bot jalan setelah tur ditutup', await page.evaluate(() => window.LoveUI.App.S.seq > 0));
+  // undian giliran: animasi mengungkap pemenang yang sama dengan engine; bot menunggu undian + tur
+  await page.evaluate(() => { localStorage.removeItem('loveopoly.v2.tour'); const E = window.LoveEngine; let S, sd = 1; do { S = E.create({ players: [{ name: 'Arfi', avatar: '🐻' }, { name: 'Bot', avatar: '🐰', kind: 'ai' }], settings: { debug: true }, seed: sd++, first: 'random' }); } while (S.turn.p !== 1); window.LoveUI.enterGame('local', -1, S); });
+  await page.waitForSelector('#drawOv', { timeout: 4000 });
+  const dr0 = await page.evaluate(() => ({ tour: !!document.getElementById('tourOv'), seq: window.LoveUI.App.S.seq }));
+  await page.waitForSelector('#drawOv.dw-done', { timeout: 8000 });
+  const dr1 = await page.evaluate(() => ({ chip: document.querySelector('.draw-p.dp-win b').textContent, title: document.getElementById('drawT').textContent }));
+  ok('undian: animasi tampil sebelum tur & berhenti di pemain yang jalan duluan', !dr0.tour && dr0.seq === 0 && dr1.chip === 'Bot' && /Bot jalan duluan/.test(dr1.title), JSON.stringify([dr0, dr1]));
+  await page.$eval('#drawGo', e => e.click());
+  await page.waitForSelector('#tourOv', { timeout: 5000 }).catch(() => {});
+  ok('undian → tur: tur muncul setelah undian, bot masih menunggu', !!(await page.$('#tourOv')) && await page.evaluate(() => window.LoveUI.App.S.seq === 0));
+  await page.evaluate(() => window.LoveUI.endTour(true));
+  await page.waitForFunction(() => window.LoveUI.App.S.seq > 0, null, { timeout: 8000 }).catch(() => {});
+  ok('undian → tur → bot jalan', await page.evaluate(() => window.LoveUI.App.S.seq > 0));
+  // pemain lain beraksi selama undian (mis. tamu online): bot tetap jalan setelah undian selesai
+  await page.evaluate(() => { const E = window.LoveEngine; let S, sd = 1; do { S = E.create({ players: [{ name: 'Arfi', avatar: '🐻' }, { name: 'Bot', avatar: '🐰', kind: 'ai' }], settings: { debug: true }, seed: sd++, first: 'random' }); } while (S.turn.p !== 0); window.LoveUI.enterGame('local', -1, S); });
+  await page.waitForSelector('#drawOv', { timeout: 4000 });
+  await page.evaluate(() => window.LoveUI.act({ type: 'ROLL', p: 0, dice: [1, 2] }));
+  await settle();
+  await page.evaluate(() => { const S = window.LoveUI.App.S; if (S.queue.length) window.LoveUI.act(window.LoveUI.fallbackAction(S, 0)); });
+  await settle();
+  await page.evaluate(() => { const S = window.LoveUI.App.S; if (!S.queue.length && S.turn.p === 0) window.LoveUI.act({ type: 'END_TURN', p: 0 }); });
+  await page.waitForSelector('#drawOv', { state: 'detached', timeout: 8000 }).catch(() => page.$eval('#drawGo', e => e.click()));
+  await page.waitForFunction(() => window.LoveUI.App.S.turn.p === 0 && window.LoveUI.App.S.round >= 2, null, { timeout: 15000 }).catch(() => {});
+  ok('undian: aksi pemain selama undian tidak membuat bot macet', await page.evaluate(() => window.LoveUI.App.S.round >= 2 && !window.LoveUI.App.revealing), await page.evaluate(() => JSON.stringify({ r: window.LoveUI.App.S.round, t: window.LoveUI.App.S.turn.p, rev: window.LoveUI.App.revealing })));
 
   // 26. Paspor Cinta: muncul saat pertama kali, terbit, mengisi Pemain 1, mencatat hasil game
   await page.evaluate(() => { sessionStorage.setItem('passTest', '1'); localStorage.removeItem('loveopoly.v1.profile'); localStorage.removeItem('loveopoly.v2.save'); });

@@ -195,7 +195,9 @@
         return;
       }
       if (d.state) {
-        if (!App.S || App.mode !== 'online' || App.net !== this) UI.enterGame('online', seat, d.state);
+        // game baru (Main lagi): seed berbeda & seq mulai dari 0 lagi, jadi bukan "lebih baru" menurut seq → masuk ulang
+        const newGame = App.S && App.S.seed !== d.state.seed;
+        if (!App.S || App.mode !== 'online' || App.net !== this || newGame) UI.enterGame('online', seat, d.state);
         else if (d.state.seq > App.S.seq) UI.commit(d.state);
         else { UI.renderHeader(); UI.renderPlayers(); UI.renderCenter(); }
       }

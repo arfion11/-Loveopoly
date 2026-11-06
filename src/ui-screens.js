@@ -9,7 +9,7 @@
     $$('.screen').forEach(s => { s.hidden = s.id !== id; });
     const inGame = id === 'scrGame';
     document.body.classList.toggle('in-game', inGame);
-    if (!inGame) UI.renderHeader(null);
+    if (!inGame) { UI.renderHeader(null); delete document.body.dataset.amb; document.body.classList.remove('amb-peak'); }
     window.scrollTo(0, 0);
   }
   function savePrefs() { store.set(KEYS.prefs, App.prefs); }

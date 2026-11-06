@@ -751,7 +751,7 @@
     c.className = 'center';
     const still = reduceMotion();
     const plane = '<g fill="#fff" stroke="#3A2B4A" stroke-width="2" stroke-linejoin="round"><path d="M-12 0c0-2 2-3 4-3h14c4 0 8 1.4 8 3s-4 3-8 3H-8c-2 0-4-1-4-3z"/><path d="M0-3-6-12h4l7 9zM0 3l-6 9h4l7-9z" fill="#FF4F8B"/></g>';
-    c.innerHTML = '<div class="center-deco" aria-hidden="true"><svg class="cd-map" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">' +
+    c.innerHTML = '<div class="ctr-amb" aria-hidden="true"></div><div class="center-deco" aria-hidden="true"><svg class="cd-map" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">' +
       '<g class="cd-clouds" fill="#fff" opacity=".7"><ellipse cx="70" cy="80" rx="46" ry="15"/><ellipse cx="96" cy="70" rx="24" ry="15"/><ellipse cx="320" cy="330" rx="50" ry="15"/><ellipse cx="292" cy="320" rx="22" ry="14"/><ellipse cx="330" cy="150" rx="30" ry="10"/></g>' +
       '<path id="cdRoute" d="M70 290 C 120 170, 200 330, 250 210 S 330 90, 340 80" fill="none" stroke="#FF7EAC" stroke-width="4" stroke-dasharray="2 12" stroke-linecap="round" opacity=".75"/>' +
       '<path d="M70 300c-8-6-14-12-14-19a7 7 0 0 1 14-3 7 7 0 0 1 14 3c0 7-6 13-14 19z" fill="#FF4F8B" stroke="#3A2B4A" stroke-width="2"/>' +
@@ -1299,14 +1299,53 @@
   // Semua isi berada di dalam kotak .ms-stand (elemen 3D tidak boleh menjulur keluar kotaknya).
   function mascotHTML() {
     const land = '<g fill="#7FD9AE" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"><path d="M50 60c10-12 30-14 40-6 6 5 2 12-6 14-8 2-6 10 2 14 6 3 4 12-6 12-10 0-16 8-24 4-10-5-14-26-6-38z"/><path d="M122 48c14-2 28 6 34 18 3 7-4 9-10 6-7-4-14 0-12 8 2 7-6 10-12 4-6-6-14-6-14-16 0-10 6-18 14-20z"/><path d="M104 126c10-4 24 0 30 10 5 9-2 22-12 26-9 4-16-2-16-10 0-6-8-8-8-14 0-6 0-10 6-12z"/><path d="M40 122c8-3 16 2 16 9s-8 10-14 7-8-13-2-16z"/></g>';
+    // globe hidup: benua & awan berputar pelan di bawah bayangan siang-malam yang diam (terlihat seperti bola
+    // dari atas), cincin putus-putus berputar berlawanan. Efek Kabar Merpi (pesawat promo, cincin Musim Puncak)
+    // hanya tampil sesuai body[data-amb] / body.amb-peak (lihat renderAmbience)
+    const plane = '<g fill="#fff" stroke="#3A2B4A" stroke-width="2" stroke-linejoin="round"><path d="M-12 0c0-2 2-3 4-3h14c4 0 8 1.4 8 3s-4 3-8 3H-8c-2 0-4-1-4-3z"/><path d="M0-3-6-12h4l7 9zM0 3l-6 9h4l7-9z" fill="#FF4F8B"/></g>';
+    const clouds = '<g class="ms-clouds" fill="#fff" opacity=".8"><ellipse cx="70" cy="40" rx="18" ry="6"/><ellipse cx="80" cy="36" rx="9" ry="6"/><ellipse cx="150" cy="120" rx="16" ry="5"/><ellipse cx="60" cy="150" rx="14" ry="5"/><ellipse cx="135" cy="70" rx="10" ry="4"/></g>';
+    const heart = '<svg viewBox="0 0 24 22"><path d="M12 21C5 15.6 1 11.8 1 7.2A5.7 5.7 0 0 1 12 4.6 5.7 5.7 0 0 1 23 7.2c0 4.6-4 8.4-11 13.8z" fill="#FF4F8B" stroke="#3A2B4A" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+    const many = (n, h, cls) => Array.from({ length: n }, (_, k) => '<i class="' + cls + '" style="--k:' + k + '">' + h + '</i>').join('');
     return '<div class="mascot" id="mascot">' +
-      '<div class="ms-mat" aria-hidden="true"><svg viewBox="0 0 200 200"><defs><radialGradient id="msOcean" cx="40%" cy="36%" r="72%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient></defs>' +
+      '<div class="ms-mat" aria-hidden="true"><svg viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="msOcean" cx="40%" cy="36%" r="72%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient>' +
+        '<radialGradient id="msShade" cx="34%" cy="30%" r="80%"><stop offset=".5" stop-color="#1B1035" stop-opacity="0"/><stop offset="1" stop-color="#1B1035" stop-opacity=".42"/></radialGradient>' +
+        '<clipPath id="msClip"><circle cx="100" cy="100" r="84"/></clipPath></defs>' +
+        '<circle class="ms-peak" cx="100" cy="100" r="97" fill="none" stroke="#FFC93C" stroke-width="5"/>' +
         '<circle cx="100" cy="100" r="94" fill="#fff" stroke="#3A2B4A" stroke-width="3"/>' +
-        '<circle cx="100" cy="100" r="84" fill="url(#msOcean)" stroke="#3A2B4A" stroke-width="2.5"/>' + land +
-        '<circle cx="100" cy="100" r="89" fill="none" stroke="#FF7EAC" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></svg></div>' +
+        '<circle cx="100" cy="100" r="84" fill="url(#msOcean)"/>' +
+        '<g clip-path="url(#msClip)"><g class="ms-land">' + land + '</g>' + clouds + '</g>' +
+        '<circle cx="100" cy="100" r="84" fill="url(#msShade)"/>' +
+        '<ellipse cx="70" cy="62" rx="22" ry="12" fill="#fff" opacity=".28" transform="rotate(-32 70 62)"/>' +
+        '<circle cx="100" cy="100" r="84" fill="none" stroke="#3A2B4A" stroke-width="2.5"/>' +
+        '<g class="ms-ring"><circle cx="100" cy="100" r="89" fill="none" stroke="#FF7EAC" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></g>' +
+        '<g class="ms-orbit"><path d="M100 22a78 78 0 0 1 60 28" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round" opacity=".85"/><g transform="translate(100 22) scale(1.7)">' + plane + '</g></g>' +
+      '</svg></div>' +
       '<div class="ms-shadow" aria-hidden="true"></div>' +
-      '<div class="ms-stand"><div class="ms-look"><div class="ms-body" title="Merpi">' + ART.merpi('') + '</div></div>' +
+      '<div class="ms-stand">' +
+        // belakang Merpi: matahari (liburan), awan hujan
+        '<div class="ms-fxb" aria-hidden="true">' +
+          '<span class="fx-holiday"><span class="fx-sun"><svg viewBox="0 0 100 100"><g class="fx-rays" stroke="#FFC93C" stroke-width="7" stroke-linecap="round">' + Array.from({ length: 10 }, (_, k) => '<path d="M50 6v10" transform="rotate(' + k * 36 + ' 50 50)"/>').join('') + '</g><circle cx="50" cy="50" r="24" fill="#FFD54A" stroke="#C98D06" stroke-width="3"/><path d="M41 52q9 8 18 0" fill="none" stroke="#7A4A00" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="45" r="2.6" fill="#7A4A00"/><circle cx="58" cy="45" r="2.6" fill="#7A4A00"/></svg></span></span>' +
+          '<span class="fx-rain"><span class="fx-cloud"><svg viewBox="0 0 100 46"><path d="M18 42c-9 0-14-6-14-12 0-7 6-12 13-12 2-9 10-14 19-14 9 0 16 5 19 12 3-2 6-3 9-3 9 0 15 6 15 14h1c7 0 12 4 12 8s-5 7-12 7z" fill="#C9D3E6" stroke="#3A2B4A" stroke-width="3" stroke-linejoin="round"/></svg></span></span>' +
+        '</div>' +
+        '<div class="ms-look"><div class="ms-body" title="Merpi">' + ART.merpi('') + '</div></div>' +
+        // depan Merpi: payung & hujan, label diskon, koin, hati
+        '<div class="ms-fx" aria-hidden="true">' +
+          '<span class="fx-rain"><span class="fx-umb"><svg viewBox="0 0 64 44"><path d="M3 26C5 12 17 4 32 4s27 8 29 22c-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-11 0z" fill="#7B61FF" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 26c1-9 5-18 12-22M44 26c-1-9-5-18-12-22" fill="none" stroke="#3A2B4A" stroke-width="2" opacity=".5"/><path d="M32 4v32c0 5-7 5-7 0" fill="none" stroke="#3A2B4A" stroke-width="2.8" stroke-linecap="round"/></svg></span>' + many(7, '', 'fx-drop') + '</span>' +
+          '<span class="fx-sale">' + many(4, '%', 'fx-tag') + '</span>' +
+          '<span class="fx-bonus">' + many(5, '', 'fx-coin') + '</span>' +
+          '<span class="fx-love">' + many(5, heart, 'fx-heart') + '</span>' +
+        '</div>' +
       '<div class="ms-emote" aria-hidden="true"></div></div></div>';
+  }
+  // suasana Kabar Merpi & Musim Puncak: satu atribut di <body> mengatur warna tengah papan, latar halaman (diam,
+  // hanya berganti warna lembut) dan efek di sekitar Merpi; kosong = kembali ke default
+  function renderAmbience(S) {
+    const b = document.body;
+    const n = S && !S.over ? E.newsInfo(S) : null, peak = !!(S && !S.over && E.peakOn(S));
+    const amb = n ? n.id : peak ? 'peak' : '';
+    if ((b.dataset.amb || '') !== amb) { if (amb) b.dataset.amb = amb; else delete b.dataset.amb; }
+    b.classList.toggle('amb-peak', peak);
   }
   const MS_ACTS = ['hop', 'droop', 'spin', 'fly', 'cheer', 'shake', 'peek'];
   let msActT = null, msEmoT = null, msSleepT = null;
@@ -1538,6 +1577,7 @@
     const lim = S.settings.roundLimit;
     setHTML($('#roundChip'), ic('calendar') + '<span>Ronde <b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span>');
     setHTML($('#newsSlot'), newsPillHTML(S));
+    renderAmbience(S);
     const tl = $('#turnLine');
     setHTML(tl, S.over ? '<span class="tl-txt">' + ic('trophy') + ' Permainan selesai</span>' :
       avatarHTML(cur, 'xs') + '<span class="tl-txt"><span class="tl-w">Giliran </span><b>' + esc(cur.name) + '</b></span>' + '<span class="tl-round">' + ic('calendar') + 'R' + S.round + (lim ? '/' + lim : '') + '</span>' + (cur.island ? '<span class="tag sea">' + ic('island') + '<span class="tl-w">Pulau Rindu </span>' + cur.islandTries + '/' + RULES.islandTurns + '</span>' : ''));

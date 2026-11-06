@@ -292,6 +292,19 @@ const server = http.createServer((req, res) => {
   const proofG = await guest.evaluate(() => { const x = window.LoveUI.App.S.proofs.slice(-1)[0]; return x.ok + ' ' + x.proof; });
   ok('duel online: dinilai host dari jawaban tamu, bukti sama di kedua perangkat', /^true 2\/3 cocok/.test(proofG), proofG);
 
+  // Main lagi online: host mengakhiri game & menekan Main lagi → tamu langsung masuk game baru (tanpa kembali ke menu)
+  await settle(host); await settle(guest);
+  await host.evaluate(() => { const N = window.LoveNet, E = window.LoveEngine; let S = JSON.parse(JSON.stringify(N.doc.state)); S.queue = []; S.turn.p = 0; S.turn.rolled = false; S.seq += 30; S.lastEvents = []; S.evSeq = S.seq; N.doc.state = S; N.doc.seq = S.seq; window.LoveUI.commit(S); N.writeRoom(); });
+  await guest.waitForFunction(() => window.LoveUI.App.S.seq >= 40, null, { timeout: 8000 }).catch(() => {});
+  await act(host, { type: 'FINISH_NOW', p: 0 });
+  await guest.waitForFunction(() => window.LoveUI.App.S && window.LoveUI.App.S.over, null, { timeout: 8000 });
+  await host.waitForSelector('#wAgain', { timeout: 8000 });
+  const oldSeed = await guest.evaluate(() => window.LoveUI.App.S.seed);
+  await host.$eval('#wAgain', b => b.click());
+  await guest.waitForFunction(s => { const S = window.LoveUI.App.S; return S && !S.over && S.seed !== s; }, oldSeed, { timeout: 8000 }).catch(() => {});
+  const again = await guest.evaluate(s => { const S = window.LoveUI.App.S; return { over: !!(S && S.over), newGame: !!(S && S.seed !== s), seq: S && S.seq, win: !!document.getElementById('winOv'), host: window.LoveNet.doc.state.seed === (S && S.seed) }; }, oldSeed);
+  ok('Main lagi online: tamu otomatis masuk game baru', !again.over && again.newGame && !again.win && again.host, JSON.stringify(again));
+
   // reaksi emoji lintas perangkat: tamu mengirim, host melihat emoji di papan (bukan aksi engine, seq tidak berubah)
   const seqE = await seqOf(host);
   await host.evaluate(() => { window.__emo = 0; const o = window.LoveUI.showEmote; window.LoveUI.showEmote = (p, e) => { window.__emo = p + ':' + e; o(p, e); }; });

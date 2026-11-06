@@ -360,7 +360,7 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   const gl = await page.evaluate(() => { const g = document.querySelector('#board .center #mascot .ms-body'); const r = g && g.getBoundingClientRect(); return { has: !!g, w: r ? Math.round(r.width) : 0, three: !!window.THREE, globe: !!document.querySelector('.globe-2d') }; });
   ok('tengah papan: Merpi besar tampil (tanpa Three.js)', gl.has && gl.w > 40 && !gl.three && !gl.globe, JSON.stringify(gl));
   // diketuk: Merpi bereaksi (gelembung kata di panel + gerak), menoleh ke pion yang jalan
-  await page.click('#mascot .ms-body');
+  await page.$eval('#mascot .ms-body', e => e.click());   // Merpi bergoyang terus (msIdle): klik langsung
   const tap = await page.evaluate(() => ({ bub: document.getElementById('bubble').classList.contains('show'), inVP: document.getElementById('bubble').parentNode.id, small: getComputedStyle(document.querySelector('#stage .st-merpi')).display, act: [...document.getElementById('mascot').classList].filter(c => c.startsWith('act-')).join(' ') }));
   ok('Merpi besar: diketuk menjawab & bergerak (gelembung di papan, Merpi kecil disembunyikan)', tap.bub && tap.inVP === 'boardVP' && tap.small === 'none' && /act-spin/.test(tap.act), JSON.stringify(tap));
   await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);

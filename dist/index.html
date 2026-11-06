@@ -1490,12 +1490,14 @@ main { position: relative; }
 .proof-list small { display: block; color: var(--ink-3); }
 .mini-h { margin: 14px 0 6px; font-size: 15px; }
 /* polaroid foto bukti terakhir di papan (rebah di bidang papan) */
-.proof-pin { position: absolute; right: 7%; top: 9%; z-index: 4; width: 15cqw; padding: .8cqw .8cqw 2.6cqw; border: 0; border-radius: .6cqw; background: #FFFDF8; box-shadow: 0 1cqw 2cqw rgba(42, 24, 56, .25); rotate: 7deg; cursor: pointer; animation: pinDrop .7s cubic-bezier(.3, 1.4, .5, 1); }
+.proof-pin { position: absolute; right: 7%; top: 9%; z-index: 4; width: 15cqw; padding: .8cqw .8cqw 2.6cqw; border: 0; border-radius: .6cqw; background: #FFFDF8; box-shadow: 0 1cqw 2cqw rgba(42, 24, 56, .25); transform: rotate(7deg); cursor: pointer; animation: pinDrop .7s cubic-bezier(.3, 1.4, .5, 1); }
 .proof-pin img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .3cqw; }
 .pp-cap { position: absolute; left: 0; right: 0; bottom: .5cqw; font: 700 1.9cqw/1 var(--fd); color: #3A2B4A; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 .6cqw; }
-.pp-n { position: absolute; right: -1.2cqw; top: -1.2cqw; display: grid; place-items: center; min-width: 3.4cqw; height: 3.4cqw; padding: 0 .6cqw; border-radius: 99px; background: var(--brand); color: #fff; font: 700 1.9cqw var(--fd); }
-.board.b3d .proof-pin { translate: 0 0 2px; }
-@keyframes pinDrop { 0% { scale: 1.8; opacity: 0; rotate: -10deg; } 60% { opacity: 1; } }
+.pp-n { position: absolute; right: .3cqw; top: .3cqw; display: grid; place-items: center; min-width: 3.4cqw; height: 3.4cqw; padding: 0 .6cqw; border-radius: 99px; background: var(--brand); color: #fff; font: 700 1.9cqw var(--fd); }
+/* papan 3D: polaroid BERDIRI menghadap layar (billboard seperti kartu kota). Rebah di papan miring membuat
+   fotonya tampak gepeng ±20%. Diletakkan di kanan depan area tengah, jauh dari Merpi & gelembung katanya */
+.board.b3d .proof-pin { top: auto; bottom: 14%; right: 6%; width: 17cqw; translate: 0 0 2px; rotate: x calc(var(--tilt, 0deg) * -1); transform-origin: 50% 100%; }
+@keyframes pinDrop { 0% { transform: rotate(-10deg) scale(1.8); opacity: 0; } 60% { opacity: 1; } }
 /* foto bukti baru tampil besar di atas papan */
 .photo-pop { position: absolute; inset: 0; z-index: 18; display: grid; place-items: center; pointer-events: none; }
 .photo-pop figure { margin: 0; width: min(300px, 70%); padding: 12px 12px 16px; border-radius: 8px; background: #FFFDF8; color: #3A2B4A; box-shadow: 0 20px 50px rgba(42, 24, 56, .4); rotate: -4deg; animation: popIn .6s cubic-bezier(.3, 1.5, .5, 1); }
@@ -2149,6 +2151,62 @@ main { position: relative; }
 @keyframes ppStampIn { from { scale: 1.8; opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .pp-book.open .pp-cb-st, .pp-book.open .pp-cb-seal { animation: none !important; } .pp-book { transition: none !important; } }
 .pp-cover::after { display: none; }
+
+/* ---------- globe & Merpi hidup (ringan: transform/opacity saja) ---------- */
+.ms-land, .ms-clouds, .ms-ring, .ms-orbit, .fx-rays { transform-box: view-box; transform-origin: 50% 50%; }
+.fx-rays { transform-box: fill-box; }
+.ms-land { animation: msGlobe 90s linear infinite; }
+.ms-clouds { animation: msGlobe 150s linear infinite reverse; }
+.ms-ring { animation: msGlobe 70s linear infinite reverse; }
+@keyframes msGlobe { to { transform: rotate(360deg); } }
+.ms-body { animation: msIdle 4.4s ease-in-out infinite; }
+@keyframes msIdle { 0%, 100% { transform: none; } 30% { transform: translateY(-1.6%) rotate(-1.6deg); } 70% { transform: translateY(-.6%) rotate(1.6deg); } }
+.mascot.sleep .ms-body { animation: none; }
+
+/* ---------- suasana Kabar Merpi (body[data-amb]) & Musim Puncak (body.amb-peak) ---------- */
+body[data-amb="rain"] { --amb: #6F86B8; }
+body[data-amb="holiday"], body[data-amb="bonus"] { --amb: var(--gold); }
+body[data-amb="sale"] { --amb: var(--mint); }
+body[data-amb="promo"] { --amb: var(--sky); }
+body[data-amb="love"] { --amb: var(--brand); }
+body[data-amb="peak"] { --amb: #FF8A3D; }
+/* warna tengah papan & latar halaman: diam, hanya memudar masuk/keluar */
+.ctr-amb { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; background: radial-gradient(110% 85% at 50% 0%, color-mix(in srgb, var(--amb, transparent) 36%, transparent), transparent 72%); }
+body[data-amb] .ctr-amb { opacity: 1; }
+body[data-amb="rain"] .ctr-amb { background: repeating-linear-gradient(105deg, transparent 0 16px, color-mix(in srgb, #6F86B8 20%, transparent) 16px 17.5px), radial-gradient(110% 85% at 50% 0%, color-mix(in srgb, #6F86B8 40%, transparent), transparent 72%); }
+.page-sky::after { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease; background: radial-gradient(90% 70% at 50% 0%, color-mix(in srgb, var(--amb, transparent) 20%, transparent), transparent 70%); }
+body[data-amb] .page-sky::after { opacity: 1; }
+/* efek di sekitar Merpi: tetap di dalam kotak .ms-stand (elemen 3D) */
+.ms-fx, .ms-fxb { position: absolute; inset: 0; pointer-events: none; }
+.ms-fx > span, .ms-fxb > span, .ms-orbit, .ms-peak { display: none; }
+body[data-amb="rain"] .fx-rain, body[data-amb="holiday"] .fx-holiday, body[data-amb="sale"] .fx-sale, body[data-amb="bonus"] .fx-bonus, body[data-amb="love"] .fx-love { display: block; position: absolute; inset: 0; }
+body[data-amb="promo"] .ms-orbit, body.amb-peak .ms-peak { display: inline; }
+.mascot.sleep .ms-fx, .mascot.sleep .ms-fxb { opacity: .5; }
+/* hujan: awan, rintik, payung Merpi */
+.fx-cloud { position: absolute; left: 16%; top: 0; width: 68%; animation: fxBob 3.4s ease-in-out infinite; }
+.fx-cloud svg, .fx-sun svg, .fx-umb svg, .fx-heart svg { display: block; width: 100%; height: auto; }
+.fx-umb { position: absolute; left: 21%; top: 16%; width: 58%; transform-origin: 50% 90%; animation: fxSway 2.6s ease-in-out infinite; }
+.fx-drop { position: absolute; top: 13%; left: calc(14% + var(--k) * 11.5%); width: 1.1cqmin; height: 4.5cqmin; border-radius: 99px; background: linear-gradient(transparent, #5FA8F0); animation: fxDrop .9s linear infinite; animation-delay: calc(var(--k) * -.31s); }
+@keyframes fxDrop { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(13cqmin); opacity: 0; } }
+@keyframes fxSway { 50% { transform: rotate(-6deg); } }
+@keyframes fxBob { 50% { transform: translateY(-4%); } }
+/* liburan: matahari tersenyum di belakang Merpi */
+.fx-sun { position: absolute; right: 0; top: 2%; width: 36%; }
+.fx-rays { animation: msGlobe 14s linear infinite; }
+/* diskon: label % melayang */
+.fx-tag { position: absolute; bottom: 26%; left: calc(6% + var(--k) * 24%); display: grid; place-items: center; min-width: 5cqmin; height: 5cqmin; padding: 0 .8cqmin; border-radius: 1.2cqmin; background: var(--mint); color: #fff; font: 700 3cqmin/1 var(--fd); font-style: normal; box-shadow: 0 .5cqmin 0 var(--mint-d); animation: fxRise 3.2s ease-in infinite; animation-delay: calc(var(--k) * -.8s); }
+/* bonus: koin memantul */
+.fx-coin { position: absolute; bottom: 24%; left: calc(10% + var(--k) * 18%); width: 4cqmin; height: 4cqmin; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFF1B0 0 18%, transparent 19%), radial-gradient(circle, #FFD54A 0 55%, #F2B416 56% 100%); box-shadow: inset 0 0 0 .35cqmin #C98D06; animation: fxCoin 1.8s cubic-bezier(.3, 1.2, .5, 1) infinite; animation-delay: calc(var(--k) * -.36s); }
+@keyframes fxCoin { 0% { transform: translateY(0) scale(.6); opacity: 0; } 15% { opacity: 1; } 45% { transform: translateY(-11cqmin) scale(1) rotateY(180deg); } 80% { opacity: 1; } 100% { transform: translateY(-3cqmin) scale(.8) rotateY(360deg); opacity: 0; } }
+/* kasih sayang: hati melayang */
+.fx-heart { position: absolute; bottom: 22%; left: calc(4% + var(--k) * 21%); width: 5cqmin; animation: fxRise 3.6s ease-in infinite; animation-delay: calc(var(--k) * -.72s); }
+@keyframes fxRise { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 60% { transform: translateY(-10cqmin) translateX(1.5cqmin) scale(1); } 100% { transform: translateY(-20cqmin) translateX(-1cqmin) scale(.9); opacity: 0; } }
+/* promo maskapai: pesawat mengitari globe */
+.ms-orbit { animation: msGlobe 7s linear infinite; }
+/* musim puncak: cincin emas berdenyut */
+.ms-peak { animation: fxPulse 1.6s ease-in-out infinite; }
+@keyframes fxPulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .ctr-amb, .page-sky::after { transition: none; } }
 
 </style>
 <div class="page-sky" aria-hidden="true"></div>
@@ -5603,7 +5661,7 @@ main { position: relative; }
     c.className = 'center';
     const still = reduceMotion();
     const plane = '<g fill="#fff" stroke="#3A2B4A" stroke-width="2" stroke-linejoin="round"><path d="M-12 0c0-2 2-3 4-3h14c4 0 8 1.4 8 3s-4 3-8 3H-8c-2 0-4-1-4-3z"/><path d="M0-3-6-12h4l7 9zM0 3l-6 9h4l7-9z" fill="#FF4F8B"/></g>';
-    c.innerHTML = '<div class="center-deco" aria-hidden="true"><svg class="cd-map" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">' +
+    c.innerHTML = '<div class="ctr-amb" aria-hidden="true"></div><div class="center-deco" aria-hidden="true"><svg class="cd-map" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">' +
       '<g class="cd-clouds" fill="#fff" opacity=".7"><ellipse cx="70" cy="80" rx="46" ry="15"/><ellipse cx="96" cy="70" rx="24" ry="15"/><ellipse cx="320" cy="330" rx="50" ry="15"/><ellipse cx="292" cy="320" rx="22" ry="14"/><ellipse cx="330" cy="150" rx="30" ry="10"/></g>' +
       '<path id="cdRoute" d="M70 290 C 120 170, 200 330, 250 210 S 330 90, 340 80" fill="none" stroke="#FF7EAC" stroke-width="4" stroke-dasharray="2 12" stroke-linecap="round" opacity=".75"/>' +
       '<path d="M70 300c-8-6-14-12-14-19a7 7 0 0 1 14-3 7 7 0 0 1 14 3c0 7-6 13-14 19z" fill="#FF4F8B" stroke="#3A2B4A" stroke-width="2"/>' +
@@ -6151,14 +6209,53 @@ main { position: relative; }
   // Semua isi berada di dalam kotak .ms-stand (elemen 3D tidak boleh menjulur keluar kotaknya).
   function mascotHTML() {
     const land = '<g fill="#7FD9AE" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"><path d="M50 60c10-12 30-14 40-6 6 5 2 12-6 14-8 2-6 10 2 14 6 3 4 12-6 12-10 0-16 8-24 4-10-5-14-26-6-38z"/><path d="M122 48c14-2 28 6 34 18 3 7-4 9-10 6-7-4-14 0-12 8 2 7-6 10-12 4-6-6-14-6-14-16 0-10 6-18 14-20z"/><path d="M104 126c10-4 24 0 30 10 5 9-2 22-12 26-9 4-16-2-16-10 0-6-8-8-8-14 0-6 0-10 6-12z"/><path d="M40 122c8-3 16 2 16 9s-8 10-14 7-8-13-2-16z"/></g>';
+    // globe hidup: benua & awan berputar pelan di bawah bayangan siang-malam yang diam (terlihat seperti bola
+    // dari atas), cincin putus-putus berputar berlawanan. Efek Kabar Merpi (pesawat promo, cincin Musim Puncak)
+    // hanya tampil sesuai body[data-amb] / body.amb-peak (lihat renderAmbience)
+    const plane = '<g fill="#fff" stroke="#3A2B4A" stroke-width="2" stroke-linejoin="round"><path d="M-12 0c0-2 2-3 4-3h14c4 0 8 1.4 8 3s-4 3-8 3H-8c-2 0-4-1-4-3z"/><path d="M0-3-6-12h4l7 9zM0 3l-6 9h4l7-9z" fill="#FF4F8B"/></g>';
+    const clouds = '<g class="ms-clouds" fill="#fff" opacity=".8"><ellipse cx="70" cy="40" rx="18" ry="6"/><ellipse cx="80" cy="36" rx="9" ry="6"/><ellipse cx="150" cy="120" rx="16" ry="5"/><ellipse cx="60" cy="150" rx="14" ry="5"/><ellipse cx="135" cy="70" rx="10" ry="4"/></g>';
+    const heart = '<svg viewBox="0 0 24 22"><path d="M12 21C5 15.6 1 11.8 1 7.2A5.7 5.7 0 0 1 12 4.6 5.7 5.7 0 0 1 23 7.2c0 4.6-4 8.4-11 13.8z" fill="#FF4F8B" stroke="#3A2B4A" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+    const many = (n, h, cls) => Array.from({ length: n }, (_, k) => '<i class="' + cls + '" style="--k:' + k + '">' + h + '</i>').join('');
     return '<div class="mascot" id="mascot">' +
-      '<div class="ms-mat" aria-hidden="true"><svg viewBox="0 0 200 200"><defs><radialGradient id="msOcean" cx="40%" cy="36%" r="72%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient></defs>' +
+      '<div class="ms-mat" aria-hidden="true"><svg viewBox="0 0 200 200"><defs>' +
+        '<radialGradient id="msOcean" cx="40%" cy="36%" r="72%"><stop offset="0" stop-color="#A9E0FF"/><stop offset=".6" stop-color="#5DB6F5"/><stop offset="1" stop-color="#3A8FDB"/></radialGradient>' +
+        '<radialGradient id="msShade" cx="34%" cy="30%" r="80%"><stop offset=".5" stop-color="#1B1035" stop-opacity="0"/><stop offset="1" stop-color="#1B1035" stop-opacity=".42"/></radialGradient>' +
+        '<clipPath id="msClip"><circle cx="100" cy="100" r="84"/></clipPath></defs>' +
+        '<circle class="ms-peak" cx="100" cy="100" r="97" fill="none" stroke="#FFC93C" stroke-width="5"/>' +
         '<circle cx="100" cy="100" r="94" fill="#fff" stroke="#3A2B4A" stroke-width="3"/>' +
-        '<circle cx="100" cy="100" r="84" fill="url(#msOcean)" stroke="#3A2B4A" stroke-width="2.5"/>' + land +
-        '<circle cx="100" cy="100" r="89" fill="none" stroke="#FF7EAC" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></svg></div>' +
+        '<circle cx="100" cy="100" r="84" fill="url(#msOcean)"/>' +
+        '<g clip-path="url(#msClip)"><g class="ms-land">' + land + '</g>' + clouds + '</g>' +
+        '<circle cx="100" cy="100" r="84" fill="url(#msShade)"/>' +
+        '<ellipse cx="70" cy="62" rx="22" ry="12" fill="#fff" opacity=".28" transform="rotate(-32 70 62)"/>' +
+        '<circle cx="100" cy="100" r="84" fill="none" stroke="#3A2B4A" stroke-width="2.5"/>' +
+        '<g class="ms-ring"><circle cx="100" cy="100" r="89" fill="none" stroke="#FF7EAC" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/></g>' +
+        '<g class="ms-orbit"><path d="M100 22a78 78 0 0 1 60 28" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round" opacity=".85"/><g transform="translate(100 22) scale(1.7)">' + plane + '</g></g>' +
+      '</svg></div>' +
       '<div class="ms-shadow" aria-hidden="true"></div>' +
-      '<div class="ms-stand"><div class="ms-look"><div class="ms-body" title="Merpi">' + ART.merpi('') + '</div></div>' +
+      '<div class="ms-stand">' +
+        // belakang Merpi: matahari (liburan), awan hujan
+        '<div class="ms-fxb" aria-hidden="true">' +
+          '<span class="fx-holiday"><span class="fx-sun"><svg viewBox="0 0 100 100"><g class="fx-rays" stroke="#FFC93C" stroke-width="7" stroke-linecap="round">' + Array.from({ length: 10 }, (_, k) => '<path d="M50 6v10" transform="rotate(' + k * 36 + ' 50 50)"/>').join('') + '</g><circle cx="50" cy="50" r="24" fill="#FFD54A" stroke="#C98D06" stroke-width="3"/><path d="M41 52q9 8 18 0" fill="none" stroke="#7A4A00" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="45" r="2.6" fill="#7A4A00"/><circle cx="58" cy="45" r="2.6" fill="#7A4A00"/></svg></span></span>' +
+          '<span class="fx-rain"><span class="fx-cloud"><svg viewBox="0 0 100 46"><path d="M18 42c-9 0-14-6-14-12 0-7 6-12 13-12 2-9 10-14 19-14 9 0 16 5 19 12 3-2 6-3 9-3 9 0 15 6 15 14h1c7 0 12 4 12 8s-5 7-12 7z" fill="#C9D3E6" stroke="#3A2B4A" stroke-width="3" stroke-linejoin="round"/></svg></span></span>' +
+        '</div>' +
+        '<div class="ms-look"><div class="ms-body" title="Merpi">' + ART.merpi('') + '</div></div>' +
+        // depan Merpi: payung & hujan, label diskon, koin, hati
+        '<div class="ms-fx" aria-hidden="true">' +
+          '<span class="fx-rain"><span class="fx-umb"><svg viewBox="0 0 64 44"><path d="M3 26C5 12 17 4 32 4s27 8 29 22c-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-11 0z" fill="#7B61FF" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 26c1-9 5-18 12-22M44 26c-1-9-5-18-12-22" fill="none" stroke="#3A2B4A" stroke-width="2" opacity=".5"/><path d="M32 4v32c0 5-7 5-7 0" fill="none" stroke="#3A2B4A" stroke-width="2.8" stroke-linecap="round"/></svg></span>' + many(7, '', 'fx-drop') + '</span>' +
+          '<span class="fx-sale">' + many(4, '%', 'fx-tag') + '</span>' +
+          '<span class="fx-bonus">' + many(5, '', 'fx-coin') + '</span>' +
+          '<span class="fx-love">' + many(5, heart, 'fx-heart') + '</span>' +
+        '</div>' +
       '<div class="ms-emote" aria-hidden="true"></div></div></div>';
+  }
+  // suasana Kabar Merpi & Musim Puncak: satu atribut di <body> mengatur warna tengah papan, latar halaman (diam,
+  // hanya berganti warna lembut) dan efek di sekitar Merpi; kosong = kembali ke default
+  function renderAmbience(S) {
+    const b = document.body;
+    const n = S && !S.over ? E.newsInfo(S) : null, peak = !!(S && !S.over && E.peakOn(S));
+    const amb = n ? n.id : peak ? 'peak' : '';
+    if ((b.dataset.amb || '') !== amb) { if (amb) b.dataset.amb = amb; else delete b.dataset.amb; }
+    b.classList.toggle('amb-peak', peak);
   }
   const MS_ACTS = ['hop', 'droop', 'spin', 'fly', 'cheer', 'shake', 'peek'];
   let msActT = null, msEmoT = null, msSleepT = null;
@@ -6390,6 +6487,7 @@ main { position: relative; }
     const lim = S.settings.roundLimit;
     setHTML($('#roundChip'), ic('calendar') + '<span>Ronde <b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span>');
     setHTML($('#newsSlot'), newsPillHTML(S));
+    renderAmbience(S);
     const tl = $('#turnLine');
     setHTML(tl, S.over ? '<span class="tl-txt">' + ic('trophy') + ' Permainan selesai</span>' :
       avatarHTML(cur, 'xs') + '<span class="tl-txt"><span class="tl-w">Giliran </span><b>' + esc(cur.name) + '</b></span>' + '<span class="tl-round">' + ic('calendar') + 'R' + S.round + (lim ? '/' + lim : '') + '</span>' + (cur.island ? '<span class="tag sea">' + ic('island') + '<span class="tl-w">Pulau Rindu </span>' + cur.islandTries + '/' + RULES.islandTurns + '</span>' : ''));
@@ -8531,7 +8629,9 @@ main { position: relative; }
         return;
       }
       if (d.state) {
-        if (!App.S || App.mode !== 'online' || App.net !== this) UI.enterGame('online', seat, d.state);
+        // game baru (Main lagi): seed berbeda & seq mulai dari 0 lagi, jadi bukan "lebih baru" menurut seq → masuk ulang
+        const newGame = App.S && App.S.seed !== d.state.seed;
+        if (!App.S || App.mode !== 'online' || App.net !== this || newGame) UI.enterGame('online', seat, d.state);
         else if (d.state.seq > App.S.seq) UI.commit(d.state);
         else { UI.renderHeader(); UI.renderPlayers(); UI.renderCenter(); }
       }
@@ -9021,7 +9121,7 @@ main { position: relative; }
     $$('.screen').forEach(s => { s.hidden = s.id !== id; });
     const inGame = id === 'scrGame';
     document.body.classList.toggle('in-game', inGame);
-    if (!inGame) UI.renderHeader(null);
+    if (!inGame) { UI.renderHeader(null); delete document.body.dataset.amb; document.body.classList.remove('amb-peak'); }
     window.scrollTo(0, 0);
   }
   function savePrefs() { store.set(KEYS.prefs, App.prefs); }

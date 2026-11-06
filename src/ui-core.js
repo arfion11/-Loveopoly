@@ -1323,15 +1323,10 @@
       '</svg></div>' +
       '<div class="ms-shadow" aria-hidden="true"></div>' +
       '<div class="ms-stand">' +
-        // belakang Merpi: matahari (liburan), awan hujan
-        '<div class="ms-fxb" aria-hidden="true">' +
-          '<span class="fx-holiday"><span class="fx-sun"><svg viewBox="0 0 100 100"><g class="fx-rays" stroke="#FFC93C" stroke-width="7" stroke-linecap="round">' + Array.from({ length: 10 }, (_, k) => '<path d="M50 6v10" transform="rotate(' + k * 36 + ' 50 50)"/>').join('') + '</g><circle cx="50" cy="50" r="24" fill="#FFD54A" stroke="#C98D06" stroke-width="3"/><path d="M41 52q9 8 18 0" fill="none" stroke="#7A4A00" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="45" r="2.6" fill="#7A4A00"/><circle cx="58" cy="45" r="2.6" fill="#7A4A00"/></svg></span></span>' +
-          '<span class="fx-rain"><span class="fx-cloud"><svg viewBox="0 0 100 46"><path d="M18 42c-9 0-14-6-14-12 0-7 6-12 13-12 2-9 10-14 19-14 9 0 16 5 19 12 3-2 6-3 9-3 9 0 15 6 15 14h1c7 0 12 4 12 8s-5 7-12 7z" fill="#C9D3E6" stroke="#3A2B4A" stroke-width="3" stroke-linejoin="round"/></svg></span></span>' +
-        '</div>' +
         '<div class="ms-look"><div class="ms-body" title="Merpi">' + ART.merpi('') + '</div></div>' +
         // depan Merpi: payung & hujan, label diskon, koin, hati
         '<div class="ms-fx" aria-hidden="true">' +
-          '<span class="fx-rain"><span class="fx-umb"><svg viewBox="0 0 64 44"><path d="M3 26C5 12 17 4 32 4s27 8 29 22c-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-11 0z" fill="#7B61FF" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 26c1-9 5-18 12-22M44 26c-1-9-5-18-12-22" fill="none" stroke="#3A2B4A" stroke-width="2" opacity=".5"/><path d="M32 4v32c0 5-7 5-7 0" fill="none" stroke="#3A2B4A" stroke-width="2.8" stroke-linecap="round"/></svg></span>' + many(7, '', 'fx-drop') + '</span>' +
+          '<span class="fx-rain"><span class="fx-umb"><svg viewBox="0 0 64 44"><path d="M3 26C5 12 17 4 32 4s27 8 29 22c-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-12 0-4-3-8-3-11 0z" fill="#7B61FF" stroke="#3A2B4A" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 26c1-9 5-18 12-22M44 26c-1-9-5-18-12-22" fill="none" stroke="#3A2B4A" stroke-width="2" opacity=".5"/><path d="M32 4v32c0 5-7 5-7 0" fill="none" stroke="#3A2B4A" stroke-width="2.8" stroke-linecap="round"/></svg></span>' + many(4, '', 'fx-drop') + '</span>' +
           '<span class="fx-sale">' + many(4, '%', 'fx-tag') + '</span>' +
           '<span class="fx-bonus">' + many(5, '', 'fx-coin') + '</span>' +
           '<span class="fx-love">' + many(5, heart, 'fx-heart') + '</span>' +

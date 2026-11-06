@@ -356,6 +356,14 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await page.waitForTimeout(3500);
   const bg = await page.evaluate(() => ({ three: !!window.THREE, canvas: document.querySelectorAll('.page-sky canvas').length, blobs: document.querySelectorAll('.page-sky i').length, anim: document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length }));
   ok('latar: diam & ringan (tanpa Three.js, kanvas, atau animasi)', !bg.three && !bg.canvas && !bg.blobs && !bg.anim, JSON.stringify(bg));
+  // suasana Kabar Merpi: lapisan latar bergerak (hanya transform/opacity), kembali diam saat kabar selesai
+  await newGame("S.round = 4; S.news = { id: 'love', side: null, from: 4, to: 5 };");
+  await page.waitForTimeout(1600);
+  const sky = await page.evaluate(() => { const an = document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')); const props = new Set(); an.forEach(a => a.effect.getKeyframes().forEach(k => Object.keys(k).forEach(x => { if (!['offset', 'easing', 'composite', 'computedOffset'].includes(x)) props.add(x); }))); return { n: an.length, props: [...props] }; });
+  ok('latar suasana: bergerak ringan (transform/opacity saja)', sky.n >= 2 && sky.props.every(x => x === 'transform' || x === 'opacity'), JSON.stringify(sky));
+  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(1800);   // tunggu pudar-keluar warna (1,4 dtk)
+  const skyOff = await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length);
+  ok('latar suasana: diam lagi di beranda', skyOff === 0, 'anim=' + skyOff);
   await newGame('');
   const gl = await page.evaluate(() => { const g = document.querySelector('#board .center #mascot .ms-body'); const r = g && g.getBoundingClientRect(); return { has: !!g, w: r ? Math.round(r.width) : 0, three: !!window.THREE, globe: !!document.querySelector('.globe-2d') }; });
   ok('tengah papan: Merpi besar tampil (tanpa Three.js)', gl.has && gl.w > 40 && !gl.three && !gl.globe, JSON.stringify(gl));

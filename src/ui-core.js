@@ -1335,12 +1335,27 @@
   }
   // suasana Kabar Merpi & Musim Puncak: satu atribut di <body> mengatur warna tengah papan, latar halaman (diam,
   // hanya berganti warna lembut) dan efek di sekitar Merpi; kosong = kembali ke default
+  // Masuk: data-amb dipasang → lapisan memudar masuk (transisi opacity). Keluar / berganti: data-amb lama DIPERTAHANKAN
+  // (pola tetap bergerak) sambil body.amb-leave memudarkan semuanya, baru setelah AMB_FADE dilepas / diganti.
+  const AMB_FADE = 1200;
+  let ambTimer = 0, ambWant = '';
   function renderAmbience(S) {
     const b = document.body;
     const n = S && !S.over ? E.newsInfo(S) : null, peak = !!(S && !S.over && E.peakOn(S));
-    const amb = n ? n.id : peak ? 'peak' : '';
-    if ((b.dataset.amb || '') !== amb) { if (amb) b.dataset.amb = amb; else delete b.dataset.amb; }
+    const want = n ? n.id : peak ? 'peak' : '';
     b.classList.toggle('amb-peak', peak);
+    const cur = b.dataset.amb || '';
+    ambWant = want;
+    if (cur === want) { if (b.classList.contains('amb-leave')) { clearTimeout(ambTimer); ambTimer = 0; b.classList.remove('amb-leave'); } return; }
+    if (!cur) { b.dataset.amb = want; return; }
+    if (ambTimer) return;                       // sedang memudar keluar; tujuan terbaru dipakai saat selesai
+    b.classList.add('amb-leave');
+    ambTimer = setTimeout(() => {
+      ambTimer = 0;
+      if (ambWant) b.dataset.amb = ambWant; else delete b.dataset.amb;
+      // satu frame dengan opacity 0 dulu supaya suasana baru memudar masuk, bukan muncul tiba-tiba
+      requestAnimationFrame(() => requestAnimationFrame(() => { if (!ambTimer) b.classList.remove('amb-leave'); }));
+    }, reduceMotion() ? 0 : AMB_FADE);
   }
   const MS_ACTS = ['hop', 'droop', 'spin', 'fly', 'cheer', 'shake', 'peek'];
   let msActT = null, msEmoT = null, msSleepT = null;
@@ -2177,7 +2192,7 @@
 
   G.LoveUI = Object.assign(G.LoveUI || {}, {
     App, D, E, AI, SND, ART, TILES, GROUPS, RULES, KEYS, N,
-    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported,
+    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported, renderAmbience,
     applyLayout, sizeBoard, bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax,
     buildBoard, renderBoard, renderTokens, renderPlayers, renderHeader, renderStage, renderCenter: renderStage, renderTicker, renderAll,
     startPick, renderPick, endPick, merpiSay, merpiPoke, pulse, restart, tileEl,

@@ -361,7 +361,14 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await page.waitForTimeout(1600);
   const sky = await page.evaluate(() => { const an = document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')); const props = new Set(); an.forEach(a => a.effect.getKeyframes().forEach(k => Object.keys(k).forEach(x => { if (!['offset', 'easing', 'composite', 'computedOffset'].includes(x)) props.add(x); }))); return { n: an.length, props: [...props] }; });
   ok('latar suasana: bergerak ringan (transform/opacity saja)', sky.n >= 2 && sky.props.every(x => x === 'transform' || x === 'opacity'), JSON.stringify(sky));
-  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(1800);   // tunggu pudar-keluar warna (1,4 dtk)
+  // kabar selesai: suasana memudar (tidak hilang seketika), lalu dilepas
+  await page.evaluate(() => { const S = window.LoveUI.App.S; S.news = null; window.LoveUI.renderAmbience(S); });
+  await page.waitForTimeout(500);
+  const mid = await page.evaluate(() => ({ amb: document.body.dataset.amb || '', leave: document.body.classList.contains('amb-leave'), op: +getComputedStyle(document.querySelector('.sky-a')).opacity }));
+  await page.waitForTimeout(1300);
+  const end = await page.evaluate(() => ({ amb: document.body.dataset.amb || '', op: +getComputedStyle(document.querySelector('.sky-a')).opacity }));
+  ok('latar suasana: hilang memudar halus, bukan seketika', mid.amb === 'love' && mid.leave && mid.op > 0.05 && mid.op < 0.95 && end.amb === '' && end.op === 0, JSON.stringify([mid, end]));
+  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(1800);   // tunggu pudar-keluar (1,2 dtk)
   const skyOff = await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length);
   ok('latar suasana: diam lagi di beranda', skyOff === 0, 'anim=' + skyOff);
   await newGame('');

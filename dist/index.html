@@ -2172,16 +2172,18 @@ body[data-amb="love"] { --amb: var(--brand); }
 body[data-amb="peak"] { --amb: #FF8A3D; }
 /* warna tengah papan & latar halaman: diam, hanya memudar masuk/keluar */
 .ctr-amb { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; background: radial-gradient(110% 85% at 50% 0%, color-mix(in srgb, var(--amb, transparent) 36%, transparent), transparent 72%); }
-body[data-amb] .ctr-amb { opacity: 1; }
+body[data-amb]:not(.amb-leave) .ctr-amb { opacity: 1; }
 body[data-amb="rain"] .ctr-amb { background: repeating-linear-gradient(105deg, transparent 0 16px, color-mix(in srgb, #6F86B8 20%, transparent) 16px 17.5px), radial-gradient(110% 85% at 50% 0%, color-mix(in srgb, #6F86B8 40%, transparent), transparent 72%); }
-.page-sky::after { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity 1.4s ease; }
-body[data-amb] .page-sky::after { opacity: 1; }
+.page-sky::after { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; }
+body[data-amb]:not(.amb-leave) .page-sky::after { opacity: 1; }
 /* efek di sekitar Merpi: tetap di dalam kotak .ms-stand (elemen 3D) */
-.ms-fx { position: absolute; inset: 0; pointer-events: none; }
-.ms-fx > span, .ms-orbit, .ms-peak { display: none; }
+.ms-fx { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.2s ease; }
+body[data-amb]:not(.amb-leave) .ms-fx { opacity: 1; }
+.ms-fx > span { display: none; }
+.ms-orbit, .ms-peak { opacity: 0; transition: opacity 1.2s ease; }
 body[data-amb="rain"] .fx-rain, body[data-amb="sale"] .fx-sale, body[data-amb="bonus"] .fx-bonus, body[data-amb="love"] .fx-love { display: block; position: absolute; inset: 0; }
-body[data-amb="promo"] .ms-orbit, body.amb-peak .ms-peak { display: inline; }
-.mascot.sleep .ms-fx { opacity: .5; }
+body[data-amb="promo"]:not(.amb-leave) .ms-orbit, body.amb-peak:not(.amb-leave) .ms-peak { opacity: 1; }
+body[data-amb]:not(.amb-leave) .mascot.sleep .ms-fx { opacity: .5; }
 /* hujan: awan, rintik, payung Merpi */
 .fx-umb svg, .fx-heart svg { display: block; width: 100%; height: auto; }
 .fx-umb { position: absolute; left: 23%; top: 20%; width: 54%; transform-origin: 50% 90%; animation: fxSway 2.6s ease-in-out infinite; }
@@ -2198,11 +2200,11 @@ body[data-amb="promo"] .ms-orbit, body.amb-peak .ms-peak { display: inline; }
 .fx-heart { position: absolute; bottom: 22%; left: calc(4% + var(--k) * 21%); width: 5cqmin; animation: fxRise 3.6s ease-in infinite; animation-delay: calc(var(--k) * -.72s); }
 @keyframes fxRise { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; } 60% { transform: translateY(-6cqmin) translateX(1.2cqmin) scale(1); } 100% { transform: translateY(-11cqmin) translateX(-1cqmin) scale(.9); opacity: 0; } }
 /* promo maskapai: pesawat mengitari globe */
-.ms-orbit { animation: msGlobe 7s linear infinite; }
+body[data-amb="promo"] .ms-orbit { animation: msGlobe 7s linear infinite; }
 /* musim puncak: cincin emas berdenyut */
-.ms-peak { animation: fxPulse 1.6s ease-in-out infinite; }
-@keyframes fxPulse { 50% { opacity: .35; } }
-@media (prefers-reduced-motion: reduce) { .ctr-amb, .page-sky::after { transition: none; } }
+body.amb-peak .ms-peak { animation: fxPulse 1.6s ease-in-out infinite; }
+@keyframes fxPulse { 50% { stroke-opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .ctr-amb, .page-sky::after, .ms-fx, .ms-orbit, .ms-peak { transition: none; } }
 
 /* ---------- suasana seluruh ruangan (layar game) ----------
    ::after = semburat warna (diam). .sky-a / .sky-b = dua lapisan pola SVG yang hanya bergerak saat ada Kabar Merpi
@@ -2210,39 +2212,40 @@ body[data-amb="promo"] .ms-orbit, body.amb-peak .ms-peak { display: inline; }
    Lapisan dibuat lebih besar satu ubin ke arah gerak, lalu digeser tepat satu ubin → berulang mulus. */
 body[data-amb] .page-sky::after { background: linear-gradient(180deg, color-mix(in srgb, var(--amb) 30%, transparent), color-mix(in srgb, var(--amb) 12%, transparent) 70%); }
 body[data-amb="peak"] .page-sky::after { background: radial-gradient(120% 70% at 50% 110%, color-mix(in srgb, #FF8A3D 40%, transparent), transparent 70%), linear-gradient(180deg, color-mix(in srgb, #FFC93C 22%, transparent), transparent 60%); }
-.sky-fx { position: absolute; inset: 0; display: none; background-repeat: repeat; opacity: 0; transition: opacity 1.4s ease; will-change: transform; }
-body[data-amb] .sky-fx { display: block; animation: skyIn 1.4s ease forwards; }
-@keyframes skyIn { to { opacity: 1; } }
+.sky-fx { position: absolute; inset: 0; background-repeat: repeat; opacity: 0; transition: opacity 1.2s ease; }
+body[data-amb] .sky-fx { will-change: transform, opacity; }
+body[data-amb]:not(.amb-leave) .sky-fx { opacity: 1; }
 /* hujan: rintik turun cepat, awan bergeser pelan */
-body[data-amb="rain"] .sky-a { inset: -90px 0 0 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2290%22 height=%2290%22%3E%3Cg stroke=%22%237FA8E0%22 stroke-width=%222.4%22 stroke-linecap=%22round%22 opacity=%22.55%22%3E%3Cpath d=%22M14 8l-5 14%22/%3E%3Cpath d=%22M58 30l-5 14%22/%3E%3Cpath d=%22M34 60l-5 14%22/%3E%3Cpath d=%22M80 66l-5 14%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 90px 90px; animation: skyIn 1.4s ease forwards, skyRain .75s linear infinite; }
+body[data-amb="rain"] .sky-a { inset: -90px 0 0 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2290%22 height=%2290%22%3E%3Cg stroke=%22%237FA8E0%22 stroke-width=%222.4%22 stroke-linecap=%22round%22 opacity=%22.55%22%3E%3Cpath d=%22M14 8l-5 14%22/%3E%3Cpath d=%22M58 30l-5 14%22/%3E%3Cpath d=%22M34 60l-5 14%22/%3E%3Cpath d=%22M80 66l-5 14%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 90px 90px; animation: skyRain .75s linear infinite; }
 @keyframes skyRain { to { transform: translate3d(0, 90px, 0); } }
-body[data-amb="rain"] .sky-b { inset: -20px -60px auto -60px; height: 220px; background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22520%22 height=%22160%22%3E%3Cg fill=%22%23C9D3E6%22 opacity=%22.55%22%3E%3Cpath d=%22M60 140c-30 0-50-18-50-40s20-40 46-40c6-30 32-48 62-48 30 0 54 16 64 40 10-6 20-8 30-8 30 0 50 20 50 46h4c24 0 40 14 40 28s-16 22-40 22z%22/%3E%3Cpath d=%22M380 100c-20 0-34-12-34-26s14-26 30-26c4-20 22-32 42-32 20 0 36 10 42 26 7-4 14-6 20-6 20 0 34 14 34 30v34z%22/%3E%3C/g%3E%3C/svg%3E") 50% 0 / min(900px, 140vw) auto no-repeat; animation: skyIn 1.4s ease forwards, skyDrift 14s ease-in-out infinite alternate; }
+body[data-amb="rain"] .sky-b { inset: -20px -60px auto -60px; height: 220px; background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22520%22 height=%22160%22%3E%3Cg fill=%22%23C9D3E6%22 opacity=%22.55%22%3E%3Cpath d=%22M60 140c-30 0-50-18-50-40s20-40 46-40c6-30 32-48 62-48 30 0 54 16 64 40 10-6 20-8 30-8 30 0 50 20 50 46h4c24 0 40 14 40 28s-16 22-40 22z%22/%3E%3Cpath d=%22M380 100c-20 0-34-12-34-26s14-26 30-26c4-20 22-32 42-32 20 0 36 10 42 26 7-4 14-6 20-6 20 0 34 14 34 30v34z%22/%3E%3C/g%3E%3C/svg%3E") 50% 0 / min(900px, 140vw) auto no-repeat; animation: skyDrift 14s ease-in-out infinite alternate; }
 @keyframes skyDrift { from { transform: translate3d(-36px, 0, 0); } to { transform: translate3d(36px, 0, 0); } }
 /* liburan: matahari di pojok, sinarnya berputar pelan */
-body[data-amb="holiday"] .sky-a { inset: auto; right: -140px; top: -140px; width: 520px; height: 520px; background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22420%22 height=%22420%22 viewBox=%220 0 420 420%22%3E%3Cg stroke=%22%23FFC93C%22 stroke-width=%2210%22 stroke-linecap=%22round%22 opacity=%22.45%22%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(0 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(30 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(60 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(90 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(120 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(150 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(180 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(210 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(240 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(270 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(300 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(330 210 210)%22/%3E%3C/g%3E%3Ccircle cx=%22210%22 cy=%22210%22 r=%2296%22 fill=%22%23FFD54A%22 opacity=%22.55%22/%3E%3C/svg%3E") center / contain no-repeat; animation: skyIn 1.4s ease forwards, skySpin 40s linear infinite; }
+body[data-amb="holiday"] .sky-a { inset: auto; right: -140px; top: -140px; width: 520px; height: 520px; background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22420%22 height=%22420%22 viewBox=%220 0 420 420%22%3E%3Cg stroke=%22%23FFC93C%22 stroke-width=%2210%22 stroke-linecap=%22round%22 opacity=%22.45%22%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(0 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(30 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(60 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(90 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(120 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(150 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(180 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(210 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(240 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(270 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(300 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(330 210 210)%22/%3E%3C/g%3E%3Ccircle cx=%22210%22 cy=%22210%22 r=%2296%22 fill=%22%23FFD54A%22 opacity=%22.55%22/%3E%3C/svg%3E") center / contain no-repeat; animation: skySpin 40s linear infinite; }
 @keyframes skySpin { to { transform: rotate(360deg); } }
 body[data-amb="holiday"] .sky-b { display: none; }
 /* diskon: label % naik pelan */
-body[data-amb="sale"] .sky-a { inset: 0 0 -110px 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22110%22 height=%22110%22%3E%3Cg fill=%22%2316C2A3%22 opacity=%22.32%22 font-family=%22sans-serif%22 font-weight=%22700%22%3E%3Ctext x=%2212%22 y=%2234%22 font-size=%2222%22%3E%25%3C/text%3E%3Ctext x=%2266%22 y=%2288%22 font-size=%2216%22%3E%25%3C/text%3E%3C/g%3E%3C/svg%3E"); background-size: 110px 110px; animation: skyIn 1.4s ease forwards, skyUp110 9s linear infinite; }
+body[data-amb="sale"] .sky-a { inset: 0 0 -110px 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22110%22 height=%22110%22%3E%3Cg fill=%22%2316C2A3%22 opacity=%22.32%22 font-family=%22sans-serif%22 font-weight=%22700%22%3E%3Ctext x=%2212%22 y=%2234%22 font-size=%2222%22%3E%25%3C/text%3E%3Ctext x=%2266%22 y=%2288%22 font-size=%2216%22%3E%25%3C/text%3E%3C/g%3E%3C/svg%3E"); background-size: 110px 110px; animation: skyUp110 9s linear infinite; }
 @keyframes skyUp110 { to { transform: translate3d(0, -110px, 0); } }
 /* promo maskapai: pesawat terbang melintas serong ke kanan atas */
-body[data-amb="promo"] .sky-a { inset: 0 0 -120px -160px; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22120%22%3E%3Cpath d=%22M10 100C50 60 100 40 150 30%22 fill=%22none%22 stroke=%22%235BB8FF%22 stroke-width=%222.5%22 stroke-dasharray=%222 9%22 stroke-linecap=%22round%22 opacity=%22.6%22/%3E%3Cg transform=%22translate(120 34) rotate(-18)%22 opacity=%22.55%22%3E%3Cpath d=%22M-12 0c0-2 2-3 4-3h14c4 0 8 1.4 8 3s-4 3-8 3H-8c-2 0-4-1-4-3z%22 fill=%22%23fff%22 stroke=%22%233A2B4A%22 stroke-width=%221.6%22/%3E%3Cpath d=%22M0-3-6-12h4l7 9zM0 3l-6 9h4l7-9z%22 fill=%22%23FF4F8B%22 stroke=%22%233A2B4A%22 stroke-width=%221.6%22 stroke-linejoin=%22round%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 160px 120px; animation: skyIn 1.4s ease forwards, skyFly 7s linear infinite; }
+body[data-amb="promo"] .sky-a { inset: 0 0 -120px -160px; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22120%22%3E%3Cpath d=%22M10 100C50 60 100 40 150 30%22 fill=%22none%22 stroke=%22%235BB8FF%22 stroke-width=%222.5%22 stroke-dasharray=%222 9%22 stroke-linecap=%22round%22 opacity=%22.6%22/%3E%3Cg transform=%22translate(120 34) rotate(-18)%22 opacity=%22.55%22%3E%3Cpath d=%22M-12 0c0-2 2-3 4-3h14c4 0 8 1.4 8 3s-4 3-8 3H-8c-2 0-4-1-4-3z%22 fill=%22%23fff%22 stroke=%22%233A2B4A%22 stroke-width=%221.6%22/%3E%3Cpath d=%22M0-3-6-12h4l7 9zM0 3l-6 9h4l7-9z%22 fill=%22%23FF4F8B%22 stroke=%22%233A2B4A%22 stroke-width=%221.6%22 stroke-linejoin=%22round%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 160px 120px; animation: skyFly 7s linear infinite; }
 @keyframes skyFly { to { transform: translate3d(160px, -120px, 0); } }
 /* bonus: koin berjatuhan pelan */
-body[data-amb="bonus"] .sky-a { inset: -120px 0 0 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg opacity=%22.45%22%3E%3Ccircle cx=%2226%22 cy=%2230%22 r=%229%22 fill=%22%23FFD54A%22 stroke=%22%23C98D06%22 stroke-width=%222%22/%3E%3Ccircle cx=%2288%22 cy=%2286%22 r=%227%22 fill=%22%23FFD54A%22 stroke=%22%23C98D06%22 stroke-width=%222%22/%3E%3Cpath d=%22M60 52l2 5 5 2-5 2-2 5-2-5-5-2 5-2z%22 fill=%22%23FFC93C%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 120px 120px; animation: skyIn 1.4s ease forwards, skyDown120 6s linear infinite; }
+body[data-amb="bonus"] .sky-a { inset: -120px 0 0 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg opacity=%22.45%22%3E%3Ccircle cx=%2226%22 cy=%2230%22 r=%229%22 fill=%22%23FFD54A%22 stroke=%22%23C98D06%22 stroke-width=%222%22/%3E%3Ccircle cx=%2288%22 cy=%2286%22 r=%227%22 fill=%22%23FFD54A%22 stroke=%22%23C98D06%22 stroke-width=%222%22/%3E%3Cpath d=%22M60 52l2 5 5 2-5 2-2 5-2-5-5-2 5-2z%22 fill=%22%23FFC93C%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 120px 120px; animation: skyDown120 6s linear infinite; }
 @keyframes skyDown120 { to { transform: translate3d(0, 120px, 0); } }
 /* kasih sayang: dua lapis hati melayang naik (yang jauh lebih kecil & lambat = terasa berlapis) */
-body[data-amb="love"] .sky-a { inset: 0 0 -120px 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 120px 120px; animation: skyIn 1.4s ease forwards, skyUp120 8s linear infinite; }
-body[data-amb="love"] .sky-b { inset: 0 0 -80px 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 80px 80px; background-position: 40px 30px; animation: skyIn 1.4s ease forwards, skyUp80 11s linear infinite; }
+body[data-amb="love"] .sky-a { inset: 0 0 -120px 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 120px 120px; animation: skyUp120 8s linear infinite; }
+body[data-amb="love"] .sky-b { inset: 0 0 -80px 0; background-image: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E"); background-size: 80px 80px; background-position: 40px 30px; animation: skyUp80 11s linear infinite; }
 body[data-amb="love"] .sky-b { filter: blur(.5px); }
 @keyframes skyUp120 { to { transform: translate3d(0, -120px, 0); } }
 @keyframes skyUp80 { to { transform: translate3d(0, -80px, 0); } }
 /* musim puncak: cahaya senja berdenyut */
-body[data-amb="peak"] .sky-a { background: radial-gradient(90% 55% at 50% 105%, color-mix(in srgb, #FF8A3D 45%, transparent), transparent 70%); animation: skyIn 1.4s ease forwards, skyGlow 3.2s ease-in-out 1.4s infinite alternate; }
-@keyframes skyGlow { from { opacity: 1; } to { opacity: .35; } }
+body[data-amb="peak"] .sky-a { background: radial-gradient(90% 55% at 50% 105%, color-mix(in srgb, #FF8A3D 45%, transparent), transparent 70%); animation: skyGlow 3.2s ease-in-out infinite alternate; }
+@keyframes skyGlow { from { filter: brightness(1); } to { filter: brightness(.55) saturate(.8); } }
 body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonus"] .sky-b, body[data-amb="peak"] .sky-b { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  body[data-amb] .sky-fx { animation: none !important; opacity: 1; transform: none; }
+  body[data-amb] .sky-fx { animation: none !important; transform: none; }
+  .sky-fx { transition: none; }
   .page-sky::after { transition: none; }
 }
 
@@ -6283,12 +6286,27 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
   }
   // suasana Kabar Merpi & Musim Puncak: satu atribut di <body> mengatur warna tengah papan, latar halaman (diam,
   // hanya berganti warna lembut) dan efek di sekitar Merpi; kosong = kembali ke default
+  // Masuk: data-amb dipasang → lapisan memudar masuk (transisi opacity). Keluar / berganti: data-amb lama DIPERTAHANKAN
+  // (pola tetap bergerak) sambil body.amb-leave memudarkan semuanya, baru setelah AMB_FADE dilepas / diganti.
+  const AMB_FADE = 1200;
+  let ambTimer = 0, ambWant = '';
   function renderAmbience(S) {
     const b = document.body;
     const n = S && !S.over ? E.newsInfo(S) : null, peak = !!(S && !S.over && E.peakOn(S));
-    const amb = n ? n.id : peak ? 'peak' : '';
-    if ((b.dataset.amb || '') !== amb) { if (amb) b.dataset.amb = amb; else delete b.dataset.amb; }
+    const want = n ? n.id : peak ? 'peak' : '';
     b.classList.toggle('amb-peak', peak);
+    const cur = b.dataset.amb || '';
+    ambWant = want;
+    if (cur === want) { if (b.classList.contains('amb-leave')) { clearTimeout(ambTimer); ambTimer = 0; b.classList.remove('amb-leave'); } return; }
+    if (!cur) { b.dataset.amb = want; return; }
+    if (ambTimer) return;                       // sedang memudar keluar; tujuan terbaru dipakai saat selesai
+    b.classList.add('amb-leave');
+    ambTimer = setTimeout(() => {
+      ambTimer = 0;
+      if (ambWant) b.dataset.amb = ambWant; else delete b.dataset.amb;
+      // satu frame dengan opacity 0 dulu supaya suasana baru memudar masuk, bukan muncul tiba-tiba
+      requestAnimationFrame(() => requestAnimationFrame(() => { if (!ambTimer) b.classList.remove('amb-leave'); }));
+    }, reduceMotion() ? 0 : AMB_FADE);
   }
   const MS_ACTS = ['hop', 'droop', 'spin', 'fly', 'cheer', 'shake', 'peek'];
   let msActT = null, msEmoT = null, msSleepT = null;
@@ -7125,7 +7143,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
 
   G.LoveUI = Object.assign(G.LoveUI || {}, {
     App, D, E, AI, SND, ART, TILES, GROUPS, RULES, KEYS, N,
-    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported,
+    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported, renderAmbience,
     applyLayout, sizeBoard, bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax,
     buildBoard, renderBoard, renderTokens, renderPlayers, renderHeader, renderStage, renderCenter: renderStage, renderTicker, renderAll,
     startPick, renderPick, endPick, merpiSay, merpiPoke, pulse, restart, tileEl,
@@ -9154,7 +9172,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     $$('.screen').forEach(s => { s.hidden = s.id !== id; });
     const inGame = id === 'scrGame';
     document.body.classList.toggle('in-game', inGame);
-    if (!inGame) { UI.renderHeader(null); delete document.body.dataset.amb; document.body.classList.remove('amb-peak'); }
+    if (!inGame) { UI.renderHeader(null); if (UI.renderAmbience) UI.renderAmbience(null); }
     window.scrollTo(0, 0);
   }
   function savePrefs() { store.set(KEYS.prefs, App.prefs); }

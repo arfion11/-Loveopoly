@@ -710,6 +710,9 @@
       el.type = 'button';
       el.className = 'tile tt-' + t.type + ' s-' + pos.side + (pos.side === 'corner' ? ' corner' : '');
       el.style.gridArea = pos.row + ' / ' + pos.col;
+      // urutan gambar = kedalaman (baris depan di atas). Chrome mengurutkan 3D sendiri, Safari memakai urutan
+      // lukis: tanpa ini kartu kolom kiri yang lebih jauh (indeks lebih besar) menimpa label harga kartu di depannya
+      el.style.setProperty('--row', pos.row);
       el.style.setProperty('--d', (t.i * 22) + 'ms');
       if (t.group) { el.style.setProperty('--g', GROUPS[t.group].color); el.style.setProperty('--gi', GROUPS[t.group].ink); }
       el.dataset.i = t.i;
@@ -1036,10 +1039,19 @@
     const b = tileBox(tile);
     boardFx('ripple', b.x, b.y, '', { '--c': color || 'var(--brand)', '--r': Math.round(Math.max(b.w, b.h) * 1.3) + 'px' }, 900);
   }
+  // titik kaki & tinggi kartu berdiri sebuah petak (3D), dalam koordinat papan
+  function popFoot(tile) {
+    const el = tileEl(tile), pop = el && el.querySelector('.t-pop');
+    if (!pop || !pop.offsetHeight) return null;
+    return { x: el.offsetLeft + pop.offsetLeft, y: el.offsetTop + pop.offsetTop + pop.offsetHeight, h: pop.offsetHeight };
+  }
   function flagDrop(tile, color) {
     const b = tileBox(tile);
     const sz = Math.round(Math.max(34, Math.min(84, Math.min(b.w, b.h) * 0.95)));
-    boardFx('flag-drop', b.x, b.y, ART.art('flag'), { '--oc': color, '--sz': sz + 'px' }, 1400);
+    // 3D: bendera ditancapkan di atas kartu kota (bukan di titik pion yang menutupinya)
+    const f = is3d() ? popFoot(tile) : null;
+    if (f) boardFx('flag-drop lift', f.x, f.y, ART.art('flag'), { '--oc': color, '--sz': Math.round(sz * 0.8) + 'px', '--lift': Math.round(f.h * 0.92) + 'px' }, 1400);
+    else boardFx('flag-drop', b.x, b.y, ART.art('flag'), { '--oc': color, '--sz': sz + 'px' }, 1400);
     burst(tile, ['#FFD93D', color, '#FFFFFF'], 10);
   }
   function stampDrop(tile, color, text) {
@@ -1088,7 +1100,9 @@
     const now = Date.now();
     const st = floatStack[pi] && now - floatStack[pi].t < 900 ? floatStack[pi] : { n: -1 };
     st.n++; st.t = now; floatStack[pi] = st;
-    boardFx('bfloat ' + cls, pt.x, pt.y - tokSize * 0.9 - st.n * Math.max(16, tokSize * 0.62), html, null, 1700);
+    // 3D: diangkat ke atas kepala pion (arah atas layar), bukan digeser ke belakang ke deretan kartu
+    if (is3d()) boardFx('bfloat lift ' + cls, pt.x, pt.y, html, { '--lift': Math.round(tokSize * 1.75 + st.n * Math.max(18, tokSize * 0.7)) + 'px' }, 1700);
+    else boardFx('bfloat ' + cls, pt.x, pt.y - tokSize * 0.9 - st.n * Math.max(16, tokSize * 0.62), html, null, 1700);
   }
   function flyCoins(from, to, n) {
     if (reduceMotion() || !from || !to) return 0;

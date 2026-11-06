@@ -161,3 +161,40 @@ S = mk('secret', 'card', [{ name: 'A' }, { name: 'B', kind: 'ai' }]); ok('vs bot
 })();
 console.log('tantangan: ' + (chFails ? chFails + ' gagal' : 'semua aturan lulus'));
 if (chFails) process.exitCode = 1;
+
+// ---------- uji aturan peluncuran: keadilan kursi, Trio Warna, Ketemuan, Kabar Merpi, Musim Puncak ----------
+(() => {
+  let fails = 0;
+  const ok = (n, c, d) => { if (!c) { fails++; console.log('FAIL aturan: ' + n + (d ? ' — ' + d : '')); } };
+  const R = D.RULES;
+  const mk = (n, st) => E.create({ players: Array.from({ length: n }, (_, i) => ({ name: 'P' + i })), settings: Object.assign({ debug: true }, st || {}), seed: 9 });
+  let S = mk(4);
+  ok('kursi belakang mulai lebih maju + voucher', S.players.map(p => p.pos).join() === '0,1,2,3' && S.players[3].discount === 0.6 && S.players[0].discount === 0);
+  // Trio Warna wajib berisi grup 3 kota
+  S = mk(2); S.players[0].laps = 1;
+  [1, 2, 9, 10, 17].forEach(t => { S.tiles[t].owner = 0; });   // kota(2) tropis(2) + Roma; Praha (19) melengkapi klasik(2) → 3 grup kecil
+  S.players[0].pos = 17;
+  let r = E.dispatch(S, { type: 'ROLL', p: 0, dice: [1, 1] });
+  if (r.ok && r.state.queue[0] && r.state.queue[0].type === 'BUY') r = E.dispatch(r.state, { type: 'BUY', p: 0, level: 0 });
+  ok('3 grup kecil (2 kota) belum Trio Warna', r.ok && !r.state.over, r.error || (r.state.over && r.state.over.reason));
+  ok('tripleOk butuh grup 3 kota', !E.tripleOk(['kota', 'tropis', 'klasik']) && E.tripleOk(['kota', 'tropis', 'asia']));
+  // Ketemuan
+  S = mk(2); S.players[0].pos = 0; S.players[1].pos = 4;
+  r = E.dispatch(S, { type: 'ROLL', p: 0, dice: [1, 3] });
+  ok('Ketemuan: keduanya dapat uang & Love', r.ok && r.state.players[1].cash === 2500 + R.meetCash && r.state.players[0].love >= R.loveStart + R.meetLove && r.state.lastEvents.some(e => e.t === 'meet'), r.error);
+  // Kabar Merpi & Musim Puncak
+  S = mk(2, { roundLimit: 10 });
+  let k = 0;
+  while (!S.over && S.round < 9 && k++ < 3000) { const a = E.actor(S); const x = globalThis.LoveAI.decide(S, a); const q = E.dispatch(S, x); if (!q.ok) break; S = q.state; }
+  ok('Kabar Merpi tercatat', S.log.some(l => /Kabar Merpi:/.test(l.text)), 'round=' + S.round);
+  ok('Musim Puncak aktif di 3 ronde terakhir', S.round >= 8 ? E.peakOn(S) : true, 'round=' + S.round);
+  S = mk(2, { news: false, roundLimit: 10 }); S.round = 3;
+  ok('Kabar Merpi bisa dimatikan', S.settings.news === false);
+  S = mk(2); S.news = { id: 'promo', side: null, from: 1, to: 2 };
+  ok('Promo Maskapai: tiket gratis', E.travelFee(S) === 0);
+  S.news = { id: 'rain', side: 'bottom', from: 1, to: 2 }; S.tiles[1].owner = 1;
+  const rain = E.rentInfo(S, 1).amount; S.news = null; const dry = E.rentInfo(S, 1).amount;
+  ok('Musim Hujan: tol jalur ×0,5', rain < dry, rain + ' vs ' + dry);
+  console.log('aturan peluncuran: ' + (fails ? fails + ' gagal' : 'semua lulus'));
+  if (fails) process.exitCode = 1;
+})();

@@ -241,7 +241,7 @@
         const nDisc = p.cards.filter(c => E.CARD[c].power === 'discount').length;
         const can = p.cash >= it.amount;
         let rows = '';
-        if (ri) ri.parts.forEach(x => { rows += '<div class="kv"><span>' + esc(x.label) + '</span><b>' + (x.v != null ? fmt(x.v) : x.m ? '×' + x.m : '+' + x.pct + '%') + '</b></div>'; });
+        if (ri) ri.parts.forEach(x => { rows += '<div class="kv"><span>' + esc(x.label) + '</span><b>' + (x.v != null ? fmt(x.v) : x.m ? '×' + String(x.m).replace('.', ',') : '+' + x.pct + '%') + '</b></div>'; });
         if (it.discountUsed) rows += '<div class="kv good"><span>Kupon Tol 50%</span><b>÷2</b></div>';
         let body = cityHero(S, it.tile) +
           '<div class="toll-big" style="--oc:' + o.color + '"><span>Tol untuk ' + esc(o.name) + '</span><b>' + coin + fmt(it.amount) + '</b></div>' +
@@ -812,19 +812,19 @@
     const p = it.p, P = S.players[p];
     const def = {
       key, sel: [], art: 'plane', title: 'World Tour', skipLabel: 'Lempar dadu biasa',
-      can: i => i !== E.TRAVEL && i !== E.ISLAND && P.cash >= RULES.travelFee,
+      can: i => i !== E.TRAVEL && i !== E.ISLAND && P.cash >= E.travelFee(App.S),
       tap: i => { def.sel = [i]; },
       ready: () => def.sel.length === 1,
       hint: () => {
-        if (P.cash < RULES.travelFee) return 'Uangmu kurang untuk tiket ' + RULES.travelFee + '. Lempar dadu biasa.';
-        if (!def.sel.length) return 'Ketuk petak tujuan mana pun. Tiket ' + RULES.travelFee + '. Lewat START tetap dapat gaji.';
+        if (P.cash < E.travelFee(App.S)) return 'Uangmu kurang untuk tiket ' + E.travelFee(App.S) + '. Lempar dadu biasa.';
+        if (!def.sel.length) return 'Ketuk petak tujuan mana pun. ' + (E.travelFee(App.S) ? 'Tiket ' + E.travelFee(App.S) : 'Tiket gratis (Promo Maskapai)') + '. Lewat START tetap dapat gaji.';
         const t = TILES[def.sel[0]], st = S.tiles[def.sel[0]];
         let s = 'Terbang ke ' + t.name + '. ';
         if (t.price) s += st.owner < 0 ? 'Bisa dibeli (' + fmt(E.buyCost(S, p, t.i, 0)) + ').' : st.owner === p ? 'Kotamu: bisa dibangun.' : 'Milik ' + pname(st.owner) + ': tol ' + fmt(E.rentFor(S, t.i, p)) + '!';
         else s += t.desc || '';
         return s;
       },
-      okLabel: () => def.sel.length ? 'Terbang · ' + RULES.travelFee : 'Pilih tujuan',
+      okLabel: () => def.sel.length ? 'Terbang · ' + (E.travelFee(App.S) || 'gratis') : 'Pilih tujuan',
       confirm: () => act({ type: 'TOUR_GO', p, tile: def.sel[0] }),
       skip: () => act({ type: 'TOUR_SKIP', p })
     };
@@ -880,7 +880,7 @@
         } else {
           body += '<div class="special-hero"><span class="hero-art">' + ART.art(t.art) + '</span><p class="lead">' + esc(t.desc || '') + '</p></div>';
           if (t.type === 'start') body += '<div class="kv"><span>Gaji dasar</span><b>' + RULES.salary + '</b></div><div class="tiny muted">+10 sampai +40 sesuai Love Meter.</div>';
-          if (t.type === 'travel') body += '<div class="kv"><span>Tiket terbang</span><b>' + RULES.travelFee + '</b></div>';
+          if (t.type === 'travel') body += '<div class="kv"><span>Tiket terbang</span><b>' + (E.travelFee(S) || 'Gratis') + '</b></div>';
           if (t.type === 'island') body += '<div class="kv"><span>Biaya perahu</span><b>' + RULES.islandFee + '</b></div>';
           if (t.type === 'fest' && S.festival.tile >= 0) body += '<div class="note">' + ic('party') + ' Festival sedang di ' + esc(TILES[S.festival.tile].name) + ' (tol ×' + S.festival.mult + ').</div>';
         }

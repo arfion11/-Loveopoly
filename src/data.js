@@ -30,6 +30,11 @@
     aimRanges: { low: [2, 5], mid: [6, 8], high: [9, 12] },
     tripleGroups: 3,
     maxRedraws: 2,
+    seatDiscount: 0.2, seatDiscountMax: 0.6,  // voucher pembuka kursi belakang (diskon beli/bangun pertama)
+    peakRounds: 3, peakMult: 1.5,            // Musim Puncak: N ronde terakhir, tol ×1,5
+    newsEvery: 3, newsLasts: 2,              // Kabar Merpi tiap 3 ronde, berlaku 2 ronde
+    newsRain: 0.5, newsHoliday: 1.5, newsSale: 0.2, newsBonus: 100,
+    meetLove: 3, meetCash: 40,               // Ketemuan! (berhenti di petak yang sama dengan pemain lain)
     maxRounds: 300
   };
 
@@ -331,7 +336,7 @@
   const ACHIEVEMENTS = [
     { id: 'landmark',  name: 'Landmark Pertama',     icon: 'crown',   text: 'Membangun landmark' },
     { id: 'tycoon',    name: 'Juragan Kota',         icon: 'house',   text: 'Memiliki 8 kota sekaligus' },
-    { id: 'monopoly2', name: 'Monopoli Hati',        icon: 'trophy',  text: 'Menguasai 2 grup warna penuh' },
+    { id: 'monopoly2', name: 'Dua Warna Penuh',        icon: 'trophy',  text: 'Menguasai 2 grup warna penuh' },
     { id: 'festival',  name: 'Tuan Rumah Festival',  icon: 'party',   text: 'Mengadakan Festival Cinta' },
     { id: 'globe',     name: 'Keliling Dunia',       icon: 'plane',   text: 'Terbang dengan World Tour' },
     { id: 'takeover',  name: 'Pencuri Hati',         icon: 'swap',    text: 'Mengambil alih kota lawan' },

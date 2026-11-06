@@ -36,6 +36,16 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 - Mengangkat badge "ke atas layar" tanpa `transform` (supaya animasi tidak bentrok): `translate: x calc(L * -1 * cos(var(--tilt))) calc(L * sin(var(--tilt)))`.
 - Efek datar di bidang papan (riak, debu) diberi `translate: 0 0 3px` agar tidak tertutup muka petak.
 
+## Aturan peluncuran (keseimbangan & kejutan)
+
+- Keadilan kursi: kursi ke-n mulai di petak n dan membawa voucher diskon `n × RULES.seatDiscount` (maks 60%) di `create()`. Disetel lewat simulasi; menang per kursi ±25% (4 pemain), ±50% (2 pemain).
+- Cara menang instan: Trio Warna (`triple`, wajib ada grup 3 kota → `tripleOk`), Raja Jalur (`line`), Kolektor Wisata (`spots`). Jangan memakai kata "Monopoli/Monopoly" (merek dagang) di teks.
+- Ketemuan! (`meetUp` di `land`): berhenti di petak pemain lain → semua yang bertemu dapat `meetCash` & `meetLove`, sekali per giliran, event `meet`.
+- Kabar Merpi (`S.news`, `drawNews` di `startRound` tiap `newsEvery` ronde, berlaku `newsLasts` ronde; matikan dengan `settings.news = false`): rain/holiday (tol satu jalur ×0,5/×1,5), sale (diskon 20%), promo (World Tour gratis, `E.travelFee(S)`), bonus (gaji +100), love (Love berlipat). `E.newsInfo(S)` untuk UI.
+- Musim Puncak (`E.peakOn(S)`): `peakRounds` ronde terakhir permainan berbatas ronde, tol ×`peakMult`, event `peak`.
+- Reaksi emoji (`UI.EMOTES`, `showEmote`, `sendEmote`): bukan aksi engine. Online: intent `EMOTE` diproses host di `processIntent` → field `fx` dokumen room, tidak mengubah `seq`.
+- Paspor Cinta (`ui-screens.js`, kunci `loveopoly.v1.profile` yang juga dipakai profil online): muncul sekali saat pertama buka (bisa "Nanti saja"), mengisi Pemain 1 di setup, `recordPassport()` di `showWin` mencatat main/menang/cap kota. Uji mengisi `{ skipped: true }` di init script supaya paspor tidak menghalangi.
+
 ## Tantangan (wajib terbukti)
 
 - Tidak ada hasil yang dinilai sendiri: `CH_RESOLVE` hanya `skip` & `choice` (dilema). Hasil lewat `CH_ANSWER` yang dinilai engine.

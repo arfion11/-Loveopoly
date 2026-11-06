@@ -14,7 +14,7 @@ fs.mkdirSync(OUT, { recursive: true });
   const ok = (n, c, d) => results.push((c ? 'PASS ' : 'FAIL ') + n + (d ? ' — ' + d : ''));
   const mk = async (label, viewport) => {
     const ctx = await browser.newContext({ viewport });
-    await ctx.addInitScript(() => { try { localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system', autoEnd: false })); localStorage.setItem('loveopoly.v2.tour', '"done"'); } catch (e) {} });
+    await ctx.addInitScript(() => { try { localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system', autoEnd: false })); if (!localStorage.getItem('loveopoly.v1.profile')) localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true })); localStorage.setItem('loveopoly.v2.tour', '"done"'); } catch (e) {} });
     const p = await ctx.newPage();
     p.on('pageerror', e => errors.push(label + ' pageerror: ' + e.message));
     p.on('console', m => { if (m.type() === 'error' && !/fonts|ERR_/.test(m.text())) errors.push(label + ' console: ' + m.text()); });

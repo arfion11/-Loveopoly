@@ -15,6 +15,7 @@
   const CITIES = TILES.filter(t => t.type === 'city').map(t => t.i);
   const SPOTS = TILES.filter(t => t.type === 'spot').map(t => t.i);
   const SIDE_TILES = SIDES.map(sd => Object.assign({}, sd, { tiles: OWNABLE.filter(t => t >= sd.from && t <= sd.to) }));
+  const sideOfTile = t => { const sd = SIDES.find(d => t >= d.from && t <= d.to); return sd ? sd.id : null; };
   const ISLAND = TILES.find(t => t.type === 'island').i;
   const FEST = TILES.find(t => t.type === 'fest').i;
   const TRAVEL = TILES.find(t => t.type === 'travel').i;
@@ -107,7 +108,10 @@
     for (let k = st.level + 1; k <= cap; k++) out.push(k);
     return out;
   }
-  const discounted = (S, i, cost) => Math.max(0, Math.round(cost * (1 - (PL(S, i).discount || 0))));
+  // Kabar Merpi (event dunia berkala) & Musim Puncak (3 ronde terakhir permainan berbatas ronde)
+  const newsOn = (S, id) => !!(S.news && S.news.id === id && S.round <= S.news.to);
+  const peakOn = S => !!(S.settings.roundLimit && S.round > S.settings.roundLimit - RULES.peakRounds && !S.over);
+  const discounted = (S, i, cost) => Math.max(0, Math.round(cost * (1 - (PL(S, i).discount || 0)) * (newsOn(S, 'sale') ? 1 - RULES.newsSale : 1)));
   function buyCost(S, i, ti, level) { return discounted(S, i, TILES[ti].type === 'spot' ? TILES[ti].price : costRange(ti, -1, level)); }
   function upgradeCost(S, i, ti, level) { return discounted(S, i, costRange(ti, S.tiles[ti].level, level)); }
 
@@ -127,6 +131,11 @@
       if (ownsGroup(S, o, t.group)) { r *= RULES.groupMult; parts.push({ k: 'group', label: 'Grup ' + GROUPS[t.group].name + ' penuh', m: RULES.groupMult }); }
       if (S.festival.tile === ti) { r *= S.festival.mult; parts.push({ k: 'fest', label: 'Festival Cinta', m: S.festival.mult }); }
     }
+    if (S.news && S.round <= S.news.to && S.news.side && sideOfTile(ti) === S.news.side) {
+      const m = S.news.id === 'rain' ? RULES.newsRain : S.news.id === 'holiday' ? RULES.newsHoliday : 1;
+      if (m !== 1) { r *= m; parts.push({ k: 'news', label: NEWS_LABEL[S.news.id] + ' (' + sideName(S.news.side) + ')', m }); }
+    }
+    if (peakOn(S)) { r *= RULES.peakMult; parts.push({ k: 'peak', label: 'Musim Puncak', m: RULES.peakMult }); }
     const pct = tierInfo(PL(S, o).love).rentPct;
     if (pct) { r *= 1 + pct / 100; parts.push({ k: 'love', label: 'Love Meter ' + tierInfo(PL(S, o).love).name, pct }); }
     return { amount: r5(r), parts };
@@ -139,11 +148,13 @@
   }
 
   // ---------- menang instan & ambil alih ----------
+  // Trio Warna: 3 grup warna penuh, minimal satu di antaranya grup 3 kota (grup 2 kota terlalu cepat terkumpul)
+  const tripleOk = fg => fg.length >= RULES.tripleGroups && fg.some(g => GROUP_TILES[g].length >= 3);
   function winCheck(S, i) {
     const p = PL(S, i);
     if (!p || p.bankrupt) return null;
     const fg = fullGroups(S, i);
-    if (fg.length >= RULES.tripleGroups) return { kind: 'triple', groups: fg.slice(0, RULES.tripleGroups) };
+    if (tripleOk(fg)) return { kind: 'triple', groups: fg.slice(0, RULES.tripleGroups) };
     for (const sd of SIDE_TILES) if (sd.tiles.every(t => S.tiles[t].owner === i)) return { kind: 'line', side: sd.id };
     if (SPOTS.every(t => S.tiles[t].owner === i)) return { kind: 'spots' };
     return null;
@@ -158,7 +169,7 @@
       if (fg.length >= RULES.tripleGroups - 1) GROUP_IDS.forEach(g => {
         if (fg.includes(g)) return;
         const miss = GROUP_TILES[g].filter(t => S.tiles[t].owner !== i);
-        if (miss.length === 1 && !need.has(miss[0])) need.set(miss[0], { kind: 'triple', group: g });
+        if (miss.length === 1 && !need.has(miss[0]) && tripleOk(fg.concat([g]))) need.set(miss[0], { kind: 'triple', group: g });
       });
       SIDE_TILES.forEach(sd => {
         const miss = sd.tiles.filter(t => S.tiles[t].owner !== i);
@@ -232,7 +243,8 @@
       debug: !!st.debug,
       takeover: st.takeover !== false,
       instantWin: st.instantWin !== false,
-      diceControl: st.diceControl !== false
+      diceControl: st.diceControl !== false,
+      news: st.news !== false
     };
     const seed = (Number(setup.seed) >>> 0) || ((Math.random() * 4294967296) >>> 0) || 1;
     const S = {
@@ -246,20 +258,23 @@
       log: [], logN: 0, letters: [], proofs: [],
       lastEvents: [], evSeq: 0, over: null, paused: false
     };
+    // kursi belakang kalah tempo: mulai selangkah lebih maju per kursi + voucher diskon pembuka (20% per kursi)
+    S.players.forEach((p, i) => { if (i > 0) { p.pos = i % N; p.discount = Math.min(RULES.seatDiscountMax, i * RULES.seatDiscount); } });
     S.decks.card = shuffle(S, CARDS.map(c => c.id));
     chDecks(S);
     log(S, 'Permainan dimulai. Selamat keliling dunia berdua!', 'heart');
+    if (S.players.length > 1) log(S, 'Biar adil: pemain berikutnya mulai selangkah lebih maju dan membawa voucher diskon pembuka.', 'ticket');
     return S;
   }
 
   // ---------- gerak ----------
   function passStart(S, i) {
     const p = PL(S, i);
-    const pay = RULES.salary + tierInfo(p.love).salary;
+    const pay = RULES.salary + tierInfo(p.love).salary + (newsOn(S, 'bonus') ? RULES.newsBonus : 0);
     p.laps++;
     p.stats.starts++;
     cashAdd(S, i, pay);
-    loveAdd(S, i, 1);
+    loveAdd(S, i, newsOn(S, 'love') ? 5 : 1);
     ev(S, { t: 'salary', p: i, amount: pay, laps: p.laps });
     log(S, p.name + ' melewati START: gaji ' + fmt(pay) + '.' + (p.laps === RULES.hotelLaps ? ' Hotel sekarang bisa dibangun!' : ''), 'coins', i);
   }
@@ -309,7 +324,20 @@
   }
 
   // ---------- mendarat ----------
+  // Ketemuan! pion berhenti di petak yang sama dengan pemain lain: keduanya dapat Love & uang jajan (sekali per giliran)
+  function meetUp(S, i) {
+    const p = PL(S, i);
+    if (S.turn.p !== i || S.turn.met) return;
+    const others = S.players.filter(q => q.i !== i && !q.bankrupt && q.pos === p.pos);
+    if (!others.length) return;
+    S.turn.met = true;
+    const k = newsOn(S, 'love') ? 2 : 1;
+    [p].concat(others).forEach(q => { loveAdd(S, q.i, RULES.meetLove * k); cashAdd(S, q.i, RULES.meetCash * k); q.stats.meets = (q.stats.meets || 0) + 1; });
+    log(S, 'Ketemuan! ' + p.name + ' bertemu ' + others.map(q => q.name).join(' & ') + ' di ' + TILES[p.pos].name + ': masing-masing +' + fmt(RULES.meetCash * k) + ' dan Love +' + RULES.meetLove * k + '.', 'heart', i);
+    ev(S, { t: 'meet', p: i, with: others.map(q => q.i), tile: p.pos, cash: RULES.meetCash * k, love: RULES.meetLove * k });
+  }
   function land(S, i) {
+    meetUp(S, i);
     const p = PL(S, i);
     const t = TILES[p.pos];
     switch (t.type) {
@@ -732,7 +760,32 @@
       finish(S, 'rounds');
       return true;
     }
+    if (S.news && S.round > S.news.to) { log(S, 'Kabar Merpi "' + NEWS_LABEL[S.news.id] + '" selesai.', 'dot'); S.news = null; }
+    if (S.settings.news !== false && S.round >= RULES.newsEvery && S.round % RULES.newsEvery === 0) drawNews(S);
+    if (S.settings.roundLimit && S.round === S.settings.roundLimit - RULES.peakRounds + 1) {
+      log(S, 'Musim Puncak! ' + RULES.peakRounds + ' ronde terakhir: semua tol ×' + String(RULES.peakMult).replace('.', ',') + '.', 'bolt');
+      ev(S, { t: 'peak', rounds: RULES.peakRounds, mult: RULES.peakMult });
+    }
     return false;
+  }
+  // Kabar Merpi: event dunia berlaku 2 ronde, diundi tiap beberapa ronde (tidak sama dengan event sebelumnya)
+  const NEWS_LABEL = { rain: 'Musim Hujan', holiday: 'Musim Liburan', sale: 'Diskon Properti', promo: 'Promo Maskapai', bonus: 'Bonus Tahunan', love: 'Pekan Kasih Sayang' };
+  const NEWS_TEXT = {
+    rain: 'tol semua kota di {s} ×0,5', holiday: 'tol semua kota di {s} ×1,5', sale: 'beli & bangun diskon 20%',
+    promo: 'tiket World Tour gratis', bonus: 'gaji START +100', love: 'Ketemuan & lewat START bonus Love berlipat'
+  };
+  function drawNews(S) {
+    const ids = Object.keys(NEWS_LABEL).filter(id => !S.news || id !== S.news.id);
+    const id = ids[rint(S, ids.length)];
+    const side = id === 'rain' || id === 'holiday' ? SIDES[rint(S, SIDES.length)].id : null;
+    S.news = { id, side, from: S.round, to: S.round + RULES.newsLasts - 1 };
+    const text = NEWS_TEXT[id].replace('{s}', side ? sideName(side) : '');
+    log(S, 'Kabar Merpi: ' + NEWS_LABEL[id] + '! ' + text.charAt(0).toUpperCase() + text.slice(1) + ' selama ' + RULES.newsLasts + ' ronde.', 'sparkle');
+    ev(S, { t: 'news', id, side, label: NEWS_LABEL[id], text, rounds: RULES.newsLasts });
+  }
+  function newsInfo(S) {
+    if (!S.news || S.round > S.news.to) return null;
+    return { id: S.news.id, side: S.news.side, label: NEWS_LABEL[S.news.id], text: NEWS_TEXT[S.news.id].replace('{s}', S.news.side ? sideName(S.news.side) : ''), left: S.news.to - S.round + 1 };
   }
 
   function finish(S, reason, winner, detail) {
@@ -756,7 +809,7 @@
   function winReason(o) {
     return {
       bankrupt: 'semua lawan bangkrut', rounds: 'aset terbesar saat batas ronde', manual: 'aset terbesar saat permainan diakhiri', resign: 'lawan menyerah',
-      triple: 'Triple Monopoli', line: 'Monopoli ' + (o.detail ? sideName(o.detail.side) : 'Jalur'), spots: 'Monopoli Wisata'
+      triple: 'Trio Warna', line: 'Raja ' + (o.detail ? sideName(o.detail.side) : 'Jalur'), spots: 'Kolektor Wisata'
     }[o.reason] || o.reason;
   }
   function computeTitles(S, ranking, winner) {
@@ -1106,14 +1159,14 @@
     const ti = Math.round(Number(a.tile));
     const p = PL(S, a.p);
     if (!TILES[ti] || ti === TRAVEL || ti === ISLAND) fail('Pilih tujuan lain.');
-    const fee = RULES.travelFee;
+    const fee = newsOn(S, 'promo') ? 0 : RULES.travelFee;
     if (p.cash < fee) fail('Uang kurang untuk tiket (' + fee + ').');
     S.queue.shift();
     p.tour = false;
     cashAdd(S, a.p, -fee);
     p.stats.travels++;
     S.turn.rolled = true; S.turn.canRollAgain = false;
-    log(S, p.name + ' terbang ke ' + TILES[ti].name + ' (tiket ' + fee + ').', 'plane', a.p);
+    log(S, p.name + ' terbang ke ' + TILES[ti].name + (fee ? ' (tiket ' + fee + ').' : ' gratis berkat Promo Maskapai!'), 'plane', a.p);
     flyTo(S, a.p, ti, 'fly');
     land(S, a.p);
   };
@@ -1323,7 +1376,7 @@
   }
 
   G.LoveEngine = {
-    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, migrate,
+    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, migrate, newsInfo, peakOn, tripleOk, travelFee: S => (newsOn(S, 'promo') ? 0 : RULES.travelFee),
     rentFor, rentInfo, netWorth, liquidation, tileValue, sellValue, levelCost, costRange, buyCost, upgradeCost,
     buyLevels, upgradeLevels, capLevel, targetCandidates, swapTargets,
     ownsGroup, countGroup, fullGroups, ownedBy, citiesOf, spotsOf, buildingLevels, tierOf, tierInfo,

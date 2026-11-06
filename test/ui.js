@@ -58,7 +58,7 @@ const MONKEY = () => {
     const page = await ctx.newPage();
     page.on('console', m => { if (m.type() === 'error') errors.push(label + ' console: ' + m.text()); });
     page.on('pageerror', e => errors.push(label + ' pageerror: ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 4).join('\n')));
-    await page.addInitScript(() => { try { localStorage.setItem('loveopoly.v2.tour', '"done"'); if (!localStorage.getItem('loveopoly.v1.prefs')) localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system' })); } catch (e) {} });
+    await page.addInitScript(() => { try { if (!localStorage.getItem('loveopoly.v1.profile')) localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true })); localStorage.setItem('loveopoly.v2.tour', '"done"'); if (!localStorage.getItem('loveopoly.v1.prefs')) localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system' })); } catch (e) {} });
     await page.goto(URL);
     return page;
   }

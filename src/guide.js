@@ -14,7 +14,7 @@
   const PAGES = [
     {
       id: 'hello', title: 'Halo! Aku Merpi', say: 'Aku kurir cinta kalian. Yuk keliling dunia berdua!',
-      pts: ['Keliling 19 kota romantis dan 5 tempat wisata.', 'Beli kota, bangun sampai landmark, tarik tol dari lawan.', 'Menang lewat monopoli, atau bikin lawan bangkrut.'],
+      pts: ['Keliling 19 kota romantis dan 5 tempat wisata.', 'Beli kota, bangun sampai landmark, tarik tol dari lawan.', 'Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata, atau bikin lawan bangkrut.', 'Biar adil: pemain berikutnya mulai selangkah lebih maju dan membawa voucher diskon pembuka.'],
       scene: () => '<div class="sc sc-hello"><div class="g-orbit">' + ['paris', 'bali', 'kyoto', 'santorini', 'hawaii', 'swiss'].map((a, k) => '<span class="go-item" style="--k:' + k + '">' + ART.art(a) + '</span>').join('') + '</div><span class="g-merpi">' + ART.merpi('is-happy') + '</span><span class="g-hearts"><i></i><i></i><i></i><i></i></span></div>'
     },
     {
@@ -40,7 +40,7 @@
     },
     {
       id: 'spots', title: 'Tempat wisata', say: 'Kumpulkan kelimanya = menang!',
-      pts: ['Bianglala, Kebun Bunga, Kereta Gantung, Balon Udara, dan Kapal Pesiar.', 'Tol wisata naik sesuai jumlah wisata yang kamu punya (' + RULES.spotRent.join(' / ') + ').', 'Wisata tidak bisa diambil alih. Punya kelimanya = Monopoli Wisata!'],
+      pts: ['Bianglala, Kebun Bunga, Kereta Gantung, Balon Udara, dan Kapal Pesiar.', 'Tol wisata naik sesuai jumlah wisata yang kamu punya (' + RULES.spotRent.join(' / ') + ').', 'Wisata tidak bisa diambil alih. Punya kelimanya = Kolektor Wisata!'],
       scene: () => '<div class="sc sc-spots"><div class="g-row">' + ['ferris', 'garden', 'cablecar', 'balloon', 'cruise'].map((a, k) => '<span class="g-spot" style="--k:' + k + '">' + ART.art(a) + '</span>').join('') + '</div><span class="g-trophy">' + ic('trophy') + '<b>MENANG!</b></span></div>'
     },
     {
@@ -83,9 +83,17 @@
       scene: () => '<div class="sc sc-love"><div class="g-meter">' + ic('heart') + '<span class="gm-bar"><i></i></span><span class="gm-tiers"><b>PDKT</b><b>Jadian</b><b>Bucin</b><b>Soulmate</b></span></div><div class="g-note">Tebak Isi Hati: 2/3 cocok! Kalian berdua dapat hadiah.</div><span class="g-reward">' + coin + '+140 · ' + ic('heart') + '+10</span></div>'
     },
     {
+      id: 'events', title: 'Kejutan di jalan', say: 'Tiap ronde bisa beda ceritanya!',
+      pts: ['Ketemuan! Berhenti di petak yang sama dengan pemain lain: kalian berdua dapat ' + RULES.meetCash + ' dan Love +' + RULES.meetLove + '.', 'Kabar Merpi tiap ' + RULES.newsEvery + ' ronde: Musim Hujan, Musim Liburan, Diskon Properti, Promo Maskapai, Bonus Tahunan, Pekan Kasih Sayang (berlaku ' + RULES.newsLasts + ' ronde).', 'Musim Puncak: ' + RULES.peakRounds + ' ronde terakhir semua tol ×1,5, jadi masih bisa menyalip. Kirim reaksi 😂😍😱 kapan saja lewat tombol di pojok papan.'],
+      scene: () => '<div class="sc sc-proof">' +
+        '<span class="gp-card c1"><span class="gp-tag">' + ic('heart') + 'Ketemuan!</span><span class="gp-duo"><span class="gp-av" style="--c:' + PINK + '">🐻</span><b>❤</b><span class="gp-av" style="--c:' + VIOLET + '">🐰</span></span><b class="gp-res">+' + RULES.meetCash + ' · Love +' + RULES.meetLove + '</b></span>' +
+        '<span class="gp-card c2"><span class="gp-tag">' + ic('sparkle') + 'Kabar Merpi</span><span class="gp-emoji">☀️🏖️</span><b class="gp-res">Musim Liburan<br>tol ×1,5</b></span>' +
+        '<span class="gp-card c3"><span class="gp-tag">' + ic('bolt') + 'Musim Puncak</span><span class="gp-stamp">×1,5</span><b class="gp-res">3 ronde terakhir</b></span></div>'
+    },
+    {
       id: 'win', title: 'Cara menang', say: 'Siap jadi juragan cinta dunia?',
-      pts: ['Triple Monopoli: kuasai 3 grup warna penuh.', 'Monopoli Jalur: kuasai semua kota dan wisata di satu sisi papan.', 'Monopoli Wisata: kuasai 5 tempat wisata. Atau buat lawan bangkrut, atau punya aset terbesar saat ronde habis.'],
-      scene: () => '<div class="sc sc-win"><div class="g-wrow r1"><span class="gw-ic">' + ic('trophy') + '</span>' + ['#FF8FB1', '#2EC4B6', '#4D96FF'].map((c, k) => '<i style="--c:' + c + ';--k:' + k + '"></i>').join('') + '<b>Triple</b></div>' +
+      pts: ['Trio Warna: kuasai 3 grup warna penuh, minimal satu grup 3 kota.', 'Raja Jalur: kuasai semua kota dan wisata di satu sisi papan.', 'Kolektor Wisata: kuasai 5 tempat wisata. Atau buat lawan bangkrut, atau punya aset terbesar saat ronde habis.'],
+      scene: () => '<div class="sc sc-win"><div class="g-wrow r1"><span class="gw-ic">' + ic('trophy') + '</span>' + ['#FF8FB1', '#2EC4B6', '#4D96FF'].map((c, k) => '<i style="--c:' + c + ';--k:' + k + '"></i>').join('') + '<b>Trio</b></div>' +
         '<div class="g-wrow r2"><span class="gw-ic">' + ic('map') + '</span>' + Array.from({ length: 6 }, (_, k) => '<i style="--c:#FFC93C;--k:' + k + '"></i>').join('') + '<b>Jalur</b></div>' +
         '<div class="g-wrow r3"><span class="gw-ic">' + ic('ferris') + '</span>' + Array.from({ length: 5 }, (_, k) => '<i style="--c:#B79CFF;--k:' + k + '"></i>').join('') + '<b>Wisata</b></div><span class="g-merpi sm">' + ART.merpi('is-love') + '</span></div>'
     }

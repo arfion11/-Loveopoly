@@ -18,6 +18,7 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
     try {
       localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system', autoEnd: false }));
       if (!sessionStorage.getItem('tourTest')) localStorage.setItem('loveopoly.v2.tour', '"done"');
+      if (!sessionStorage.getItem('passTest') && !localStorage.getItem('loveopoly.v1.profile')) localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true }));
     } catch (e) { /* abaikan */ }
   });
   await page.goto(URL);
@@ -288,20 +289,20 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await page.waitForTimeout(1200);
   ok('bangkrut: layar menang tampil', await page.evaluate(() => !!document.querySelector('.win') || !!document.querySelector('#wAgain')));
 
-  // 19. Menang instan: monopoli wisata
+  // 19. Menang instan: Kolektor Wisata
   await newGame('[11, 14, 20, 27].forEach(t => own(t, 0)); S.players[0].pos = 1;', { instantWin: true });
   await roll(0, [1, 3]);
   await click('#bBuy');
   st = await S();
-  ok('instan: Monopoli Wisata', !!st.over && st.over.reason === 'spots' && st.over.winner === 0, JSON.stringify(st.over && st.over.reason));
+  ok('instan: Kolektor Wisata', !!st.over && st.over.reason === 'spots' && st.over.winner === 0, JSON.stringify(st.over && st.over.reason));
 
-  // 20. Menang instan: triple monopoli
+  // 20. Menang instan: Trio Warna (ada grup 3 kota: Jawa)
   await newGame('[1, 2, 4, 6, 7, 9].forEach(t => own(t, 0)); S.players[0].pos = 7; S.players[0].laps = 1;', { instantWin: true });
   // grup kota(1,2) jawa(4,6) tropis(9,10): beli Labuan Bajo (10) -> 3 grup penuh
   await roll(0, [1, 2]);
   if (/Beli/.test(await title())) await click('#bBuy');
   st = await S();
-  ok('instan: Triple Monopoli', !!st.over && st.over.reason === 'triple', JSON.stringify(st.over && st.over.reason) + ' pos=' + st.players[0].pos);
+  ok('instan: Trio Warna', !!st.over && st.over.reason === 'triple', JSON.stringify(st.over && st.over.reason) + ' pos=' + st.players[0].pos);
 
   // 21. START: bangun gratis-lokasi (pilih kota sendiri)
   await newGame('own(1, 0, 1); S.players[0].pos = 30; S.players[0].laps = 1;');
@@ -383,6 +384,26 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await page.waitForSelector('.tour-card', { timeout: 6000 }).catch(() => {});
   ok('tur: kartu tur muncul di game pertama', !!(await page.$('.tour-card')));
   await shot('25-tour');
+
+  // 26. Paspor Cinta: muncul saat pertama kali, terbit, mengisi Pemain 1, mencatat hasil game
+  await page.evaluate(() => { sessionStorage.setItem('passTest', '1'); localStorage.removeItem('loveopoly.v1.profile'); localStorage.removeItem('loveopoly.v2.save'); });
+  await page.reload();
+  await page.waitForSelector('#passOv #ppOpen', { timeout: 6000 });
+  ok('paspor: muncul saat pertama kali membuka game', true);
+  await page.click('#ppOpen');
+  await page.waitForSelector('#ppName', { state: 'visible' });
+  ok('paspor: tombol terbit nonaktif sebelum nama diisi', await page.$eval('#ppGo', b => b.disabled));
+  await page.fill('#ppName', 'Arfi'); await page.click('[data-ppav="🦊"]');
+  await page.click('#ppGo');
+  await page.waitForSelector('#passOv', { state: 'detached', timeout: 5000 });
+  const pp = await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')));
+  ok('paspor: tersimpan & kartu paspor tampil di beranda', pp.name === 'Arfi' && pp.avatar === '🦊' && /Halo, Arfi/.test(await page.textContent('#hPass')), JSON.stringify(pp));
+  await page.click('#hAI'); await page.waitForSelector('#pn0');
+  ok('paspor: Pemain 1 di setup terisi dari paspor', (await page.inputValue('#pn0')) === 'Arfi');
+  await page.evaluate(() => { const E = window.LoveEngine; const S = E.create({ players: [{ name: 'Arfi', avatar: '🦊' }, { name: 'Bot', kind: 'ai' }], settings: { debug: true }, seed: 77 }); S.tiles[1].owner = 0; S.tiles[2].owner = 0; window.LoveUI.enterGame('local', -1, S); window.LoveUI.act({ type: 'FINISH_NOW', p: 0 }); });
+  await page.waitForFunction(() => (JSON.parse(localStorage.getItem('loveopoly.v1.profile')) || {}).games === 1, null, { timeout: 10000 }).catch(() => {});
+  const pp2 = await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')));
+  ok('paspor: hasil game tercatat (main, menang, cap kota)', pp2.games === 1 && pp2.wins === 1 && pp2.stamps.length === 2, JSON.stringify({ g: pp2.games, w: pp2.wins, st: pp2.stamps }));
 
   console.log(results.join('\n'));
   const fails = results.filter(r => r.startsWith('FAIL')).length;

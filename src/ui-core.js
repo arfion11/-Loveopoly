@@ -238,7 +238,7 @@
     achCur = null;
     $$('.ach-pop, .ap-fly').forEach(x => x.remove());
   }
-  const winLabel = x => (x.kind === 'triple' ? 'Triple Monopoli' : x.kind === 'spots' ? 'Monopoli Wisata' : 'Monopoli ' + E.sideName(x.side));
+  const winLabel = x => (x.kind === 'triple' ? 'Trio Warna' : x.kind === 'spots' ? 'Kolektor Wisata' : 'Raja ' + E.sideName(x.side));
   function clearFx() {
     const bn = $('#boardVP .banner'); if (bn) bn.remove();
     clearTimeout(bannerTimer); clearTimeout(merpiTimer);
@@ -301,6 +301,9 @@
   const sideHud = () => view3d() && App.layout === 'wide';
   function placeStage() {
     const st = stageEl || $('#stage'); if (!st) return;
+    // tombol reaksi: di pojok papan; HP mendatar → pojok kiri bawah layar (kolom pemain) supaya tidak menutupi petak
+    const emo = $('#emote'), gEl = $('#game'), vpE = $('#boardVP');
+    if (emo && gEl && vpE) { const want = App.layout === 'land' ? gEl : vpE; if (emo.parentNode !== want) want.appendChild(emo); }
     const hud0 = $('#hud'), col = $('.board-col'), right = $('.seat-col.right');
     if (hud0 && col && right) {
       if (sideHud()) { if (hud0.parentNode !== right) right.insertBefore(hud0, $('#slotBR')); }
@@ -608,7 +611,7 @@
     // 3D: tombol beralih antara "Semua" (lihat seluruh papan) dan "Dekat" (ikuti pion terus);
     // label mengikuti pilihan pemain, bukan zoom sementara saat pion berjalan
     const near = is3d() ? App.cam.pref3d === 'near' : !camAuto();
-    setHTML(el, (S ? '<span class="round-chip vp" title="Ronde">' + ic('calendar') + '<span><span class="rc-w">Ronde </span><b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span></span>' : '') +
+    setHTML(el, (S ? '<span class="round-chip vp" title="Ronde">' + ic('calendar') + '<span><span class="rc-w">Ronde </span><b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span></span>' + newsPillHTML(S) : '') +
       '<button type="button" class="cam-btn" id="camBtn" aria-pressed="' + near + '" aria-label="' + (is3d() ? (near ? 'Lihat seluruh papan' : 'Kamera dekat: ikuti pion') : near ? 'Kamera otomatis: lihat seluruh papan' : 'Kunci kamera dekat') + '">' + ic(near ? 'map' : 'zoomIn') + '<span>' + (near ? 'Semua' : 'Dekat') + '</span></button>');
     const b = $('#camBtn'); if (b) b.onclick = camToggle;
   }
@@ -742,6 +745,7 @@
     b.appendChild(tk);
     buildStage();
     placeStage();
+    bindEmote();
     const mbody = $('#mascot .ms-body');
     if (mbody) mbody.onclick = () => merpiPoke();
     mascotWake();
@@ -760,7 +764,7 @@
     stageEl = st;
     const oldBub = $('#boardVP > #bubble'); if (oldBub) oldBub.remove();
     st.innerHTML =
-      '<div class="st-top"><span class="round-chip" id="roundChip"></span></div>' +
+      '<div class="st-top"><span class="round-chip" id="roundChip"></span><span class="news-slot" id="newsSlot"></span></div>' +
       '<div class="st-merpi"><button type="button" class="merpi-btn" id="merpiBtn" aria-label="Merpi, maskot Loveopoly">' + ART.merpi('') + '</button><div class="bubble" id="bubble" role="status" aria-live="polite"></div></div>' +
       '<div class="st-main">' +
       '<div class="turn-line" id="turnLine"></div>' +
@@ -1220,6 +1224,48 @@
     mascotEmote(ic('heart'), 1400);
   }
 
+  // ---------- reaksi emoji antar pemain (bukan bagian state permainan; online lewat field fx room) ----------
+  const EMOTES = ['😂', '😍', '😱', '😤', '👏', '🥺'];
+  const EMOTE_SAY = { '😂': 'Hahaha, kocak!', '😍': 'Uwu, manis banget~', '😱': 'Hah?! Serius?!', '😤': 'Awas ya, nanti dibalas!', '👏': 'Mantap! Tepuk tangan~', '🥺': 'Jangan jahat-jahat dong…' };
+  let emoteAt = 0;
+  function emoteSender() {
+    const S = App.S; if (!S || S.over) return -1;
+    if (App.mode === 'online') return App.net ? App.net.mySeat() : -1;
+    const cur = S.players[S.turn.p];
+    if (cur && cur.kind === 'human' && !cur.bankrupt) return cur.i;
+    const h = S.players.find(p => p.kind === 'human' && !p.bankrupt);
+    return h ? h.i : -1;
+  }
+  function sendEmote(e) {
+    const now = Date.now();
+    if (now - emoteAt < 1200 || !EMOTES.includes(e)) return;
+    emoteAt = now;
+    const p = emoteSender(); if (p < 0) return;
+    if (App.mode === 'online' && App.net) App.net.emote(e); else showEmote(p, e);
+  }
+  function showEmote(p, e) {
+    const S = App.S; if (!S || !S.players[p] || !EMOTES.includes(e)) return;
+    SND.play('chirp');
+    const pt = boardPt(p);
+    if (pt) {
+      if (is3d()) boardFx('emote-pop lift', pt.x, pt.y, '<span>' + e + '</span>', { '--lift': Math.round(tokSize * 1.45) + 'px' }, 2000);
+      else boardFx('emote-pop', pt.x, pt.y - tokSize * 1.4, '<span>' + e + '</span>', null, 2000);
+    }
+    document.querySelectorAll('.pcard[data-p="' + p + '"]').forEach(el => pulse(el, 'emoted', 700));
+    if (Math.random() < 0.35 && !merpiMood) merpiSay(EMOTE_SAY[e], e === '😍' || e === '👏' ? 'love' : e === '😱' ? 'wow' : e === '🥺' ? 'sad' : 'happy', 1600);
+  }
+  function bindEmote() {
+    const btn = document.getElementById('emoteBtn'), pal = document.getElementById('emotePal');
+    if (!btn || btn._b) return;
+    btn._b = true;
+    pal.innerHTML = EMOTES.map(e => '<button type="button" data-emo="' + e + '" aria-label="Reaksi ' + e + '"><span aria-hidden="true">' + e + '</span></button>').join('');
+    const close = () => { pal.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+    btn.addEventListener('click', () => { const open = pal.hidden; pal.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+    pal.addEventListener('click', ev => { const t = ev.target.closest('[data-emo]'); if (!t) return; sendEmote(t.dataset.emo); close(); });
+    document.addEventListener('pointerdown', ev => { if (!pal.hidden && !ev.target.closest('#emote')) close(); });
+    document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !pal.hidden) close(); });
+  }
+
   // ---------- Merpi besar di tengah papan (ponsel & kamera 3D, menggantikan globe) ----------
   // berdiri tegak di atas alas globe; menoleh ke pion yang aktif, bereaksi lewat gerak (kelas act-*) & ikon emote,
   // tertidur bila lama tidak ada kejadian. Teks tetap di gelembung panel aksi (wilayah aria-live).
@@ -1422,11 +1468,36 @@
     const pct = lim ? Math.min(100, Math.round((S.round / lim) * 100)) : 0;
     let h = '<div class="info-card"><div class="ic-row"><span class="ic-title">' + ic('calendar') + 'Ronde ' + S.round + (lim ? ' dari ' + lim : '') + '</span></div>' +
       (lim ? '<span class="meter gold"><i style="--v:' + pct + '%"></i></span>' : '') +
+      newsCardHTML(S) +
       '<div class="ic-wins"><b>Cara menang cepat</b>';
-    if (S.settings.instantWin) h += '<span>' + ic('trophy') + 'Kuasai 3 grup warna</span><span>' + ic('map') + 'Kuasai 1 jalur penuh</span><span>' + ic('ferris') + 'Kuasai 5 tempat wisata</span>';
+    if (S.settings.instantWin) h += '<span>' + ic('trophy') + 'Trio Warna: 3 grup penuh (1 grup 3 kota)</span><span>' + ic('map') + 'Raja Jalur: 1 jalur penuh</span><span>' + ic('ferris') + 'Kolektor Wisata: 5 wisata</span>';
     h += '<span>' + ic('alert') + 'Buat lawan bangkrut</span></div></div>';
     return h;
   }
+  // Kabar Merpi & Musim Puncak: pil kecil di samping chip ronde (ketuk = detail) dan blok di kartu info desktop
+  function newsBits(S) {
+    const n = S && !S.over ? E.newsInfo(S) : null, peak = S && E.peakOn(S);
+    return { n, peak };
+  }
+  function newsPillHTML(S) {
+    const { n, peak } = newsBits(S);
+    if (!n && !peak) return '';
+    return '<button type="button" class="news-pill' + (peak ? ' peak' : '') + '" data-news aria-label="Kabar Merpi: ' + esc([n ? n.label : '', peak ? 'Musim Puncak' : ''].filter(Boolean).join(', ')) + '">' +
+      (n ? ic(NEWS_ICON[n.id] || 'sparkle') + '<span class="np-t">' + esc(n.label) + '</span>' : '') + (peak ? ic('bolt') + '<span class="np-t">Puncak</span>' : '') + '</button>';
+  }
+  const NEWS_ICON = { rain: 'umbrella', holiday: 'sun', sale: 'ticket', promo: 'plane', bonus: 'coins', love: 'heart' };
+  function newsCardHTML(S) {
+    const { n, peak } = newsBits(S);
+    if (!n && !peak) return '';
+    return '<div class="news-card">' + (n ? '<div class="nc-row">' + ic(NEWS_ICON[n.id] || 'sparkle') + '<span><b>Kabar Merpi: ' + esc(n.label) + '</b><small>' + esc(n.text.charAt(0).toUpperCase() + n.text.slice(1)) + ' · sisa ' + n.left + ' ronde</small></span></div>' : '') +
+      (peak ? '<div class="nc-row peak">' + ic('bolt') + '<span><b>Musim Puncak</b><small>Semua tol ×' + String(RULES.peakMult).replace('.', ',') + ' sampai akhir</small></span></div>' : '') + '</div>';
+  }
+  function showNewsToast() {
+    const { n, peak } = newsBits(App.S);
+    if (!n && !peak) return;
+    toast([n ? n.label + ': ' + n.text + ' (sisa ' + n.left + ' ronde).' : '', peak ? 'Musim Puncak: semua tol ×' + String(RULES.peakMult).replace('.', ',') + ' sampai akhir permainan.' : ''].filter(Boolean).join(' '), { title: 'Kabar Merpi', icon: 'sparkle', kind: 'lilac' });
+  }
+  document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-news]')) showNewsToast(); });
   function logCardHTML(S) {
     const items = S.log.slice(-6).reverse().map(l => '<li class="' + (l.n > App.lastLogN ? 'new' : '') + '"><span class="bub" style="--c:' + (l.p >= 0 && S.players[l.p] ? S.players[l.p].color : 'var(--ink-3)') + '">' + ic(l.icon in G.LoveIcons.paths ? l.icon : 'dot') + '</span><span>' + esc(l.text) + '</span></li>').join('');
     App.lastLogN = S.logN;
@@ -1439,6 +1510,7 @@
     const cur = S.players[S.turn.p];
     const lim = S.settings.roundLimit;
     setHTML($('#roundChip'), ic('calendar') + '<span>Ronde <b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span>');
+    setHTML($('#newsSlot'), newsPillHTML(S));
     const tl = $('#turnLine');
     setHTML(tl, S.over ? '<span class="tl-txt">' + ic('trophy') + ' Permainan selesai</span>' :
       avatarHTML(cur, 'xs') + '<span class="tl-txt"><span class="tl-w">Giliran </span><b>' + esc(cur.name) + '</b></span>' + '<span class="tl-round">' + ic('calendar') + 'R' + S.round + (lim ? '/' + lim : '') + '</span>' + (cur.island ? '<span class="tag sea">' + ic('island') + '<span class="tl-w">Pulau Rindu </span>' + cur.islandTries + '/' + RULES.islandTurns + '</span>' : ''));
@@ -1765,7 +1837,7 @@
           const o = ns.over;
           if (o && (o.reason === 'triple' || o.reason === 'line' || o.reason === 'spots')) {
             SND.play('win');
-            banner({ triple: 'TRIPLE MONOPOLI!', line: 'MONOPOLI JALUR!', spots: 'MONOPOLI WISATA!' }[o.reason], pname(o.winner) + ' menang instan!', 'gold', 2600, 'b4');
+            banner({ triple: 'TRIO WARNA!', line: 'RAJA JALUR!', spots: 'KOLEKTOR WISATA!' }[o.reason], pname(o.winner) + ' menang instan!', 'gold', 2600, 'b4');
             merpiSay(pick(D.MERPI.win), 'love', 2600);
             mascotAct('spin', 900); mascotEmote(ic('trophy'), 2600);
             if (fresh) await sleep(1700 * SPD());
@@ -1775,6 +1847,28 @@
         case 'achievement': achievementFx(e, ns, fresh); break;
         case 'bankrupt': SND.play('bad'); toast(pname(e.p) + ' bangkrut.', { icon: 'alert', kind: 'err' }); banner('BANGKRUT!', pname(e.p) + ' keluar dari permainan.', 'warn', 2000); break;
         case 'skip': toast(pname(e.p) + ' kehilangan giliran.', { icon: 'pause' }); break;
+        case 'meet': {
+          if (!fresh) break;
+          SND.play('heart');
+          [e.p].concat(e.with).forEach(q => { pulse($('#tok-' + q), 'cheer', 800); bfloat(q, '+' + fmt(e.cash) + ' ' + ic('heart') + '+' + e.love, 'love'); });
+          burst(e.tile, ['#FF4F8B', '#FF9EC4', '#FFFFFF'], 14);
+          merpiSay(pick(['Ketemuan! Kangen terobati~', 'Akhirnya ketemu juga!', 'Peluk dulu dong!', 'Momen langka, abadikan!']), 'love', 2000);
+          mascotEmote(ic('heart'), 1600); mascotAct('hop', 700);
+          await sleep(600 * SPD());
+          break;
+        }
+        case 'news': {
+          SND.play('fanfare');
+          banner('KABAR MERPI', e.label + ': ' + e.text + ' (' + e.rounds + ' ronde)', 'party', 3000, 'card');
+          if (fresh) { merpiSay(pick(['Ada kabar baru dari seluruh dunia!', 'Surat kilat! Baca dulu, ya~', 'Kabar hangat, strategi berubah!']), 'wow', 2400); mascotAct('fly', 1500); mascotEmote(ic('letter'), 2000); await sleep(900 * SPD()); }
+          break;
+        }
+        case 'peak': {
+          SND.play('fanfare');
+          banner('MUSIM PUNCAK!', e.rounds + ' ronde terakhir: semua tol ×' + String(e.mult).replace('.', ',') + '. Saatnya menyalip!', 'gold', 3000, 'festival');
+          if (fresh) { merpiSay('Musim puncak! Siapa yang menyalip di akhir?', 'wow', 2400); mascotAct('spin', 900); mascotEmote(ic('bolt'), 2000); await sleep(900 * SPD()); }
+          break;
+        }
         case 'challenge': {
           if (e.dilemma) { SND.play('good'); break; }
           SND.play(e.ok ? 'fanfare' : 'bad');
@@ -2019,7 +2113,7 @@
 
   G.LoveUI = Object.assign(G.LoveUI || {}, {
     App, D, E, AI, SND, ART, TILES, GROUPS, RULES, KEYS, N,
-    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML,
+    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote,
     applyLayout, sizeBoard, bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax,
     buildBoard, renderBoard, renderTokens, renderPlayers, renderHeader, renderStage, renderCenter: renderStage, renderTicker, renderAll,
     startPick, renderPick, endPick, merpiSay, merpiPoke, pulse, restart, tileEl,

@@ -169,6 +169,14 @@
         return;
       }
       this.doc = d;
+      // reaksi emoji (di luar state permainan, jadi tidak membuat aksi pemain lain "tertinggal")
+      if (d.fx && d.fx.n !== this.fxN) {
+        const mine = d.fx.p === this.mySeat() && this.fxSelf > 0;   // emoji sendiri sudah tampil saat dikirim
+        if (mine) this.fxSelf--;
+        else if (this.fxN != null && d.status === 'playing' && UI.showEmote) UI.showEmote(d.fx.p, d.fx.e);
+        this.fxN = d.fx.n;
+      }
+      if (d.acks && this.emoteIds && this.emoteIds.size) this.emoteIds.forEach(id => { if (d.acks[id]) { this.emoteIds.delete(id); this.db.doc('inbox/' + this.uid + '/intents/' + id).delete().catch(() => {}); } });
       const seat = this.mySeat();
       if (seat >= 0) this.joined = true;
       if (this.joined && seat < 0 && d.status === 'lobby') { this.kicked = true; toast('Kamu sudah tidak ada di room ini.', { kind: 'err' }); }
@@ -344,6 +352,7 @@
       if (seat < 0) res = 'error:Kamu bukan anggota room ini.';
       else if (d.status !== 'playing' || !d.state) res = 'error:Permainan belum dimulai.';
       else if (a.p !== seat) res = 'error:Aksi untuk pemain lain ditolak.';
+      else if (a.type === 'EMOTE') { if (!this.setFx(seat, a.e)) res = 'error:Reaksi tidak dikenal.'; }
       else if (x.baseSeq !== d.state.seq) res = 'error:Layarmu tertinggal satu langkah. Coba lagi.';
       else {
         const r = E.dispatch(d.state, a);
@@ -397,6 +406,28 @@
       })();
     },
     // ----- aksi pemain -----
+    // ----- reaksi emoji -----
+    setFx(p, e) {
+      if (!UI.EMOTES || !UI.EMOTES.includes(e)) return false;
+      const d = this.doc;
+      d.fx = { n: ((d.fx && d.fx.n) || 0) + 1, p, e };
+      this.fxN = d.fx.n;
+      if (UI.showEmote) UI.showEmote(p, e);
+      return true;
+    },
+    emote(e) {
+      const seat = this.mySeat();
+      if (!this.doc || this.doc.status !== 'playing' || seat < 0) return false;
+      if (this.isHost()) { if (this.setFx(seat, e)) this.writeRoom(); return true; }
+      const id = clientId + '-e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      this.emoteIds = this.emoteIds || new Set();
+      this.emoteIds.add(id);
+      UI.showEmote && UI.showEmote(seat, e);
+      this.fxSelf = (this.fxSelf || 0) + 1;
+      this.db.doc('inbox/' + this.uid + '/intents/' + id).set({ room: this.code, action: { type: 'EMOTE', p: seat, e }, baseSeq: 0, ts: Date.now() })
+        .then(() => { if (this.named) this.named.emit('nudge', { id }).catch(() => {}); }).catch(() => {});
+      return true;
+    },
     send(action) {
       if (!this.doc || this.doc.status !== 'playing') return false;
       if (this.isHost()) return this.applyHost(action);

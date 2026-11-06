@@ -9,7 +9,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const MOCK = () => {
   const uid = new URLSearchParams(location.search).get('u');
   if (!uid) return;
-  try { localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system', autoEnd: false })); localStorage.setItem('loveopoly.v2.tour', '"done"'); } catch (e) {}
+  try { localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system', autoEnd: false })); if (!localStorage.getItem('loveopoly.v1.profile')) localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true })); localStorage.setItem('loveopoly.v2.tour', '"done"'); } catch (e) {}
   const PFX = 'mockdb:';
   const listeners = [];
   const read = p => { const v = localStorage.getItem(PFX + p); return v ? JSON.parse(v) : null; };
@@ -291,6 +291,14 @@ const server = http.createServer((req, res) => {
   await guest.waitForFunction(() => { const S = window.LoveUI.App.S; return !S.queue.length && S.proofs && S.proofs.length; }, null, { timeout: 8000 });
   const proofG = await guest.evaluate(() => { const x = window.LoveUI.App.S.proofs.slice(-1)[0]; return x.ok + ' ' + x.proof; });
   ok('duel online: dinilai host dari jawaban tamu, bukti sama di kedua perangkat', /^true 2\/3 cocok/.test(proofG), proofG);
+
+  // reaksi emoji lintas perangkat: tamu mengirim, host melihat emoji di papan (bukan aksi engine, seq tidak berubah)
+  const seqE = await seqOf(host);
+  await host.evaluate(() => { window.__emo = 0; const o = window.LoveUI.showEmote; window.LoveUI.showEmote = (p, e) => { window.__emo = p + ':' + e; o(p, e); }; });
+  await guest.evaluate(() => window.LoveNet.emote('😂'));
+  await host.waitForFunction(() => window.__emo === '1:😂', null, { timeout: 8000 }).catch(() => {});
+  const emo = await host.evaluate(() => window.__emo);
+  ok('reaksi emoji online: tamu → host, state permainan tidak berubah', emo === '1:😂' && (await seqOf(host)) === seqE, 'emo=' + emo);
 
   console.log(results.join('\n'));
   console.log('ERRORS (' + errors.length + '):', errors.slice(0, 10).join('\n'));

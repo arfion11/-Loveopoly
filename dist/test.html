@@ -16,7 +16,7 @@
   --gold: #FFC93C; --gold-2: #FFDD7A; --gold-d: #DD9E0C; --gold-ink: #865600; --gold-soft: #FFF3CF;
   --mint: #16C2A3; --mint-d: #0A7563; --mint-soft: #DDF8F1;
   --sky: #47AEFF; --sky-d: #1B63A6; --sky-soft: #E1F2FF; --sky-ink: #155A99;
-  --danger: #FF5A5F; --danger-d: #B8282E; --danger-soft: #FFE3E4;
+  --danger: #FF5A5F; --danger-d: #B8282E; --danger-soft: #FFE3E4; --danger-ink: #B8282E;
   --board: #FFE2EE; --board-2: #FFD0E3; --frame: #F7BCD5; --frame-d: #E59BBC;
   --tile: #FFFFFF; --tile-edge: #EAC9DA; --tile-ink: #33213F; --plate: #FFF5F9;
   --center: #FFF8FB; --center-2: #FBEFFF;
@@ -35,7 +35,7 @@
     --gold: #FFC93C; --gold-2: #FFDD7A; --gold-d: #C98D06; --gold-ink: #FFD772; --gold-soft: #3F3222;
     --mint: #2AD3B4; --mint-d: #12977F; --mint-soft: #193F3D;
     --sky: #5BB8FF; --sky-d: #2A86D6; --sky-soft: #1D3354; --sky-ink: #9AD2FF;
-    --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230;
+    --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230; --danger-ink: #FF9A9E;
     --board: #2B1E47; --board-2: #34255A; --frame: #4A3874; --frame-d: #2E2150;
     --tile: #3B2D5E; --tile-edge: #1D1533; --tile-ink: #FFF2F8; --plate: #F3EDFF;
     --center: #261B3F; --center-2: #2E2150; --cloud: #3A2C5C;
@@ -51,7 +51,7 @@
   --gold: #FFC93C; --gold-2: #FFDD7A; --gold-d: #C98D06; --gold-ink: #FFD772; --gold-soft: #3F3222;
   --mint: #2AD3B4; --mint-d: #12977F; --mint-soft: #193F3D;
   --sky: #5BB8FF; --sky-d: #2A86D6; --sky-soft: #1D3354; --sky-ink: #9AD2FF;
-  --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230;
+  --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230; --danger-ink: #FF9A9E;
   --board: #2B1E47; --board-2: #34255A; --frame: #4A3874; --frame-d: #2E2150;
   --tile: #3B2D5E; --tile-edge: #1D1533; --tile-ink: #FFF2F8; --plate: #F3EDFF;
   --center: #261B3F; --center-2: #2E2150; --cloud: #3A2C5C;
@@ -136,7 +136,7 @@ button, a, input, textarea, .tile, [role="button"] { touch-action: manipulation;
 .btn.auto::before { content: ""; position: absolute; left: 10px; right: 10px; bottom: 6px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, .85); transform-origin: left; animation: autobar var(--auto, 2400ms) linear forwards; }
 @keyframes autobar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 .btn.choice { justify-content: flex-start; width: 100%; white-space: normal; text-align: left; min-height: 50px; padding: 10px 16px; line-height: 1.3; font-weight: 500; font-family: var(--fb); font-size: 15px; }
-.btn.choice.danger { --b: var(--danger-soft); --bd: var(--danger); --fg: var(--danger-d); }
+.btn.choice.danger { --b: var(--danger-soft); --bd: var(--danger); --fg: var(--danger-ink); }
 .btn.tile-btn { flex-direction: column; gap: 6px; min-height: 84px; padding: 10px; white-space: normal; font-size: 14px; }
 .btn.tile-btn .ic { width: 26px; height: 26px; color: var(--brand); }
 .link-btn { border: 0; background: none; color: var(--brand-ink); font: 700 13px var(--fd); padding: 4px 6px; border-radius: 8px; }
@@ -1107,7 +1107,7 @@ main { position: relative; }
 .banner.take .bn-in { box-shadow: inset 0 0 0 3px var(--violet), 0 6px 0 var(--violet-d), var(--shadow-lg); }
 .banner.take b { color: var(--violet); }
 .banner.warn .bn-in { box-shadow: inset 0 0 0 3px var(--danger), 0 6px 0 var(--danger-d), var(--shadow-lg); }
-.banner.warn b { color: var(--danger-d); }
+.banner.warn b { color: var(--danger-ink); }
 .banner.goal .bn-in { box-shadow: inset 0 0 0 3px var(--mint), 0 6px 0 var(--mint-d), var(--shadow-lg); }
 .banner.goal b { color: var(--mint-d); }
 @keyframes bnIn { from { transform: translate(-50%, -50%) scale(.4) rotate(-6deg); opacity: 0; } }
@@ -1446,7 +1446,7 @@ main { position: relative; }
 .bluff-row { display: flex; gap: 8px; align-items: stretch; }
 .bluff-row .input { flex: 1; min-width: 0; }
 .lie-btn { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font: 600 13px var(--fd); box-shadow: inset 0 0 0 2px var(--line); }
-.lie-btn[aria-pressed="true"] { background: var(--danger-soft); color: var(--danger-d); box-shadow: inset 0 0 0 2.5px var(--danger); }
+.lie-btn[aria-pressed="true"] { background: var(--danger-soft); color: var(--danger-ink); box-shadow: inset 0 0 0 2.5px var(--danger); }
 .bluff-pick { display: grid; gap: 8px; }
 .ch-word { display: grid; justify-items: center; gap: 6px; width: 100%; padding: 22px 14px; border: 0; border-radius: 18px; background: repeating-linear-gradient(45deg, var(--violet-soft) 0 12px, var(--surface-2) 12px 24px); color: var(--ink-2); font: 600 15px var(--fd); box-shadow: inset 0 0 0 2px var(--line); }
 .ch-word.on { background: var(--violet-soft); color: var(--violet-d); }
@@ -1825,7 +1825,6 @@ main { position: relative; }
 }
 @media (max-width: 560px) {
   :root { --hdr: 54px; }
-  body.in-game #hGuide, body.in-game #hSettings { display: none; }
   .brand-name { display: none; }
   .hdr { gap: 8px; }
   .icon-btn { width: 40px; height: 40px; }
@@ -1856,6 +1855,7 @@ main { position: relative; }
   .lv-cards { grid-template-columns: repeat(2, 1fr); }
   .spot-table { grid-template-columns: repeat(3, 1fr); }
   .menu-grid { grid-template-columns: repeat(2, 1fr); }
+  .menu-grid > .btn:last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 64px; flex-direction: row; }
   .g-card { border-radius: 26px; }
   .g-top { padding: 12px 12px 4px 16px; }
   .g-body { padding: 6px 14px 4px; }
@@ -2069,6 +2069,8 @@ main { position: relative; }
   .resume-card .icon-btn { flex: none; }
   .resume-card .rc-ic + .grow + .btn { margin-left: 54px; }
 }
+/* sakelar Suara di menu */
+.btn.tile-btn[aria-pressed="false"] .ic { color: var(--ink-3); }
 
 </style>
 <div class="page-sky" aria-hidden="true"></div>
@@ -2076,10 +2078,7 @@ main { position: relative; }
   <a class="brand" href="#" id="brandHome" aria-label="Loveopoly, ke menu utama"><span class="brand-mark"></span><span class="brand-name">Loveopoly</span></a>
   <div class="hdr-mid" id="hdrMid"></div>
   <div class="hdr-right">
-    <button class="icon-btn" id="hGuide" type="button" aria-label="Buku panduan"></button>
-    <button class="icon-btn" id="hSound" type="button" aria-pressed="true" aria-label="Efek suara"></button>
-    <button class="icon-btn" id="hSettings" type="button" aria-label="Pengaturan"></button>
-    <button class="icon-btn accent" id="hMenu" type="button" aria-label="Menu permainan" hidden></button>
+    <button class="icon-btn accent" id="hMenu" type="button" aria-label="Menu" aria-haspopup="dialog"></button>
   </div>
 </header>
 <main>
@@ -7857,7 +7856,34 @@ main { position: relative; }
     }
     return h;
   }
+  // sakelar suara di dalam menu (nama aksesibel = teks yang terlihat, status lewat aria-pressed)
+  const soundTile = () => btn('id="mSound" aria-pressed="' + App.prefs.sound + '"', 'tile-btn', App.prefs.sound ? 'soundOn' : 'soundOff', App.prefs.sound ? 'Suara nyala' : 'Suara mati');
+  // menu beranda (belum ada permainan berjalan)
+  function openHomeMenu() {
+    showModal({
+      key: 'menu-home', size: 'mid',
+      build: () => ({
+        title: 'Menu', kicker: ic('menu') + 'Loveopoly',
+        body: '<div class="menu-grid">' +
+          btn('id="mGuide"', 'tile-btn', 'book', 'Buku Panduan') +
+          soundTile() +
+          btn('id="mSet"', 'tile-btn', 'sliders', 'Pengaturan') +
+          btn('id="mPass"', 'tile-btn', 'user', 'Paspor Cinta') +
+          btn('id="mPriv"', 'tile-btn', 'shield', 'Privasi & data') +
+          '</div>',
+        foot: ''
+      }),
+      mount: m => {
+        on(m, '#mGuide', () => { closeModal(true); UI.openGuide(); });
+        on(m, '#mSound', () => UI.toggleSound());
+        on(m, '#mSet', openSettings);
+        on(m, '#mPass', () => { closeModal(true); UI.openPassport(); });
+        on(m, '#mPriv', openPrivacy);
+      }
+    });
+  }
   function openMenu() {
+    if (!App.S || $('#scrGame').hidden) { openHomeMenu(); return; }
     let confirm = '';
     showModal({
       key: 'menu', size: 'mid',
@@ -7870,10 +7896,11 @@ main { position: relative; }
             btn('id="mGuide"', 'tile-btn', 'book', 'Buku Panduan') +
             btn('id="mHist"', 'tile-btn', 'history', 'Riwayat') +
             btn('id="mPf"', 'tile-btn', 'briefcase', 'Asetku') +
+            soundTile() +
             btn('id="mSet"', 'tile-btn', 'sliders', 'Pengaturan') +
             btn('id="mPause"', 'tile-btn', S.paused ? 'play' : 'pause', S.paused ? 'Lanjutkan' : 'Jeda') +
-            btn('id="mExit"', 'tile-btn', 'exit', 'Keluar') +
             '</div><div class="choice-list">' +
+            btn('id="mExit"', 'choice', 'exit', 'Keluar ke beranda (progres tersimpan)') +
             btn('id="mFinish"', 'choice', 'trophy', confirm === 'finish' ? 'Yakin? Pemenang = aset terbesar sekarang' : 'Akhiri & hitung aset', !canEndNow) +
             btn('id="mResign"', 'choice danger', 'flag', confirm === 'resign' ? 'Yakin menyerah? Kotamu kembali ke bank' : 'Menyerah (' + S.players[cur].name + ')', !canEndNow) +
             '</div>' + (!canEndNow ? '<div class="tiny muted">Akhiri/menyerah hanya di giliran pemain manusia tanpa keputusan tertunda.</div>' : '') + onlineControls(),
@@ -7886,6 +7913,7 @@ main { position: relative; }
         on(m, '#mHist', openHistory);
         on(m, '#mPf', () => openPortfolio(viewer()));
         on(m, '#mSet', openSettings);
+        on(m, '#mSound', () => UI.toggleSound());
         on(m, '#mPause', () => { closeModal(); UI.togglePause(); });
         on(m, '#mFinish', () => { if (confirm !== 'finish') { confirm = 'finish'; refreshModal(); return; } closeModal(); act({ type: 'FINISH_NOW', p: cur }); });
         on(m, '#mResign', () => { if (confirm !== 'resign') { confirm = 'resign'; refreshModal(); return; } closeModal(); act({ type: 'RESIGN', p: cur }); });
@@ -8864,7 +8892,6 @@ main { position: relative; }
     $$('.screen').forEach(s => { s.hidden = s.id !== id; });
     const inGame = id === 'scrGame';
     document.body.classList.toggle('in-game', inGame);
-    $('#hMenu').hidden = !inGame;
     if (!inGame) UI.renderHeader(null);
     window.scrollTo(0, 0);
   }
@@ -8874,12 +8901,9 @@ main { position: relative; }
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
     else document.documentElement.removeAttribute('data-theme');
   }
-  function syncSoundBtn() {
-    const b = $('#hSound');
-    b.setAttribute('aria-pressed', String(App.prefs.sound));
-    b.innerHTML = ic(App.prefs.sound ? 'soundOn' : 'soundOff');
-    b.setAttribute('aria-label', App.prefs.sound ? 'Matikan suara' : 'Nyalakan suara');
-  }
+  // suara diatur dari Menu (sakelar Suara); fungsi ini hanya menyelaraskan menu yang sedang terbuka
+  function syncSoundBtn() { if (App.modal && /^menu/.test(App.modal.key || '') && UI.refreshModal) UI.refreshModal(); }
+  function toggleSound() { App.prefs.sound = !App.prefs.sound; SND.setEnabled(App.prefs.sound); if (App.prefs.sound) SND.play('click'); savePrefs(); syncSoundBtn(); }
   const seg = (name, opts, val) => '<div class="seg" role="group" data-seg="' + name + '">' + opts.map(([k, l]) => '<button type="button" data-v="' + k + '" aria-pressed="' + (String(val) === String(k)) + '">' + esc(l) + '</button>').join('') + '</div>';
   const validSave = s => s && s.S && s.S.v === 2 && !s.S.over && Array.isArray(s.S.tiles) && s.S.tiles.length === TILES.length;
 
@@ -9510,7 +9534,7 @@ main { position: relative; }
     steps.push({ sel: '#stage', title: 'Mulai dari sini', text: mine ? howRoll.charAt(0).toUpperCase() + howRoll.slice(1) : 'Undian giliran: ' + S.players[S.turn.p].name + ' jalan duluan. Saat giliranmu, ' + howRoll });
     steps.push({ sel: '#boardVP', title: 'Beli kota, bangun, tarik tol', text: 'Mendarat di kota kosong: beli tanah + villa/gedung/hotel sekaligus. Ketuk petak mana pun untuk melihat detailnya.' });
     if (st.instantWin) steps.push({ sel: '#game .pcard', title: 'Menang lebih cepat', text: 'Kuasai 3 grup warna, satu jalur penuh, atau 5 tempat wisata. Petak berdenyut = ada yang hampir menang!' });
-    steps.push({ sel: '#hMenu', title: 'Menu & panduan', text: 'Buku Panduan bergambar, riwayat, dan pengaturan ada di sini.' });
+    steps.push({ sel: '#hMenu', title: 'Semua ada di Menu', text: 'Buku Panduan, suara, pengaturan, riwayat, jeda, dan keluar ada di tombol ini.' });
     return steps;
   }
   let tourPlace = null;
@@ -9594,12 +9618,9 @@ main { position: relative; }
 
   // ---------- boot ----------
   function bindHeader() {
-    $('#hSound').onclick = () => { App.prefs.sound = !App.prefs.sound; SND.setEnabled(App.prefs.sound); if (App.prefs.sound) SND.play('click'); savePrefs(); syncSoundBtn(); };
-    $('#hGuide').onclick = () => UI.openGuide();
-    $('#hSettings').onclick = UI.openSettings;
     $('#hMenu').onclick = () => UI.openMenu();
     $('#brandHome').onclick = e => { e.preventDefault(); if (App.S && !$('#scrGame').hidden) UI.openExit(); else { show('scrHome'); renderHome(); } };
-    $('#hMenu').innerHTML = ic('menu'); $('#hGuide').innerHTML = ic('book'); $('#hSettings').innerHTML = ic('sliders');
+    $('#hMenu').innerHTML = ic('menu');
     $('.brand-mark').innerHTML = ART.merpi('');
   }
   function boot() {
@@ -9619,7 +9640,7 @@ main { position: relative; }
     if (!pp.name && !pp.skipped) setTimeout(() => { if (!$('#scrHome').hidden && !App.S) openPassport({ first: true }); }, UI.reduceMotion() ? 0 : 350);
   }
 
-  Object.assign(UI, { openPassport, passport, recordPassport, show, savePrefs, applyTheme, syncSoundBtn, renderHome, openSetup, openOnline, renderLobby, enterGame, exitToHome, togglePause, showWin, afterSettle, onLetter, boot, startTour, endTour });
+  Object.assign(UI, { toggleSound, openPassport, passport, recordPassport, show, savePrefs, applyTheme, syncSoundBtn, renderHome, openSetup, openOnline, renderLobby, enterGame, exitToHome, togglePause, showWin, afterSettle, onLetter, boot, startTour, endTour });
 
   const start = () => { try { boot(); } catch (e) { console.error(e); const m = document.getElementById('fatal'); if (m) { m.hidden = false; m.textContent = 'Terjadi kesalahan saat memuat game: ' + e.message; } } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

@@ -66,6 +66,9 @@ const PLAYERS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Na
       await p.evaluate(() => window.LoveUI.openGuide(0)); await p.waitForSelector('#guideOv');
       await audit(p, tag + ' panduan', '#guideOv');
       await p.evaluate(() => window.LoveUI.closeGuide());
+      await click(p, '#hMenu'); await p.waitForSelector('#modalRoot:not([hidden]) #mSound');
+      await audit(p, tag + ' menu beranda', '#modalRoot');
+      await p.evaluate(() => window.LoveUI.closeModal(true));
       await click(p, '#hPrivacy'); await p.waitForSelector('#modalRoot:not([hidden]) #pvOk');
       await audit(p, tag + ' privasi', '#modalRoot');
       await p.evaluate(() => window.LoveUI.closeModal(true));
@@ -74,6 +77,9 @@ const PLAYERS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Na
       await newGame(p, "S.round = 9; S.news = { id: 'holiday', side: 'top', from: 9, to: 10 }; [1, 2].forEach(t => { S.tiles[t].owner = 1; S.tiles[t].level = 2; });");
       await settle(p);
       await audit(p, tag + ' papan');
+      await click(p, '#hMenu'); await p.waitForSelector('#modalRoot:not([hidden]) #mHist');
+      await audit(p, tag + ' menu permainan', '#modalRoot');
+      await p.evaluate(() => window.LoveUI.closeModal(true));
       await click(p, '#emoteBtn');
       await audit(p, tag + ' palet reaksi', '#emote');
       await click(p, '#emoteBtn');

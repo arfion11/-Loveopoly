@@ -9,7 +9,7 @@
   --gold: #FFC93C; --gold-2: #FFDD7A; --gold-d: #DD9E0C; --gold-ink: #865600; --gold-soft: #FFF3CF;
   --mint: #16C2A3; --mint-d: #0A7563; --mint-soft: #DDF8F1;
   --sky: #47AEFF; --sky-d: #1B63A6; --sky-soft: #E1F2FF; --sky-ink: #155A99;
-  --danger: #FF5A5F; --danger-d: #B8282E; --danger-soft: #FFE3E4;
+  --danger: #FF5A5F; --danger-d: #B8282E; --danger-soft: #FFE3E4; --danger-ink: #B8282E;
   --board: #FFE2EE; --board-2: #FFD0E3; --frame: #F7BCD5; --frame-d: #E59BBC;
   --tile: #FFFFFF; --tile-edge: #EAC9DA; --tile-ink: #33213F; --plate: #FFF5F9;
   --center: #FFF8FB; --center-2: #FBEFFF;
@@ -28,7 +28,7 @@
     --gold: #FFC93C; --gold-2: #FFDD7A; --gold-d: #C98D06; --gold-ink: #FFD772; --gold-soft: #3F3222;
     --mint: #2AD3B4; --mint-d: #12977F; --mint-soft: #193F3D;
     --sky: #5BB8FF; --sky-d: #2A86D6; --sky-soft: #1D3354; --sky-ink: #9AD2FF;
-    --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230;
+    --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230; --danger-ink: #FF9A9E;
     --board: #2B1E47; --board-2: #34255A; --frame: #4A3874; --frame-d: #2E2150;
     --tile: #3B2D5E; --tile-edge: #1D1533; --tile-ink: #FFF2F8; --plate: #F3EDFF;
     --center: #261B3F; --center-2: #2E2150; --cloud: #3A2C5C;
@@ -44,7 +44,7 @@
   --gold: #FFC93C; --gold-2: #FFDD7A; --gold-d: #C98D06; --gold-ink: #FFD772; --gold-soft: #3F3222;
   --mint: #2AD3B4; --mint-d: #12977F; --mint-soft: #193F3D;
   --sky: #5BB8FF; --sky-d: #2A86D6; --sky-soft: #1D3354; --sky-ink: #9AD2FF;
-  --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230;
+  --danger: #FF6B70; --danger-d: #C93B41; --danger-soft: #4A2230; --danger-ink: #FF9A9E;
   --board: #2B1E47; --board-2: #34255A; --frame: #4A3874; --frame-d: #2E2150;
   --tile: #3B2D5E; --tile-edge: #1D1533; --tile-ink: #FFF2F8; --plate: #F3EDFF;
   --center: #261B3F; --center-2: #2E2150; --cloud: #3A2C5C;
@@ -129,7 +129,7 @@ button, a, input, textarea, .tile, [role="button"] { touch-action: manipulation;
 .btn.auto::before { content: ""; position: absolute; left: 10px; right: 10px; bottom: 6px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, .85); transform-origin: left; animation: autobar var(--auto, 2400ms) linear forwards; }
 @keyframes autobar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 .btn.choice { justify-content: flex-start; width: 100%; white-space: normal; text-align: left; min-height: 50px; padding: 10px 16px; line-height: 1.3; font-weight: 500; font-family: var(--fb); font-size: 15px; }
-.btn.choice.danger { --b: var(--danger-soft); --bd: var(--danger); --fg: var(--danger-d); }
+.btn.choice.danger { --b: var(--danger-soft); --bd: var(--danger); --fg: var(--danger-ink); }
 .btn.tile-btn { flex-direction: column; gap: 6px; min-height: 84px; padding: 10px; white-space: normal; font-size: 14px; }
 .btn.tile-btn .ic { width: 26px; height: 26px; color: var(--brand); }
 .link-btn { border: 0; background: none; color: var(--brand-ink); font: 700 13px var(--fd); padding: 4px 6px; border-radius: 8px; }
@@ -1100,7 +1100,7 @@ main { position: relative; }
 .banner.take .bn-in { box-shadow: inset 0 0 0 3px var(--violet), 0 6px 0 var(--violet-d), var(--shadow-lg); }
 .banner.take b { color: var(--violet); }
 .banner.warn .bn-in { box-shadow: inset 0 0 0 3px var(--danger), 0 6px 0 var(--danger-d), var(--shadow-lg); }
-.banner.warn b { color: var(--danger-d); }
+.banner.warn b { color: var(--danger-ink); }
 .banner.goal .bn-in { box-shadow: inset 0 0 0 3px var(--mint), 0 6px 0 var(--mint-d), var(--shadow-lg); }
 .banner.goal b { color: var(--mint-d); }
 @keyframes bnIn { from { transform: translate(-50%, -50%) scale(.4) rotate(-6deg); opacity: 0; } }
@@ -1439,7 +1439,7 @@ main { position: relative; }
 .bluff-row { display: flex; gap: 8px; align-items: stretch; }
 .bluff-row .input { flex: 1; min-width: 0; }
 .lie-btn { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font: 600 13px var(--fd); box-shadow: inset 0 0 0 2px var(--line); }
-.lie-btn[aria-pressed="true"] { background: var(--danger-soft); color: var(--danger-d); box-shadow: inset 0 0 0 2.5px var(--danger); }
+.lie-btn[aria-pressed="true"] { background: var(--danger-soft); color: var(--danger-ink); box-shadow: inset 0 0 0 2.5px var(--danger); }
 .bluff-pick { display: grid; gap: 8px; }
 .ch-word { display: grid; justify-items: center; gap: 6px; width: 100%; padding: 22px 14px; border: 0; border-radius: 18px; background: repeating-linear-gradient(45deg, var(--violet-soft) 0 12px, var(--surface-2) 12px 24px); color: var(--ink-2); font: 600 15px var(--fd); box-shadow: inset 0 0 0 2px var(--line); }
 .ch-word.on { background: var(--violet-soft); color: var(--violet-d); }
@@ -1818,7 +1818,6 @@ main { position: relative; }
 }
 @media (max-width: 560px) {
   :root { --hdr: 54px; }
-  body.in-game #hGuide, body.in-game #hSettings { display: none; }
   .brand-name { display: none; }
   .hdr { gap: 8px; }
   .icon-btn { width: 40px; height: 40px; }
@@ -1849,6 +1848,7 @@ main { position: relative; }
   .lv-cards { grid-template-columns: repeat(2, 1fr); }
   .spot-table { grid-template-columns: repeat(3, 1fr); }
   .menu-grid { grid-template-columns: repeat(2, 1fr); }
+  .menu-grid > .btn:last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 64px; flex-direction: row; }
   .g-card { border-radius: 26px; }
   .g-top { padding: 12px 12px 4px 16px; }
   .g-body { padding: 6px 14px 4px; }
@@ -2062,3 +2062,5 @@ main { position: relative; }
   .resume-card .icon-btn { flex: none; }
   .resume-card .rc-ic + .grow + .btn { margin-left: 54px; }
 }
+/* sakelar Suara di menu */
+.btn.tile-btn[aria-pressed="false"] .ic { color: var(--ink-3); }

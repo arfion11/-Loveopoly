@@ -26,6 +26,7 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 - Urutan gabung: data → engine → ai → icons → art → audio → ui-core → ui-modals → firebase-config → backend → net → guide → ui-screens (`ORDER` di `build.mjs`).
 - `engine.js` murni & deterministik: `dispatch(state, action)` mengembalikan `{ ok, state | error }`. UI dan online hanya memanggil ini; aturan baru masuk ke engine + `test/sim.js`.
 - `SIDES` di `data.js` (petak 1–7, 9–15, 17–23, 25–31) dipakai syarat menang "jalur": papan harus tetap 7 petak per sisi (jangan ganti bentuk papan).
+- Header hanya berisi satu tombol `#hMenu` (beranda & game). `UI.openMenu()` membuka menu beranda (Panduan, Suara, Pengaturan, Paspor, Privasi) bila belum ada game, atau menu permainan (+ Riwayat, Asetku, Jeda, Keluar, Akhiri, Menyerah). Suara diubah lewat `UI.toggleSound()`; jangan menambah tombol header baru, taruh di menu.
 - Tata letak (`computeLayout()` di `ui-core.js`): `wide` (desktop/tablet mendatar, panel aksi di kolom kanan saat 3D), `mid` (tablet tegak, dok bawah), `compact` (HP tegak), `land` (HP mendatar).
 
 ## Papan 3D (`ui-core.js` bagian kamera + blok "papan 3D" di `style.css`)

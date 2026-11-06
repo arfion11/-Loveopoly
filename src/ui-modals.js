@@ -956,7 +956,34 @@
     }
     return h;
   }
+  // sakelar suara di dalam menu (nama aksesibel = teks yang terlihat, status lewat aria-pressed)
+  const soundTile = () => btn('id="mSound" aria-pressed="' + App.prefs.sound + '"', 'tile-btn', App.prefs.sound ? 'soundOn' : 'soundOff', App.prefs.sound ? 'Suara nyala' : 'Suara mati');
+  // menu beranda (belum ada permainan berjalan)
+  function openHomeMenu() {
+    showModal({
+      key: 'menu-home', size: 'mid',
+      build: () => ({
+        title: 'Menu', kicker: ic('menu') + 'Loveopoly',
+        body: '<div class="menu-grid">' +
+          btn('id="mGuide"', 'tile-btn', 'book', 'Buku Panduan') +
+          soundTile() +
+          btn('id="mSet"', 'tile-btn', 'sliders', 'Pengaturan') +
+          btn('id="mPass"', 'tile-btn', 'user', 'Paspor Cinta') +
+          btn('id="mPriv"', 'tile-btn', 'shield', 'Privasi & data') +
+          '</div>',
+        foot: ''
+      }),
+      mount: m => {
+        on(m, '#mGuide', () => { closeModal(true); UI.openGuide(); });
+        on(m, '#mSound', () => UI.toggleSound());
+        on(m, '#mSet', openSettings);
+        on(m, '#mPass', () => { closeModal(true); UI.openPassport(); });
+        on(m, '#mPriv', openPrivacy);
+      }
+    });
+  }
   function openMenu() {
+    if (!App.S || $('#scrGame').hidden) { openHomeMenu(); return; }
     let confirm = '';
     showModal({
       key: 'menu', size: 'mid',
@@ -969,10 +996,11 @@
             btn('id="mGuide"', 'tile-btn', 'book', 'Buku Panduan') +
             btn('id="mHist"', 'tile-btn', 'history', 'Riwayat') +
             btn('id="mPf"', 'tile-btn', 'briefcase', 'Asetku') +
+            soundTile() +
             btn('id="mSet"', 'tile-btn', 'sliders', 'Pengaturan') +
             btn('id="mPause"', 'tile-btn', S.paused ? 'play' : 'pause', S.paused ? 'Lanjutkan' : 'Jeda') +
-            btn('id="mExit"', 'tile-btn', 'exit', 'Keluar') +
             '</div><div class="choice-list">' +
+            btn('id="mExit"', 'choice', 'exit', 'Keluar ke beranda (progres tersimpan)') +
             btn('id="mFinish"', 'choice', 'trophy', confirm === 'finish' ? 'Yakin? Pemenang = aset terbesar sekarang' : 'Akhiri & hitung aset', !canEndNow) +
             btn('id="mResign"', 'choice danger', 'flag', confirm === 'resign' ? 'Yakin menyerah? Kotamu kembali ke bank' : 'Menyerah (' + S.players[cur].name + ')', !canEndNow) +
             '</div>' + (!canEndNow ? '<div class="tiny muted">Akhiri/menyerah hanya di giliran pemain manusia tanpa keputusan tertunda.</div>' : '') + onlineControls(),
@@ -985,6 +1013,7 @@
         on(m, '#mHist', openHistory);
         on(m, '#mPf', () => openPortfolio(viewer()));
         on(m, '#mSet', openSettings);
+        on(m, '#mSound', () => UI.toggleSound());
         on(m, '#mPause', () => { closeModal(); UI.togglePause(); });
         on(m, '#mFinish', () => { if (confirm !== 'finish') { confirm = 'finish'; refreshModal(); return; } closeModal(); act({ type: 'FINISH_NOW', p: cur }); });
         on(m, '#mResign', () => { if (confirm !== 'resign') { confirm = 'resign'; refreshModal(); return; } closeModal(); act({ type: 'RESIGN', p: cur }); });

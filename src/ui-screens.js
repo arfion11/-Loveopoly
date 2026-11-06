@@ -9,7 +9,6 @@
     $$('.screen').forEach(s => { s.hidden = s.id !== id; });
     const inGame = id === 'scrGame';
     document.body.classList.toggle('in-game', inGame);
-    $('#hMenu').hidden = !inGame;
     if (!inGame) UI.renderHeader(null);
     window.scrollTo(0, 0);
   }
@@ -19,12 +18,9 @@
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
     else document.documentElement.removeAttribute('data-theme');
   }
-  function syncSoundBtn() {
-    const b = $('#hSound');
-    b.setAttribute('aria-pressed', String(App.prefs.sound));
-    b.innerHTML = ic(App.prefs.sound ? 'soundOn' : 'soundOff');
-    b.setAttribute('aria-label', App.prefs.sound ? 'Matikan suara' : 'Nyalakan suara');
-  }
+  // suara diatur dari Menu (sakelar Suara); fungsi ini hanya menyelaraskan menu yang sedang terbuka
+  function syncSoundBtn() { if (App.modal && /^menu/.test(App.modal.key || '') && UI.refreshModal) UI.refreshModal(); }
+  function toggleSound() { App.prefs.sound = !App.prefs.sound; SND.setEnabled(App.prefs.sound); if (App.prefs.sound) SND.play('click'); savePrefs(); syncSoundBtn(); }
   const seg = (name, opts, val) => '<div class="seg" role="group" data-seg="' + name + '">' + opts.map(([k, l]) => '<button type="button" data-v="' + k + '" aria-pressed="' + (String(val) === String(k)) + '">' + esc(l) + '</button>').join('') + '</div>';
   const validSave = s => s && s.S && s.S.v === 2 && !s.S.over && Array.isArray(s.S.tiles) && s.S.tiles.length === TILES.length;
 
@@ -655,7 +651,7 @@
     steps.push({ sel: '#stage', title: 'Mulai dari sini', text: mine ? howRoll.charAt(0).toUpperCase() + howRoll.slice(1) : 'Undian giliran: ' + S.players[S.turn.p].name + ' jalan duluan. Saat giliranmu, ' + howRoll });
     steps.push({ sel: '#boardVP', title: 'Beli kota, bangun, tarik tol', text: 'Mendarat di kota kosong: beli tanah + villa/gedung/hotel sekaligus. Ketuk petak mana pun untuk melihat detailnya.' });
     if (st.instantWin) steps.push({ sel: '#game .pcard', title: 'Menang lebih cepat', text: 'Kuasai 3 grup warna, satu jalur penuh, atau 5 tempat wisata. Petak berdenyut = ada yang hampir menang!' });
-    steps.push({ sel: '#hMenu', title: 'Menu & panduan', text: 'Buku Panduan bergambar, riwayat, dan pengaturan ada di sini.' });
+    steps.push({ sel: '#hMenu', title: 'Semua ada di Menu', text: 'Buku Panduan, suara, pengaturan, riwayat, jeda, dan keluar ada di tombol ini.' });
     return steps;
   }
   let tourPlace = null;
@@ -739,12 +735,9 @@
 
   // ---------- boot ----------
   function bindHeader() {
-    $('#hSound').onclick = () => { App.prefs.sound = !App.prefs.sound; SND.setEnabled(App.prefs.sound); if (App.prefs.sound) SND.play('click'); savePrefs(); syncSoundBtn(); };
-    $('#hGuide').onclick = () => UI.openGuide();
-    $('#hSettings').onclick = UI.openSettings;
     $('#hMenu').onclick = () => UI.openMenu();
     $('#brandHome').onclick = e => { e.preventDefault(); if (App.S && !$('#scrGame').hidden) UI.openExit(); else { show('scrHome'); renderHome(); } };
-    $('#hMenu').innerHTML = ic('menu'); $('#hGuide').innerHTML = ic('book'); $('#hSettings').innerHTML = ic('sliders');
+    $('#hMenu').innerHTML = ic('menu');
     $('.brand-mark').innerHTML = ART.merpi('');
   }
   function boot() {
@@ -764,7 +757,7 @@
     if (!pp.name && !pp.skipped) setTimeout(() => { if (!$('#scrHome').hidden && !App.S) openPassport({ first: true }); }, UI.reduceMotion() ? 0 : 350);
   }
 
-  Object.assign(UI, { openPassport, passport, recordPassport, show, savePrefs, applyTheme, syncSoundBtn, renderHome, openSetup, openOnline, renderLobby, enterGame, exitToHome, togglePause, showWin, afterSettle, onLetter, boot, startTour, endTour });
+  Object.assign(UI, { toggleSound, openPassport, passport, recordPassport, show, savePrefs, applyTheme, syncSoundBtn, renderHome, openSetup, openOnline, renderLobby, enterGame, exitToHome, togglePause, showWin, afterSettle, onLetter, boot, startTour, endTour });
 
   const start = () => { try { boot(); } catch (e) { console.error(e); const m = document.getElementById('fatal'); if (m) { m.hidden = false; m.textContent = 'Terjadi kesalahan saat memuat game: ' + e.message; } } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

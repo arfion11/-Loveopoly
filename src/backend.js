@@ -10,8 +10,8 @@
   const VER = '10.14.1';
   const SDK = ['app', 'auth', 'firestore', 'database'].map(n => 'https://www.gstatic.com/firebasejs/' + VER + '/firebase-' + n + '-compat.js');
   const INDEX_KEYS = ['hostUid', 'status', 'room', 'uid', 'exp', 'holder'];
-  // privasi: setiap dokumen (room + Foto Bukti, lease, lobby, intent) kedaluwarsa 7 hari setelah tulisan terakhir;
-  // kebijakan TTL Firestore (firestore.indexes.json → fieldOverrides expireAt) menghapusnya otomatis
+  // privasi: setiap dokumen (room + Foto Bukti, lease, lobby, intent) diberi expireAt 7 hari setelah tulisan terakhir.
+  // Penghapusannya baru aktif setelah kebijakan TTL Firestore dipasang (butuh paket Blaze; lihat CLAUDE.md)
   const KEEP_DAYS = 7;
 
   let loading = null, authing = null, app = null;

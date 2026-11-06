@@ -682,7 +682,7 @@
         (counting ? '<b class="cam-cd" aria-live="assertive">' + counting + '</b>' : '') + '</div>' +
         '<div class="cam-bar">' + (url ? btn('id="camRetake"', 'soft', 'refresh', 'Foto ulang') : live ? btn('id="camSnap" data-focus', 'go', 'polaroid', counting ? 'Siap…' : 'Cekrek (3 dtk)', !!counting) : btn('id="camOpen"', 'primary', 'polaroid', 'Buka kamera')) +
         '<label class="btn ghost cam-file">' + ic('plus') + '<span>Unggah foto</span><input type="file" accept="image/*" capture="user" id="camFile" class="sr-only"></label></div>' +
-        '<p class="cam-note">' + ic('shield') + '<span>Foto dikecilkan dan hanya dilihat pemain di permainan ini. Online: terhapus otomatis 7 hari setelah room tidak aktif. <button type="button" class="link-btn" id="camPriv">Privasi</button></span></p>';
+        '<p class="cam-note">' + ic('shield') + '<span>Foto dikecilkan dan hanya dilihat pemain di permainan ini. Online: foto tersimpan di room bersama permainan. <button type="button" class="link-btn" id="camPriv">Privasi</button></span></p>';
       const v = el.querySelector('#camVid'); if (v && stream) { v.srcObject = stream; v.play().catch(() => {}); }
       const o = el.querySelector('#camOpen'); if (o) o.addEventListener('click', open);
       const r = el.querySelector('#camRetake'); if (r) r.addEventListener('click', () => { url = ''; onShot(''); if (!stream) open(); else draw(); });
@@ -700,7 +700,7 @@
           onShot(url); draw();
         }, 800);
       });
-      const pv = el.querySelector('#camPriv'); if (pv) pv.addEventListener('click', () => toast('Foto Bukti dikecilkan (±20 KB), hanya dilihat pemain di permainan yang sama, dan room online terhapus otomatis 7 hari setelah tidak aktif. Detail: Pengaturan → Privasi & data.', { title: 'Privasi foto', icon: 'shield', ms: 7000 }));
+      const pv = el.querySelector('#camPriv'); if (pv) pv.addEventListener('click', () => toast('Foto Bukti dikecilkan (±20 KB) dan hanya dilihat pemain di permainan yang sama. Saat main online, foto tersimpan di room bersama permainan. Detail: Pengaturan → Privasi & data.', { title: 'Privasi foto', icon: 'shield', ms: 7000 }));
       const f = el.querySelector('#camFile');
       if (f) f.addEventListener('change', () => {
         const file = f.files && f.files[0]; if (!file) return;
@@ -1048,7 +1048,7 @@
             row('user', 'Paspor Cinta & simpanan game', 'Nama, avatar, warna pion, statistik, cap kota, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser).') +
             row('globe', 'Main online', 'Saat main online kamu masuk tanpa akun (login anonim Firebase: kode acak, tanpa email/nomor HP). Nama, avatar, isi permainan, surat, dan Foto Bukti disimpan di room (Google Firebase) dan hanya bisa dibuka oleh orang yang tahu kode room-nya.') +
             row('polaroid', 'Foto Bukti', 'Foto hanya diambil saat kamu menekan tombol kamera, dikecilkan sebelum dikirim, dan hanya dilihat pemain di permainan yang sama. Di perangkat: maksimal 4 foto terakhir per permainan.') +
-            row('clock', 'Dihapus otomatis', 'Room online beserta Foto Bukti dan surat di dalamnya terhapus otomatis 7 hari setelah tidak ada aktivitas. Host juga bisa menghapus room kapan saja lewat Keluar Room.') +
+            row('clock', 'Berapa lama disimpan', 'Room online beserta Foto Bukti dan surat di dalamnya saat ini tetap tersimpan di server setelah permainan selesai. Kirim hanya foto yang kamu nyaman dibagikan ke pemain lain di room.') +
             '</div>' +
             '<div class="pv-del">' + (confirmDel ? '<div class="note warn">' + ic('alert') + '<span>Hapus Paspor Cinta, simpanan game, dan pengaturan di perangkat ini? Tidak bisa dibatalkan.</span></div>' : '') +
             btn('id="pvDel"', confirmDel ? 'danger' : 'ghost', 'x', confirmDel ? 'Ya, hapus data perangkat ini' : 'Hapus data di perangkat ini') + '</div>',

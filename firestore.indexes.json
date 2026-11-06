@@ -1,9 +1,1 @@
-{
-  "indexes": [],
-  "fieldOverrides": [
-    { "collectionGroup": "rooms", "fieldPath": "expireAt", "ttl": true, "indexes": [] },
-    { "collectionGroup": "locks", "fieldPath": "expireAt", "ttl": true, "indexes": [] },
-    { "collectionGroup": "lobby", "fieldPath": "expireAt", "ttl": true, "indexes": [] },
-    { "collectionGroup": "intents", "fieldPath": "expireAt", "ttl": true, "indexes": [] }
-  ]
-}
+{ "indexes": [], "fieldOverrides": [] }

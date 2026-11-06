@@ -223,7 +223,7 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   // Rindu Challenge: gagal = tetap di pulau
   await newGame('S.players[0].pos = 8; S.players[0].island = true;', null, [HUMANS[0], { name: 'Bot', kind: 'ai', avatar: '🤖', color: '#7B61FF' }]);
   await act({ type: 'ISLAND_CH', p: 0 });
-  const rinduType = await page.evaluate(() => { const it = window.LoveUI.App.S.queue[0]; return window.LoveEngine.CH[it.ch].type + (it.hard ? ' (sulit)' : ''); });
+  const rinduType = await page.evaluate(() => { const it = window.LoveUI.App.S.queue[0]; return window.LoveEngine.CH[it.ch].type + (it.isle ? ' (pulau)' : ''); });
   await act({ type: 'CH_ANSWER', p: 0, answers: [], ms: 1000 });
   st = await S();
   ok('Rindu Challenge: jawaban salah → tetap di Pulau Rindu', st.players[0].island && st.players[0].islandCh && !st.queue.length && st.proofs.length === 1 && !st.proofs[0].ok, rinduType + ' · ' + (st.proofs[0] && st.proofs[0].proof));

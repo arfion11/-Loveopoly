@@ -364,7 +364,7 @@
     if (r.love) out.push('<span class="chip rose">' + ic('heart') + 'Love +' + r.love + '</span>');
     if (ch.type === 'dilemma') out.push('<span class="chip lilac">' + ic('scale') + 'Pilihanmu mengubah strategi</span>');
     if (jr && it && it.judge >= 0) out.push('<span class="chip mint">' + ic('users') + (ch.type === 'bluff' ? 'Ketahuan: ' : 'Penilai juga: ') + [jr.gain ? '+' + jr.gain : '', jr.love ? 'Love +' + jr.love : ''].filter(Boolean).join(' ') + '</span>');
-    if (it && it.hard) out.push('<span class="chip lilac">' + ic('island') + 'Mode sulit · lulus = keluar pulau</span>');
+    if (it && it.isle) out.push('<span class="chip lilac">' + ic('island') + 'Lulus = keluar dari Pulau Rindu</span>');
     if (s.love) out.push('<span class="chip plain">Lewati: Love ' + s.love + '</span>');
     return '<div class="reward-row">' + out.join('') + '</div>';
   }

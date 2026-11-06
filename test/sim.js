@@ -129,7 +129,7 @@ for (const t of D.AUTO_TYPES) {
 // pulau rindu: hanya keluar jika benar
 S = E.create({ players: [{ name: 'A' }, { name: 'B', kind: 'ai' }], seed: 3 }); S.players[0].pos = 8; S.players[0].island = true;
 let r = d(S, { type: 'ISLAND_CH', p: 0 }); const it = r.S.queue[0];
-ok('rindu: lawan bot → hanya auto & mode sulit', D.AUTO_TYPES.includes(E.CH[it.ch].type) && it.hard, E.CH[it.ch].type);
+ok('rindu: lawan bot → hanya auto & syarat pulau lebih ringan', D.AUTO_TYPES.includes(E.CH[it.ch].type) && it.isle && (it.pz.qs || it.pz.items || it.pz.seq).length <= D.CH_TYPES[E.CH[it.ch].type].of, E.CH[it.ch].type);
 let r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: [], ms: 3000 }); ok('rindu: salah → tetap di pulau', r2.S.players[0].island);
 r2 = d(r.S, { type: 'CH_ANSWER', p: 0, answers: E.chSolve(it), ms: 3000 }); ok('rindu: benar → keluar', r2.S && !r2.S.players[0].island, r2.err);
 // secret

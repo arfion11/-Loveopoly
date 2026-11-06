@@ -55,7 +55,7 @@
     },
     {
       id: 'island', title: 'Pulau Rindu', say: 'Hiks… tapi ada banyak cara pulang!',
-      pts: ['Terdampar maksimal ' + RULES.islandTurns + ' giliran.', 'Dadu kembar = langsung keluar dan jalan. Atau bayar perahu ' + RULES.islandFee + ', atau pakai Tiket Pulang.', 'Rindu Challenge (sekali per terdampar): tantangan mode sulit. Lulus = keluar gratis, gagal = tetap di pulau.'],
+      pts: ['Terdampar maksimal ' + RULES.islandTurns + ' giliran.', 'Dadu kembar = langsung keluar dan jalan. Atau bayar perahu ' + RULES.islandFee + ', atau pakai Tiket Pulang.', 'Rindu Challenge (sekali per terdampar): selesaikan satu tantangan. Lulus = keluar gratis, gagal = tetap di pulau.'],
       scene: () => '<div class="sc sc-island"><span class="g-isl">' + ART.art('island') + '</span>' + pawn(PINK, '🐻', 'bob') + '<span class="g-waves"><i></i><i></i></span><div class="g-opts"><span>' + ic('dice') + 'Kembar</span><span>' + ic('boat') + RULES.islandFee + '</span><span>' + ic('heart') + 'Tantangan</span></div></div>'
     },
     {

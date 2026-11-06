@@ -1495,7 +1495,7 @@
           ah += btn('cRoll', 'go', 'dice', 'Cari Kembar', 'Lempar: dadu kembar = keluar dan jalan');
           ah += '<div class="isle-opts">' + btn('cIslePay', 'soft', 'boat', 'Bayar ' + RULES.islandFee, 'Bayar perahu dan lempar dadu biasa') +
             (p.cards.some(c => E.CARD[c].power === 'escape') ? btn('cIsleCard', 'soft lilac', 'key', 'Tiket Pulang') : '') +
-            (!p.islandCh ? btn('cIsleCh', 'soft rose', 'heart', 'Rindu Challenge', 'Lulus tantangan mode sulit = keluar gratis. Gagal = tetap di pulau.') : '') + '</div>';
+            (!p.islandCh ? btn('cIsleCh', 'soft rose', 'heart', 'Rindu Challenge', 'Lulus tantangan = keluar gratis. Gagal = tetap di pulau.') : '') + '</div>';
           nh = 'Terdampar! Percobaan ' + (p.islandTries + 1) + '/' + RULES.islandTurns + '. Kembar = keluar, atau pilih cara lain.';
         } else if (E.canRoll(S, a)) {
           if (S.settings.diceControl) {

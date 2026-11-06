@@ -62,7 +62,7 @@
     T(5,  'spot',   { name: 'Bianglala', short: 'Bianglala', art: 'ferris', price: 150, blurb: 'Kincir raksasa untuk foto berdua di puncak.' }),
     T(6,  'city',   { group: 'jawa', name: 'Bromo', short: 'Bromo', art: 'bromo', price: 90, blurb: 'Menunggu matahari terbit di lautan pasir.' }),
     T(7,  'city',   { group: 'jawa', name: 'Lombok', short: 'Lombok', art: 'lombok', price: 110, blurb: 'Ayunan di laut jernih Gili.' }),
-    T(8,  'island', { name: 'Pulau Rindu', short: 'Pulau Rindu', art: 'island', desc: 'Terdampar sampai 3 giliran. Keluar dengan dadu kembar, bayar 100, Tiket Pulang, atau lulus Rindu Challenge (mode sulit).' }),
+    T(8,  'island', { name: 'Pulau Rindu', short: 'Pulau Rindu', art: 'island', desc: 'Terdampar sampai 3 giliran. Keluar dengan dadu kembar, bayar 100, Tiket Pulang, atau lulus Rindu Challenge.' }),
     T(9,  'city',   { group: 'tropis', name: 'Bali', short: 'Bali', art: 'bali', price: 130, blurb: 'Gerbang pura, pantai, dan sunset Uluwatu.' }),
     T(10, 'city',   { group: 'tropis', name: 'Labuan Bajo', short: 'Labuan Bajo', art: 'komodo', price: 140, blurb: 'Bukit Padar dan si komodo yang (agak) ramah.' }),
     T(11, 'spot',   { name: 'Kebun Bunga', short: 'Kebun Bunga', art: 'garden', price: 160, blurb: 'Jalan bergandengan di antara ladang bunga.' }),
@@ -199,14 +199,14 @@
   //   judge  = aksi nyata dengan syarat jelas; lawan (manusia) yang mengesahkan, namanya tercatat di log
   //   choice = dilema strategi (tanpa benar/salah)
   // duel & judge butuh lawan manusia lain; main lawan bot hanya memakai auto, message (cek otomatis) & dilema.
-  // need/of/secs = syarat lulus; *Hard = varian Rindu Challenge (Pulau Rindu) yang lebih sulit.
+  // need/of/secs = syarat lulus; *Isle = varian Rindu Challenge (Pulau Rindu) yang lebih ringan.
   const CH_TYPES = {
-    trivia:   { label: 'Kuis Keliling Dunia', verify: 'auto', icon: 'globe', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 4, need: 3, secs: 30, ofHard: 5, needHard: 5, secsHard: 35, how: 'Jawab soal tentang papan ini: harga, grup warna, jalur, dan urutan petak.' },
-    price:    { label: 'Tebak Harga Kota', verify: 'auto', icon: 'coins', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 3, need: 2, secs: 25, tol: 0.15, ofHard: 3, needHard: 3, secsHard: 25, tolHard: 0.1, how: 'Ketik harga beli tiap kota tanpa melihat papan. Selisih maksimal 15%.' },
-    recall:   { label: 'Ingat Urutan', verify: 'auto', icon: 'sparkle', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 6, secs: 20, ofHard: 8, secsHard: 22, how: 'Hafalkan urutan gambar selama beberapa detik, lalu ulangi persis sama.' },
-    math:     { label: 'Hitung Ongkos Kilat', verify: 'auto', icon: 'scale', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 3, need: 3, secs: 30, ofHard: 4, needHard: 4, secsHard: 35, how: 'Hitung ongkos perjalanan di kepala. Semua jawaban harus tepat.' },
-    emoji:    { label: 'Tebak Emoji', verify: 'auto', icon: 'sparkle', reward: { gain: 140, love: 4 }, skip: { love: -2 }, of: 4, need: 3, secs: 25, ofHard: 5, needHard: 5, secsHard: 28, how: 'Tebak tempat di papan dari deretan emoji. Cepat sebelum waktu habis!' },
-    scramble: { label: 'Susun Nama Kota', verify: 'auto', icon: 'map', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 2, need: 2, secs: 35, ofHard: 3, needHard: 3, secsHard: 40, how: 'Huruf nama tempat di papan diacak. Susun kembali dengan benar.' },
+    trivia:   { label: 'Kuis Keliling Dunia', verify: 'auto', icon: 'globe', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 4, need: 3, secs: 30, ofIsle: 3, needIsle: 2, secsIsle: 30, how: 'Jawab soal tentang papan ini: harga, grup warna, jalur, dan urutan petak.' },
+    price:    { label: 'Tebak Harga Kota', verify: 'auto', icon: 'coins', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 3, need: 2, secs: 25, tol: 0.15, ofIsle: 3, needIsle: 2, secsIsle: 30, tolIsle: 0.2, how: 'Ketik harga beli tiap kota tanpa melihat papan. Selisih maksimal 15%.' },
+    recall:   { label: 'Ingat Urutan', verify: 'auto', icon: 'sparkle', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 6, secs: 20, ofIsle: 4, secsIsle: 20, how: 'Hafalkan urutan gambar selama beberapa detik, lalu ulangi persis sama.' },
+    math:     { label: 'Hitung Ongkos Kilat', verify: 'auto', icon: 'scale', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 3, need: 3, secs: 30, ofIsle: 2, needIsle: 2, secsIsle: 35, how: 'Hitung ongkos perjalanan di kepala. Semua jawaban harus tepat.' },
+    emoji:    { label: 'Tebak Emoji', verify: 'auto', icon: 'sparkle', reward: { gain: 140, love: 4 }, skip: { love: -2 }, of: 4, need: 3, secs: 25, ofIsle: 3, needIsle: 2, secsIsle: 30, how: 'Tebak tempat di papan dari deretan emoji. Cepat sebelum waktu habis!' },
+    scramble: { label: 'Susun Nama Kota', verify: 'auto', icon: 'map', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 2, need: 2, secs: 35, ofIsle: 2, needIsle: 1, secsIsle: 40, how: 'Huruf nama tempat di papan diacak. Susun kembali dengan benar.' },
     secret:   { label: 'Tebak Isi Hati', verify: 'duel', icon: 'heart', reward: { gain: 140, love: 10 }, judgeReward: { love: 5 }, skip: { love: -3 }, of: 3, need: 2, how: '{j} menjawab 3 pertanyaan diam-diam, lalu {n} menebak. Butuh 2 cocok. Kalau berhasil, kalian berdua dapat hadiah.' },
     bluff:    { label: 'Dua Fakta Satu Bohong', verify: 'duel', icon: 'question', reward: { gain: 170, love: 6 }, judgeReward: { gain: 80, love: 3 }, skip: { love: -2 }, how: '{n} menulis 3 pernyataan tentang dirinya, satu bohong. {j} menebak yang bohong. Kecoh {j} = {n} menang. Ketahuan = {j} yang dapat hadiah.' },
     charades: { label: 'Peragakan!', verify: 'duel', icon: 'users', reward: { gain: 150, love: 8 }, judgeReward: { love: 4 }, skip: { love: -2 }, secs: 60, tries: 3, how: '{n} memperagakan kata rahasia tanpa suara dan tanpa menunjuk benda. {j} menebak dalam 60 detik, maksimal 3 tebakan. Tebakan benar = kalian berdua dapat hadiah.' },

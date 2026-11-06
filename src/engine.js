@@ -431,7 +431,7 @@
   // ---------- tantangan ----------
   // Tidak ada "klik Selesai" tanpa bukti: auto = soal dari seed dinilai engine; duel = jawaban lawan dibandingkan
   // engine; judge = lawan manusia mengesahkan aksi nyata. Item: { type: 'CHALLENGE', p (pemilik), who (yang
-  // sedang beraksi), judge (lawan penilai / -1), phase, pz (soal), hard (Rindu Challenge) }.
+  // sedang beraksi), judge (lawan penilai / -1), phase, pz (soal), isle (Rindu Challenge: syarat lebih ringan) }.
   const NEEDS_JUDGE = ['secret', 'bluff', 'charades', 'dare', 'photo'];
   const PHOTO_MAX = 22000, PHOTO_KEEP = 4;
   const PHOTO_RE = /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -527,11 +527,11 @@
     return w.split(' ').map(word).join(' ').toUpperCase();
   }
   function setupCh(S, it) {
-    const ch = CH[it.ch], def = CH_TYPES[ch.type], H2 = it.hard;
-    const of = (H2 && def.ofHard) || def.of, need = (H2 && def.needHard) || def.need, secs = (H2 && def.secsHard) || def.secs;
+    const ch = CH[it.ch], def = CH_TYPES[ch.type], I = it.isle;
+    const of = (I && def.ofIsle) || def.of, need = (I && def.needIsle) || def.need, secs = (I && def.secsIsle) || def.secs;
     it.phase = 'play'; it.who = it.p; it.pz = null;
     if (ch.type === 'trivia') it.pz = { qs: genTrivia(S, of), need, secs };
-    else if (ch.type === 'price') it.pz = { items: pickN(S, PRICED, of), need, secs, tol: (H2 && def.tolHard) || def.tol };
+    else if (ch.type === 'price') it.pz = { items: pickN(S, PRICED, of), need, secs, tol: (I && def.tolIsle) || def.tol };
     else if (ch.type === 'recall') {
       const pool = pickN(S, RECALL_POOL, 6), seq = [];
       while (seq.length < of) { const x = pool[rint(S, pool.length)]; if (x !== seq[seq.length - 1]) seq.push(x); }
@@ -558,7 +558,7 @@
     return id;
   }
   function chItem(S, i, cat, source) {
-    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, hard: source === 'island', judge: -1 };
+    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, isle: source === 'island', judge: -1 };
     it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, i) : -1;
     setupCh(S, it);
     return it;
@@ -572,7 +572,7 @@
       if (!S.decks) S.decks = { card: [], challenge: {} };
       if (!CH[it.ch]) it.ch = drawChallenge(S, it.p, it.cat || 'any');
       if (it.redraws == null) it.redraws = 0;
-      it.hard = it.source === 'island';
+      it.isle = it.source === 'island';
       it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, it.p) : -1;
       if (NEEDS_JUDGE.includes(CH[it.ch].type) && it.judge < 0) { it.ch = drawChallenge(S, it.p, 'skill'); it.judge = -1; }
       setupCh(S, it);
@@ -1167,7 +1167,7 @@
       const got = late ? 0 : gradeAuto(it, a.answers);
       const total = ch.type === 'recall' ? z.seq.length : (z.qs || z.items).length;
       const shown = ch.type === 'recall' ? (got ? 'urutan ' + total + ' gambar tepat' : 'urutan keliru') : got + '/' + total + ' benar';
-      chFinish(S, it, !late && got >= z.need, (late ? 'waktu habis' : shown + ' dalam ' + secsTxt(ms)) + (it.hard ? ' (mode sulit)' : ''));
+      chFinish(S, it, !late && got >= z.need, (late ? 'waktu habis' : shown + ' dalam ' + secsTxt(ms)));
       return;
     }
     if (ch.type === 'secret') {

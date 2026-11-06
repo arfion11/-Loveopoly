@@ -40,7 +40,7 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 
 - Tidak ada hasil yang dinilai sendiri: `CH_RESOLVE` hanya `skip` & `choice` (dilema). Hasil lewat `CH_ANSWER` yang dinilai engine.
 - `CH_TYPES[type].verify`: `auto` (trivia, price, recall, math, scramble, emoji: soal dibuat engine dari seed di `it.pz`, jawaban dinilai `gradeAuto`, batas waktu dari `ms`), `duel` (secret, bluff, charades: lawan ikut main), `judge` (dare, photo: lawan manusia mengesahkan), `message` (syarat dicek `messageChecks`, lalu disahkan lawan bila ada), `choice`.
-- Item `CHALLENGE`: `p` pemilik, `who` yang sedang beraksi (`actor()` memakainya), `judge` lawan manusia berikutnya (`judgeFor`, bot tidak pernah menilai), `phase`, `hard` (Rindu Challenge). Tipe yang butuh penilai diganti tipe auto bila tidak ada lawan manusia. Pemilik boleh `skip` kapan saja (penilai pergi).
+- Item `CHALLENGE`: `p` pemilik, `who` yang sedang beraksi (`actor()` memakainya), `judge` lawan manusia berikutnya (`judgeFor`, bot tidak pernah menilai), `phase`, `isle` (Rindu Challenge, syarat lebih ringan dari varian `*Isle` di `CH_TYPES`). Tipe yang butuh penilai diganti tipe auto bila tidak ada lawan manusia. Pemilik boleh `skip` kapan saja (penilai pergi).
 - Bukti: `S.proofs` (log hasil) & `S.photos` (maks 4 foto JPEG ≤ 22 KB, dipajang `#proofPin` di papan, galeri `openProofs()`). `E.migrate(S)` menyiapkan ulang tantangan save lama.
 - Satu HP: layar "Serahkan ke …" (`#bGate`) tiap kali `who` berpindah orang. Uji: `test/sim.js` (aturan), `test/flows.js` (UI), `test/online.js` (duel lintas perangkat).
 

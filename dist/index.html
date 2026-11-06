@@ -1995,7 +1995,7 @@ main { position: relative; }
     T(5,  'spot',   { name: 'Bianglala', short: 'Bianglala', art: 'ferris', price: 150, blurb: 'Kincir raksasa untuk foto berdua di puncak.' }),
     T(6,  'city',   { group: 'jawa', name: 'Bromo', short: 'Bromo', art: 'bromo', price: 90, blurb: 'Menunggu matahari terbit di lautan pasir.' }),
     T(7,  'city',   { group: 'jawa', name: 'Lombok', short: 'Lombok', art: 'lombok', price: 110, blurb: 'Ayunan di laut jernih Gili.' }),
-    T(8,  'island', { name: 'Pulau Rindu', short: 'Pulau Rindu', art: 'island', desc: 'Terdampar sampai 3 giliran. Keluar dengan dadu kembar, bayar 100, Tiket Pulang, atau lulus Rindu Challenge (mode sulit).' }),
+    T(8,  'island', { name: 'Pulau Rindu', short: 'Pulau Rindu', art: 'island', desc: 'Terdampar sampai 3 giliran. Keluar dengan dadu kembar, bayar 100, Tiket Pulang, atau lulus Rindu Challenge.' }),
     T(9,  'city',   { group: 'tropis', name: 'Bali', short: 'Bali', art: 'bali', price: 130, blurb: 'Gerbang pura, pantai, dan sunset Uluwatu.' }),
     T(10, 'city',   { group: 'tropis', name: 'Labuan Bajo', short: 'Labuan Bajo', art: 'komodo', price: 140, blurb: 'Bukit Padar dan si komodo yang (agak) ramah.' }),
     T(11, 'spot',   { name: 'Kebun Bunga', short: 'Kebun Bunga', art: 'garden', price: 160, blurb: 'Jalan bergandengan di antara ladang bunga.' }),
@@ -2132,14 +2132,14 @@ main { position: relative; }
   //   judge  = aksi nyata dengan syarat jelas; lawan (manusia) yang mengesahkan, namanya tercatat di log
   //   choice = dilema strategi (tanpa benar/salah)
   // duel & judge butuh lawan manusia lain; main lawan bot hanya memakai auto, message (cek otomatis) & dilema.
-  // need/of/secs = syarat lulus; *Hard = varian Rindu Challenge (Pulau Rindu) yang lebih sulit.
+  // need/of/secs = syarat lulus; *Isle = varian Rindu Challenge (Pulau Rindu) yang lebih ringan.
   const CH_TYPES = {
-    trivia:   { label: 'Kuis Keliling Dunia', verify: 'auto', icon: 'globe', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 4, need: 3, secs: 30, ofHard: 5, needHard: 5, secsHard: 35, how: 'Jawab soal tentang papan ini: harga, grup warna, jalur, dan urutan petak.' },
-    price:    { label: 'Tebak Harga Kota', verify: 'auto', icon: 'coins', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 3, need: 2, secs: 25, tol: 0.15, ofHard: 3, needHard: 3, secsHard: 25, tolHard: 0.1, how: 'Ketik harga beli tiap kota tanpa melihat papan. Selisih maksimal 15%.' },
-    recall:   { label: 'Ingat Urutan', verify: 'auto', icon: 'sparkle', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 6, secs: 20, ofHard: 8, secsHard: 22, how: 'Hafalkan urutan gambar selama beberapa detik, lalu ulangi persis sama.' },
-    math:     { label: 'Hitung Ongkos Kilat', verify: 'auto', icon: 'scale', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 3, need: 3, secs: 30, ofHard: 4, needHard: 4, secsHard: 35, how: 'Hitung ongkos perjalanan di kepala. Semua jawaban harus tepat.' },
-    emoji:    { label: 'Tebak Emoji', verify: 'auto', icon: 'sparkle', reward: { gain: 140, love: 4 }, skip: { love: -2 }, of: 4, need: 3, secs: 25, ofHard: 5, needHard: 5, secsHard: 28, how: 'Tebak tempat di papan dari deretan emoji. Cepat sebelum waktu habis!' },
-    scramble: { label: 'Susun Nama Kota', verify: 'auto', icon: 'map', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 2, need: 2, secs: 35, ofHard: 3, needHard: 3, secsHard: 40, how: 'Huruf nama tempat di papan diacak. Susun kembali dengan benar.' },
+    trivia:   { label: 'Kuis Keliling Dunia', verify: 'auto', icon: 'globe', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 4, need: 3, secs: 30, ofIsle: 3, needIsle: 2, secsIsle: 30, how: 'Jawab soal tentang papan ini: harga, grup warna, jalur, dan urutan petak.' },
+    price:    { label: 'Tebak Harga Kota', verify: 'auto', icon: 'coins', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 3, need: 2, secs: 25, tol: 0.15, ofIsle: 3, needIsle: 2, secsIsle: 30, tolIsle: 0.2, how: 'Ketik harga beli tiap kota tanpa melihat papan. Selisih maksimal 15%.' },
+    recall:   { label: 'Ingat Urutan', verify: 'auto', icon: 'sparkle', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 6, secs: 20, ofIsle: 4, secsIsle: 20, how: 'Hafalkan urutan gambar selama beberapa detik, lalu ulangi persis sama.' },
+    math:     { label: 'Hitung Ongkos Kilat', verify: 'auto', icon: 'scale', reward: { gain: 160, love: 3 }, skip: { love: -2 }, of: 3, need: 3, secs: 30, ofIsle: 2, needIsle: 2, secsIsle: 35, how: 'Hitung ongkos perjalanan di kepala. Semua jawaban harus tepat.' },
+    emoji:    { label: 'Tebak Emoji', verify: 'auto', icon: 'sparkle', reward: { gain: 140, love: 4 }, skip: { love: -2 }, of: 4, need: 3, secs: 25, ofIsle: 3, needIsle: 2, secsIsle: 30, how: 'Tebak tempat di papan dari deretan emoji. Cepat sebelum waktu habis!' },
+    scramble: { label: 'Susun Nama Kota', verify: 'auto', icon: 'map', reward: { gain: 150, love: 3 }, skip: { love: -2 }, of: 2, need: 2, secs: 35, ofIsle: 2, needIsle: 1, secsIsle: 40, how: 'Huruf nama tempat di papan diacak. Susun kembali dengan benar.' },
     secret:   { label: 'Tebak Isi Hati', verify: 'duel', icon: 'heart', reward: { gain: 140, love: 10 }, judgeReward: { love: 5 }, skip: { love: -3 }, of: 3, need: 2, how: '{j} menjawab 3 pertanyaan diam-diam, lalu {n} menebak. Butuh 2 cocok. Kalau berhasil, kalian berdua dapat hadiah.' },
     bluff:    { label: 'Dua Fakta Satu Bohong', verify: 'duel', icon: 'question', reward: { gain: 170, love: 6 }, judgeReward: { gain: 80, love: 3 }, skip: { love: -2 }, how: '{n} menulis 3 pernyataan tentang dirinya, satu bohong. {j} menebak yang bohong. Kecoh {j} = {n} menang. Ketahuan = {j} yang dapat hadiah.' },
     charades: { label: 'Peragakan!', verify: 'duel', icon: 'users', reward: { gain: 150, love: 8 }, judgeReward: { love: 4 }, skip: { love: -2 }, secs: 60, tries: 3, how: '{n} memperagakan kata rahasia tanpa suara dan tanpa menunjuk benda. {j} menebak dalam 60 detik, maksimal 3 tebakan. Tebakan benar = kalian berdua dapat hadiah.' },
@@ -2773,7 +2773,7 @@ main { position: relative; }
   // ---------- tantangan ----------
   // Tidak ada "klik Selesai" tanpa bukti: auto = soal dari seed dinilai engine; duel = jawaban lawan dibandingkan
   // engine; judge = lawan manusia mengesahkan aksi nyata. Item: { type: 'CHALLENGE', p (pemilik), who (yang
-  // sedang beraksi), judge (lawan penilai / -1), phase, pz (soal), hard (Rindu Challenge) }.
+  // sedang beraksi), judge (lawan penilai / -1), phase, pz (soal), isle (Rindu Challenge: syarat lebih ringan) }.
   const NEEDS_JUDGE = ['secret', 'bluff', 'charades', 'dare', 'photo'];
   const PHOTO_MAX = 22000, PHOTO_KEEP = 4;
   const PHOTO_RE = /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -2869,11 +2869,11 @@ main { position: relative; }
     return w.split(' ').map(word).join(' ').toUpperCase();
   }
   function setupCh(S, it) {
-    const ch = CH[it.ch], def = CH_TYPES[ch.type], H2 = it.hard;
-    const of = (H2 && def.ofHard) || def.of, need = (H2 && def.needHard) || def.need, secs = (H2 && def.secsHard) || def.secs;
+    const ch = CH[it.ch], def = CH_TYPES[ch.type], I = it.isle;
+    const of = (I && def.ofIsle) || def.of, need = (I && def.needIsle) || def.need, secs = (I && def.secsIsle) || def.secs;
     it.phase = 'play'; it.who = it.p; it.pz = null;
     if (ch.type === 'trivia') it.pz = { qs: genTrivia(S, of), need, secs };
-    else if (ch.type === 'price') it.pz = { items: pickN(S, PRICED, of), need, secs, tol: (H2 && def.tolHard) || def.tol };
+    else if (ch.type === 'price') it.pz = { items: pickN(S, PRICED, of), need, secs, tol: (I && def.tolIsle) || def.tol };
     else if (ch.type === 'recall') {
       const pool = pickN(S, RECALL_POOL, 6), seq = [];
       while (seq.length < of) { const x = pool[rint(S, pool.length)]; if (x !== seq[seq.length - 1]) seq.push(x); }
@@ -2900,7 +2900,7 @@ main { position: relative; }
     return id;
   }
   function chItem(S, i, cat, source) {
-    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, hard: source === 'island', judge: -1 };
+    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, isle: source === 'island', judge: -1 };
     it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, i) : -1;
     setupCh(S, it);
     return it;
@@ -2914,7 +2914,7 @@ main { position: relative; }
       if (!S.decks) S.decks = { card: [], challenge: {} };
       if (!CH[it.ch]) it.ch = drawChallenge(S, it.p, it.cat || 'any');
       if (it.redraws == null) it.redraws = 0;
-      it.hard = it.source === 'island';
+      it.isle = it.source === 'island';
       it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, it.p) : -1;
       if (NEEDS_JUDGE.includes(CH[it.ch].type) && it.judge < 0) { it.ch = drawChallenge(S, it.p, 'skill'); it.judge = -1; }
       setupCh(S, it);
@@ -3509,7 +3509,7 @@ main { position: relative; }
       const got = late ? 0 : gradeAuto(it, a.answers);
       const total = ch.type === 'recall' ? z.seq.length : (z.qs || z.items).length;
       const shown = ch.type === 'recall' ? (got ? 'urutan ' + total + ' gambar tepat' : 'urutan keliru') : got + '/' + total + ' benar';
-      chFinish(S, it, !late && got >= z.need, (late ? 'waktu habis' : shown + ' dalam ' + secsTxt(ms)) + (it.hard ? ' (mode sulit)' : ''));
+      chFinish(S, it, !late && got >= z.need, (late ? 'waktu habis' : shown + ' dalam ' + secsTxt(ms)));
       return;
     }
     if (ch.type === 'secret') {
@@ -6030,7 +6030,7 @@ main { position: relative; }
           ah += btn('cRoll', 'go', 'dice', 'Cari Kembar', 'Lempar: dadu kembar = keluar dan jalan');
           ah += '<div class="isle-opts">' + btn('cIslePay', 'soft', 'boat', 'Bayar ' + RULES.islandFee, 'Bayar perahu dan lempar dadu biasa') +
             (p.cards.some(c => E.CARD[c].power === 'escape') ? btn('cIsleCard', 'soft lilac', 'key', 'Tiket Pulang') : '') +
-            (!p.islandCh ? btn('cIsleCh', 'soft rose', 'heart', 'Rindu Challenge', 'Lulus tantangan mode sulit = keluar gratis. Gagal = tetap di pulau.') : '') + '</div>';
+            (!p.islandCh ? btn('cIsleCh', 'soft rose', 'heart', 'Rindu Challenge', 'Lulus tantangan = keluar gratis. Gagal = tetap di pulau.') : '') + '</div>';
           nh = 'Terdampar! Percobaan ' + (p.islandTries + 1) + '/' + RULES.islandTurns + '. Kembar = keluar, atau pilih cara lain.';
         } else if (E.canRoll(S, a)) {
           if (S.settings.diceControl) {
@@ -6928,7 +6928,7 @@ main { position: relative; }
     if (r.love) out.push('<span class="chip rose">' + ic('heart') + 'Love +' + r.love + '</span>');
     if (ch.type === 'dilemma') out.push('<span class="chip lilac">' + ic('scale') + 'Pilihanmu mengubah strategi</span>');
     if (jr && it && it.judge >= 0) out.push('<span class="chip mint">' + ic('users') + (ch.type === 'bluff' ? 'Ketahuan: ' : 'Penilai juga: ') + [jr.gain ? '+' + jr.gain : '', jr.love ? 'Love +' + jr.love : ''].filter(Boolean).join(' ') + '</span>');
-    if (it && it.hard) out.push('<span class="chip lilac">' + ic('island') + 'Mode sulit · lulus = keluar pulau</span>');
+    if (it && it.isle) out.push('<span class="chip lilac">' + ic('island') + 'Lulus = keluar dari Pulau Rindu</span>');
     if (s.love) out.push('<span class="chip plain">Lewati: Love ' + s.love + '</span>');
     return '<div class="reward-row">' + out.join('') + '</div>';
   }
@@ -8333,7 +8333,7 @@ main { position: relative; }
     },
     {
       id: 'island', title: 'Pulau Rindu', say: 'Hiks… tapi ada banyak cara pulang!',
-      pts: ['Terdampar maksimal ' + RULES.islandTurns + ' giliran.', 'Dadu kembar = langsung keluar dan jalan. Atau bayar perahu ' + RULES.islandFee + ', atau pakai Tiket Pulang.', 'Rindu Challenge (sekali per terdampar): tantangan mode sulit. Lulus = keluar gratis, gagal = tetap di pulau.'],
+      pts: ['Terdampar maksimal ' + RULES.islandTurns + ' giliran.', 'Dadu kembar = langsung keluar dan jalan. Atau bayar perahu ' + RULES.islandFee + ', atau pakai Tiket Pulang.', 'Rindu Challenge (sekali per terdampar): selesaikan satu tantangan. Lulus = keluar gratis, gagal = tetap di pulau.'],
       scene: () => '<div class="sc sc-island"><span class="g-isl">' + ART.art('island') + '</span>' + pawn(PINK, '🐻', 'bob') + '<span class="g-waves"><i></i><i></i></span><div class="g-opts"><span>' + ic('dice') + 'Kembar</span><span>' + ic('boat') + RULES.islandFee + '</span><span>' + ic('heart') + 'Tantangan</span></div></div>'
     },
     {

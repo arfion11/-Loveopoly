@@ -30,8 +30,6 @@
     aimRanges: { low: [2, 5], mid: [6, 8], high: [9, 12] },
     tripleGroups: 3,
     maxRedraws: 2,
-    seatCash: 100,                           // uang saku tambahan per kursi belakang (semua tetap mulai di START)
-    seatDiscount: 0.2, seatDiscountMax: 0.6,  // voucher pembuka kursi belakang (diskon beli/bangun pertama)
     peakRounds: 3, peakMult: 1.5,            // Musim Puncak: N ronde terakhir, tol ×1,5
     newsEvery: 3, newsLasts: 2,              // Kabar Merpi tiap 3 ronde, berlaku 2 ronde
     newsRain: 0.5, newsHoliday: 1.5, newsSale: 0.2, newsBonus: 100,

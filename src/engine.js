@@ -258,12 +258,15 @@
       log: [], logN: 0, letters: [], proofs: [],
       lastEvents: [], evSeq: 0, over: null, paused: false
     };
-    // semua mulai di START; kursi belakang kalah tempo → uang tambahan & voucher diskon pembuka per kursi
-    S.players.forEach((p, i) => { if (i > 0) { p.cash += i * RULES.seatCash; p.discount = Math.min(RULES.seatDiscountMax, i * RULES.seatDiscount); } });
+    // semua pemain sama persis (modal, posisi START, tanpa bonus). Keadilan lewat undian giliran pertama:
+    // setup.first = 'random' (dipakai UI & online) atau indeks pemain; bawaan 0 (deterministik untuk uji)
+    const first = setup.first === 'random' ? rint(S, S.players.length) : clampInt(setup.first || 0, 0, S.players.length - 1);
+    S.start = first;
+    S.turn.p = first;
     S.decks.card = shuffle(S, CARDS.map(c => c.id));
     chDecks(S);
     log(S, 'Permainan dimulai. Selamat keliling dunia berdua!', 'heart');
-    if (S.players.length > 1) log(S, 'Biar adil: pemain yang jalan belakangan membawa uang saku tambahan dan voucher diskon pembuka.', 'ticket');
+    if (setup.first === 'random') log(S, 'Undian giliran: ' + PL(S, first).name + ' jalan duluan!', 'dice', first);
     return S;
   }
 
@@ -744,11 +747,13 @@
   }
   function nextTurn(S) {
     if (S.over) return;
-    const n = S.players.length, cur = S.turn.p;
+    const n = S.players.length, cur = S.turn.p, st = S.start || 0;
     let next = -1, newRound = false;
+    // ronde baru saat giliran kembali melewati pemain pertama (S.start), supaya semua dapat jumlah giliran sama
+    const rel = i => (i - st + n) % n;
     for (let k = 1; k <= n; k++) {
       const c = (cur + k) % n;
-      if (!S.players[c].bankrupt) { next = c; newRound = (cur + k) >= n; break; }
+      if (!S.players[c].bankrupt) { next = c; newRound = rel(c) <= rel(cur); break; }
     }
     if (next < 0) return;
     if (newRound) { S.round++; if (startRound(S)) return; }

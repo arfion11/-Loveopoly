@@ -481,7 +481,8 @@
       if (seats.length < 2) { toast('Butuh minimal 2 pemain.', { kind: 'err' }); return false; }
       const setup = {
         players: seats.map(s => ({ name: s.name, avatar: s.avatar, color: s.color, kind: s.bot ? 'ai' : 'human', ai: s.ai || 'normal', uid: s.uid })),
-        settings: Object.assign({}, this.doc.settings, { online: true })
+        settings: Object.assign({}, this.doc.settings, { online: true }),
+        first: 'random'
       };
       const S = E.create(setup);
       this.doc.status = 'playing'; this.doc.state = S; this.doc.seq = S.seq;

@@ -14,7 +14,7 @@
   const PAGES = [
     {
       id: 'hello', title: 'Halo! Aku Merpi', say: 'Aku kurir cinta kalian. Yuk keliling dunia berdua!',
-      pts: ['Keliling 19 kota romantis dan 5 tempat wisata.', 'Beli kota, bangun sampai landmark, tarik tol dari lawan.', 'Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata, atau bikin lawan bangkrut.', 'Semua mulai dari START. Biar adil, pemain yang jalan belakangan membawa uang saku +' + RULES.seatCash + ' per urutan dan voucher diskon pembuka.'],
+      pts: ['Keliling 19 kota romantis dan 5 tempat wisata.', 'Beli kota, bangun sampai landmark, tarik tol dari lawan.', 'Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata, atau bikin lawan bangkrut.', 'Semua pemain mulai dari START dengan modal yang sama. Siapa yang jalan duluan diundi di awal permainan.'],
       scene: () => '<div class="sc sc-hello"><div class="g-orbit">' + ['paris', 'bali', 'kyoto', 'santorini', 'hawaii', 'swiss'].map((a, k) => '<span class="go-item" style="--k:' + k + '">' + ART.art(a) + '</span>').join('') + '</div><span class="g-merpi">' + ART.merpi('is-happy') + '</span><span class="g-hearts"><i></i><i></i><i></i><i></i></span></div>'
     },
     {

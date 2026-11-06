@@ -169,7 +169,15 @@ if (chFails) process.exitCode = 1;
   const R = D.RULES;
   const mk = (n, st) => E.create({ players: Array.from({ length: n }, (_, i) => ({ name: 'P' + i })), settings: Object.assign({ debug: true }, st || {}), seed: 9 });
   let S = mk(4);
-  ok('semua mulai di START; kursi belakang dapat uang saku + voucher', S.players.every(p => p.pos === 0) && S.players.map(p => p.cash - S.settings.startCash).join() === [0, 1, 2, 3].map(i => i * R.seatCash).join() && S.players[3].discount === 0.6 && S.players[0].discount === 0);
+  ok('semua pemain sama: START, modal sama, tanpa diskon', S.players.every(p => p.pos === 0 && p.cash === S.settings.startCash && !p.discount));
+  // undian giliran pertama: setiap kursi bisa dapat giliran pertama; ronde dihitung dari pemain pertama
+  const firsts = new Set();
+  for (let sd = 1; sd <= 40; sd++) firsts.add(E.create({ players: [{ name: 'A' }, { name: 'B' }, { name: 'C' }], seed: sd, first: 'random' }).turn.p);
+  ok('undian: semua kursi bisa jalan duluan', firsts.size === 3, [...firsts].join());
+  let F = E.create({ players: [{ name: 'A' }, { name: 'B' }, { name: 'C' }], seed: 5, first: 2, settings: { debug: true } });
+  const turns = [];
+  for (let k = 0; k < 6; k++) { turns.push(F.round + ':' + F.turn.p); let q = E.dispatch(F, { type: 'ROLL', p: F.turn.p, dice: [1, 2] }); while (q.ok && q.state.queue.length) { const it = q.state.queue[0]; const a = globalThis.LoveAI.decide(q.state, E.actor(q.state)); q = E.dispatch(q.state, a); } F = E.dispatch(q.state, { type: 'END_TURN', p: q.state.turn.p }).state; }
+  ok('ronde berganti setelah semua dapat giliran (mulai kursi 3)', turns.join(' ') === '1:2 1:0 1:1 2:2 2:0 2:1', turns.join(' '));
   // Trio Warna wajib berisi grup 3 kota
   S = mk(2); S.players[0].laps = 1;
   [1, 2, 9, 10, 17].forEach(t => { S.tiles[t].owner = 0; });   // kota(2) tropis(2) + Roma; Praha (19) melengkapi klasik(2) → 3 grup kecil

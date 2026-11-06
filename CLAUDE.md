@@ -40,7 +40,7 @@ Board game web untuk pasangan LDR (Bahasa Indonesia). Sumber di `src/`, digabung
 
 ## Aturan peluncuran (keseimbangan & kejutan)
 
-- Keadilan kursi: semua pemain mulai di START; kursi ke-n membawa uang saku `n × RULES.seatCash` dan voucher diskon `n × RULES.seatDiscount` (maks 60%) di `create()`. Disetel lewat simulasi: menang per kursi 28/26/22/24% (4 pemain), 35/31/34% (3), 52/48% (2).
+- Keadilan kursi: semua pemain sama persis (START, modal sama, tanpa bonus/diskon). Giliran pertama diundi: `E.create({ ..., first: 'random' })` dipakai setup, "Main lagi", dan room online (`S.start`); bawaan `first: 0` untuk uji. `nextTurn` menghitung ronde baru saat giliran kembali ke `S.start`, jadi semua dapat jumlah giliran sama.
 - Cara menang instan: Trio Warna (`triple`, wajib ada grup 3 kota → `tripleOk`), Raja Jalur (`line`), Kolektor Wisata (`spots`). Jangan memakai kata "Monopoli/Monopoly" (merek dagang) di teks.
 - Ketemuan! (`meetUp` di `land`): berhenti di petak pemain lain → semua yang bertemu dapat `meetCash` & `meetLove`, sekali per giliran, event `meet`.
 - Kabar Merpi (`S.news`, `drawNews` di `startRound` tiap `newsEvery` ronde, berlaku `newsLasts` ronde; matikan dengan `settings.news = false`): rain/holiday (tol satu jalur ×0,5/×1,5), sale (diskon 20%), promo (World Tour gratis, `E.travelFee(S)`), bonus (gaji +100), love (Love berlipat). `E.newsInfo(S)` untuk UI.

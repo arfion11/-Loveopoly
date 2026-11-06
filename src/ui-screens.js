@@ -336,7 +336,7 @@
       if (Object.keys(setupErrors()).length) { renderSetup(); return; }
       store.set(KEYS.setup, s);
       const settings = { startCash: s.startCash, roundLimit: s.roundLimit, winMessage: s.winMessage.trim(), takeover: s.takeover !== false, instantWin: s.instantWin !== false, diceControl: s.diceControl !== false };
-      const S = E.create({ players: s.players.map(p => ({ name: p.name.trim(), avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai })), settings });
+      const S = E.create({ players: s.players.map(p => ({ name: p.name.trim(), avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai })), settings, first: 'random' });
       SND.unlock();
       SND.play('fanfare');
       enterGame('local', -1, S);
@@ -506,7 +506,10 @@
     UI.persist();
     afterSettle();
     if (!S.over) setTimeout(startTour, UI.reduceMotion() ? 50 : 1300);
-    setTimeout(() => { if (App.S === S && !App.tour) UI.merpiSay(UI.pick(D.MERPI.hello), 'happy', 2600); }, 700);
+    // permainan baru dengan undian giliran: umumkan siapa yang jalan duluan
+    const drawn = S.seq === 0 && S.log.some(l => /^Undian giliran:/.test(l.text));
+    if (drawn) setTimeout(() => { if (App.S === S) UI.banner('UNDIAN GILIRAN', S.players[S.turn.p].name + ' jalan duluan!', 'goal', 2400); }, 450);
+    setTimeout(() => { if (App.S === S && !App.tour) UI.merpiSay(drawn ? 'Undian beres! ' + S.players[S.turn.p].name + ' jalan duluan~' : UI.pick(D.MERPI.hello), 'happy', 2600); }, drawn ? 1200 : 700);
   }
   function exitToHome() {
     clearTimeout(App.aiTimer);
@@ -635,7 +638,7 @@
       if (confettiStop) confettiStop();
       winMsgOverride = null;
       if (App.mode === 'online') { Net.startGame(); return; }
-      const ns = E.create({ players: S.players.map(p => ({ name: p.name, avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai })), settings: S.settings });
+      const ns = E.create({ players: S.players.map(p => ({ name: p.name, avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai })), settings: S.settings, first: 'random' });
       enterGame('local', -1, ns);
     };
     setTimeout(() => { const b = $('#wHome'); if (b) b.focus({ preventScroll: true }); }, 60);

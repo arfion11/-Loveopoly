@@ -593,9 +593,35 @@
     const id = deck.shift(); deck.push(id);
     return id;
   }
+  // Penilai = semua lawan manusia aktif (it.judges). Penilai utama (it.judge, dipakai {j} di teks tantangan & Tebak Isi
+  // Hati) bergiliran per pemilik lewat S.chRot supaya tidak selalu orang yang sama. 2 pemain: daftarnya 1 orang = aturan lama.
+  function judgesFor(S, i, rot) {
+    const n = S.players.length, list = [];
+    for (let k = 1; k < n; k++) { const q = S.players[(i + k) % n]; if (q.kind === 'human' && !q.bankrupt) list.push(q.i); }
+    if (!list.length) return list;
+    const s = (((rot || 0) % list.length) + list.length) % list.length;
+    return list.slice(s).concat(list.slice(0, s));
+  }
+  function assignJudges(S, it, fresh) {
+    const t = CH[it.ch].type;
+    if (!(NEEDS_JUDGE.includes(t) || t === 'message')) { it.judge = -1; it.judges = []; return; }
+    if (fresh || it.rot == null) { S.chRot = S.chRot || {}; it.rot = S.chRot[it.p] || 0; S.chRot[it.p] = it.rot + 1; }
+    it.judges = judgesFor(S, it.p, it.rot);
+    it.judge = it.judges.length ? it.judges[0] : -1;
+  }
+  const multiJudge = it => Array.isArray(it.judges) && it.judges.length > 1;
+  // Peragakan! dengan banyak penebak: siapa yang masih boleh menebak (sisa kesempatan)
+  const charadesOpen = (S, it) => it && it.type === 'CHALLENGE' && CH[it.ch] && CH[it.ch].type === 'charades' && it.phase === 'guess' && multiJudge(it);
+  const guessLeft = (it, j) => (it.pz.max || 3) - ((it.pz.triesBy || {})[j] || 0);
+  function chActors(S) {
+    const it = S.queue[0];
+    if (charadesOpen(S, it)) return it.judges.filter(j => !PL(S, j).bankrupt && guessLeft(it, j) > 0);
+    const a = actor(S);
+    return a >= 0 ? [a] : [];
+  }
   function chItem(S, i, cat, source) {
-    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, isle: source === 'island', judge: -1 };
-    it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, i) : -1;
+    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, isle: source === 'island', judge: -1, judges: [] };
+    assignJudges(S, it, true);
     setupCh(S, it);
     return it;
   }
@@ -604,13 +630,14 @@
     if (!S || !Array.isArray(S.queue)) return S;
     if (!S.proofs) S.proofs = [];
     S.queue.forEach(it => {
+      if (it.type === 'CHALLENGE' && !Array.isArray(it.judges)) it.judges = it.judge >= 0 ? [it.judge] : [];
       if (it.type !== 'CHALLENGE' || (CH[it.ch] && it.phase && it.who != null)) return;
       if (!S.decks) S.decks = { card: [], challenge: {} };
       if (!CH[it.ch]) it.ch = drawChallenge(S, it.p, it.cat || 'any');
       if (it.redraws == null) it.redraws = 0;
       it.isle = it.source === 'island';
-      it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, it.p) : -1;
-      if (NEEDS_JUDGE.includes(CH[it.ch].type) && it.judge < 0) { it.ch = drawChallenge(S, it.p, 'skill'); it.judge = -1; }
+      assignJudges(S, it, false);
+      if (NEEDS_JUDGE.includes(CH[it.ch].type) && it.judge < 0) { it.ch = drawChallenge(S, it.p, 'skill'); it.judge = -1; it.judges = []; }
       setupCh(S, it);
     });
     return S;
@@ -679,10 +706,12 @@
       p.stats.failed++;
       log(S, p.name + ' gagal ' + def.label + '. Bukti: ' + proof + '.' + (it.source === 'island' && p.island ? ' Tetap di Pulau Rindu.' : ''), 'dot', it.p);
     }
-    if (judgeShare && it.judge >= 0 && !PL(S, it.judge).bankrupt) {
-      const g = rewardTo(S, it.judge, def.judgeReward);
-      if (g) log(S, PL(S, it.judge).name + ' ikut dapat hadiah (' + g + ').', 'heart', it.judge);
-    }
+    const sharers = judgeShare === true ? [it.judge] : Array.isArray(judgeShare) ? judgeShare : [];
+    sharers.forEach(j => {
+      if (j < 0 || !PL(S, j) || PL(S, j).bankrupt) return;
+      const g = rewardTo(S, j, def.judgeReward);
+      if (g) log(S, PL(S, j).name + ' ikut dapat hadiah (' + g + ').', 'heart', j);
+    });
     ev(S, { t: 'challenge', p: it.p, ok, proof, label: def.label, judge: it.judge });
   }
   // ---------- pembayaran & utang ----------
@@ -1218,13 +1247,26 @@
     if (it.who !== it.p || it.phase !== (FIRST_PHASE[ch.type] || 'play')) fail('Tantangan sudah berjalan, tidak bisa diganti.');
     if (it.redraws >= RULES.maxRedraws) fail('Batas ganti tantangan sudah habis.');
     it.ch = drawChallenge(S, a.p, it.cat);
-    it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, a.p) : -1;
+    assignJudges(S, it, it.rot == null);
     it.redraws++;
     setupCh(S, it);
   };
+  // voting penilai (3–4 pemain): bergiliran, rahasia satu sama lain; mayoritas menentukan, seri = sah
+  function judgeVote(S, it, okVote, p) {
+    it.pz.votes = it.pz.votes || {};
+    it.pz.votes[p] = !!okVote;
+    const next = it.judges.find(j => !(j in it.pz.votes) && !PL(S, j).bankrupt);
+    if (next != null) { it.who = next; return null; }
+    const vs = it.judges.filter(j => j in it.pz.votes);
+    const yes = vs.filter(j => it.pz.votes[j]).length;
+    const ok = yes >= vs.length - yes;
+    return { ok, vs, txt: (ok ? 'disahkan ' : 'tidak disahkan ') + yes + ' dari ' + vs.length + ' penilai (' + vs.map(j => PL(S, j).name + (it.pz.votes[j] ? ' ✓' : ' ✗')).join(', ') + ')' };
+  }
   H.CH_ANSWER = (S, a) => {
-    const it = head(S, 'CHALLENGE', a.p);
+    const it0 = S.queue[0];
+    const it = charadesOpen(S, it0) && chActors(S).includes(a.p) ? it0 : head(S, 'CHALLENGE', a.p);
     const ch = CH[it.ch], def = CH_TYPES[ch.type], J = it.judge >= 0 ? PL(S, it.judge).name : '';
+    const multi = multiJudge(it);
     if (AUTO_TYPES.includes(ch.type)) {
       const ms = clampInt(a.ms, 0, 3600000), z = it.pz;
       const late = ms > z.secs * 1000 + 2000;
@@ -1256,6 +1298,16 @@
       }
       const pick = Number(a.pick);
       if (!(pick >= 0 && pick < 3)) fail('Pilih pernyataan yang menurutmu bohong.');
+      if (multi) {
+        it.pz.picks = it.pz.picks || {};
+        it.pz.picks[a.p] = pick;
+        const next = it.judges.find(j => !(j in it.pz.picks) && !PL(S, j).bankrupt);
+        if (next != null) { it.who = next; return; }
+        const gs = it.judges.filter(j => j in it.pz.picks), caught = gs.filter(j => it.pz.picks[j] === it.pz.lie), fooled = gs.length - caught.length;
+        const okB = fooled >= caught.length;
+        chFinish(S, it, okB, fooled + ' dari ' + gs.length + ' tertipu, yang bohong #' + (it.pz.lie + 1) + (caught.length ? ' · ketahuan ' + caught.map(j => PL(S, j).name).join(' & ') : ''), caught);
+        return;
+      }
       it.pz.pick = pick;
       const fooled = pick !== it.pz.lie;
       chFinish(S, it, fooled, J + ' menebak #' + (pick + 1) + ', yang bohong #' + (it.pz.lie + 1) + (fooled ? ' (berhasil mengecoh)' : ' (ketahuan)'), !fooled);
@@ -1264,6 +1316,23 @@
     if (ch.type === 'charades') {
       const z = it.pz;
       if (it.phase === 'act') { it.phase = 'guess'; it.who = it.judge; return; }
+      if (multi) {
+        z.triesBy = z.triesBy || {}; z.gby = z.gby || [];
+        const nm = PL(S, a.p).name;
+        if (a.timeout) { chFinish(S, it, false, 'waktu habis, tidak ada yang menebak "' + z.word + '"' + (z.guesses.length ? ' (' + z.guesses.length + ' tebakan)' : ''), false); return; }
+        if (a.giveUp) z.triesBy[a.p] = z.max;
+        else {
+          const g = cleanText(a.guess, 40);
+          if (!normWord(g)) fail('Ketik tebakanmu.');
+          z.guesses.push(g); z.gby.push(a.p); z.tries++;
+          z.triesBy[a.p] = (z.triesBy[a.p] || 0) + 1;
+          if (normWord(g) === normWord(z.word)) { chFinish(S, it, true, nm + ' menebak "' + z.word + '" di tebakan ke-' + z.triesBy[a.p], [a.p]); return; }
+        }
+        const left = chActors(S);
+        if (!left.length) { chFinish(S, it, false, 'semua penebak kehabisan kesempatan, jawabannya "' + z.word + '"', false); return; }
+        if (!left.includes(it.who)) it.who = left[0];
+        return;
+      }
       if (a.giveUp) { chFinish(S, it, false, J + ' tidak berhasil menebak "' + z.word + '"' + (z.guesses.length ? ' (' + z.guesses.length + ' tebakan)' : ''), false); return; }
       const g = cleanText(a.guess, 40);
       if (!normWord(g)) fail('Ketik tebakanmu.');
@@ -1279,15 +1348,21 @@
         if (bad.length) fail('Belum lolos syarat: ' + bad.map(c => c.label).join(', ') + '.');
         it.pz = { text };
         if (it.judge >= 0) { it.phase = 'judge'; it.who = it.judge; return; }
+      } else if (multi) {
+        const v = judgeVote(S, it, a.ok, a.p);
+        if (!v) return;
+        if (!v.ok) { chFinish(S, it, false, 'lolos syarat, tapi ' + v.txt, v.vs); return; }
+        it.pz.voteTxt = v.txt; it.pz.voters = v.vs;
       } else if (!a.ok) { chFinish(S, it, false, 'lolos syarat, tapi tidak disahkan ' + J, false); return; }
       const text = it.pz.text, p = PL(S, it.p);
       S.letters.push({ p: it.p, text, r: S.round }); if (S.letters.length > 40) S.letters.shift();
       p.stats.letters++; ev(S, { t: 'letter', p: it.p });
-      chFinish(S, it, true, 'lolos semua syarat' + (it.judge >= 0 ? ' · disahkan ' + J : ' (dicek otomatis)'), it.judge >= 0);
+      chFinish(S, it, true, 'lolos semua syarat' + (it.pz.voteTxt ? ' · ' + it.pz.voteTxt : it.judge >= 0 ? ' · disahkan ' + J : ' (dicek otomatis)'), it.pz.voters || it.judge >= 0);
       return;
     }
     if (ch.type === 'dare') {
-      if (it.phase === 'do') { it.phase = 'judge'; it.who = it.judge; return; }
+      if (it.phase === 'do') { it.phase = 'judge'; it.who = it.judge; it.pz.votes = {}; return; }
+      if (multi) { const v = judgeVote(S, it, a.ok, a.p); if (v) chFinish(S, it, v.ok, v.txt, v.vs); return; }
       chFinish(S, it, !!a.ok, a.ok ? 'disahkan oleh ' + J : 'tidak disahkan oleh ' + J, !!a.ok);
       return;
     }
@@ -1295,14 +1370,16 @@
       if (it.phase === 'do') {
         const ph = String(a.photo || '');
         if (!ph || ph.length > PHOTO_MAX || !PHOTO_RE.test(ph)) fail('Ambil foto bukti dulu.');
-        it.pz = { photo: ph };
+        it.pz = { photo: ph, votes: {} };
         it.phase = 'judge'; it.who = it.judge; return;
       }
       // foto disimpan (maksimal 4 terakhir) dan dipajang di papan; yang ditolak tetap tersimpan sebagai bukti
+      let okP = !!a.ok, txtP = (a.ok ? 'foto disahkan oleh ' : 'foto tidak disahkan oleh ') + J, shareP = okP;
+      if (multi) { const v = judgeVote(S, it, a.ok, a.p); if (!v) return; okP = v.ok; txtP = 'foto ' + v.txt; shareP = v.vs; }
       S.photos = S.photos || [];
-      S.photos.push({ p: it.p, img: it.pz.photo, text: ch.text.replace(/\{j\}/g, J), ok: !!a.ok, judge: it.judge, r: S.round });
+      S.photos.push({ p: it.p, img: it.pz.photo, text: ch.text.replace(/\{j\}/g, J), ok: okP, judge: it.judge, r: S.round });
       while (S.photos.length > PHOTO_KEEP) S.photos.shift();
-      chFinish(S, it, !!a.ok, (a.ok ? 'foto disahkan oleh ' : 'foto tidak disahkan oleh ') + J, !!a.ok);
+      chFinish(S, it, okP, txtP, shareP);
       return;
     }
     fail('Tantangan ini tidak memakai jawaban.');
@@ -1364,7 +1441,8 @@
       if (S.paused && action.type !== 'PAUSE') fail('Permainan sedang dijeda.');
       // pemilik tantangan boleh membatalkan (skip) walau sedang menunggu penilai, supaya tidak macet bila penilai pergi
       const chCancel = action.type === 'CH_RESOLVE' && action.result === 'skip' && S.queue[0] && S.queue[0].type === 'CHALLENGE' && S.queue[0].p === p;
-      if (action.type !== 'PAUSE' && !chCancel && actor(S) !== p) fail('Bukan giliranmu.');
+      const chGuess = action.type === 'CH_ANSWER' && charadesOpen(S, S.queue[0]) && chActors(S).includes(p);
+      if (action.type !== 'PAUSE' && !chCancel && !chGuess && actor(S) !== p) fail('Bukan giliranmu.');
       H[action.type](S, action);
       S.queue = S._new.concat(S.queue);
       S._new = [];
@@ -1387,7 +1465,7 @@
   }
 
   G.LoveEngine = {
-    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, migrate, newsInfo, peakOn, newsGap, tripleOk, travelFee: S => (newsOn(S, 'promo') ? 0 : RULES.travelFee),
+    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, judgesFor, chActors, migrate, newsInfo, peakOn, newsGap, tripleOk, travelFee: S => (newsOn(S, 'promo') ? 0 : RULES.travelFee),
     rentFor, rentInfo, netWorth, liquidation, tileValue, sellValue, levelCost, costRange, buyCost, upgradeCost,
     buyLevels, upgradeLevels, capLevel, targetCandidates, swapTargets,
     ownsGroup, countGroup, fullGroups, ownedBy, citiesOf, spotsOf, buildingLevels, tierOf, tierInfo,

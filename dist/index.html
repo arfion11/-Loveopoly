@@ -1275,6 +1275,15 @@ main { position: relative; }
 .modal.still { animation: none; }
 .modal.wide { width: min(100%, 820px); }
 @keyframes modalIn { from { transform: translateY(24px) scale(.94); opacity: 0; } }
+/* tutup dialog: cermin animasi buka, singkat & ringan (UI.leave memberi .leaving lalu menghapus elemen) */
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes modalOut { to { transform: translateY(14px) scale(.96); opacity: 0; } }
+@keyframes sheetOut { to { transform: translateY(100%); } }
+.leaving { pointer-events: none !important; }
+.modal-root.leaving { z-index: 69; }
+.modal-root.leaving .scrim, .overlay.leaving, .guide.leaving, .tour.leaving { animation: fadeOut .22s ease-in forwards; }
+.modal-root.leaving .modal, .overlay.leaving .pause-card, .guide.leaving .g-card, .tour.leaving .tour-card { animation: modalOut .22s ease-in forwards; }
+.win.leaving { animation: fadeOut .3s ease-in forwards; }
 .modal-hero { display: grid; place-items: center; padding: 18px 0 0; }
 .hero-art { display: block; width: 92px; height: 92px; --oc: var(--brand); }
 .modal-head { display: flex; align-items: flex-start; gap: 12px; padding: 20px 22px 12px; }
@@ -1847,6 +1856,7 @@ main { position: relative; }
   .mode-card.mc-sm > .ic { display: none; }
   .modal-root { place-items: end center; padding: 0; }
   .modal { width: 100%; max-height: 92dvh; border-radius: 28px 28px 0 0; animation: sheetIn .4s cubic-bezier(.3, 1.2, .5, 1); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .modal-root.leaving .modal { animation: sheetOut .26s cubic-bezier(.5, 0, .75, 0) forwards; }
   .modal.wide { width: 100%; }
   .modal-head { padding: 18px 18px 10px; }
   .modal-body { padding: 2px 18px 14px; }
@@ -3300,9 +3310,35 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     const id = deck.shift(); deck.push(id);
     return id;
   }
+  // Penilai = semua lawan manusia aktif (it.judges). Penilai utama (it.judge, dipakai {j} di teks tantangan & Tebak Isi
+  // Hati) bergiliran per pemilik lewat S.chRot supaya tidak selalu orang yang sama. 2 pemain: daftarnya 1 orang = aturan lama.
+  function judgesFor(S, i, rot) {
+    const n = S.players.length, list = [];
+    for (let k = 1; k < n; k++) { const q = S.players[(i + k) % n]; if (q.kind === 'human' && !q.bankrupt) list.push(q.i); }
+    if (!list.length) return list;
+    const s = (((rot || 0) % list.length) + list.length) % list.length;
+    return list.slice(s).concat(list.slice(0, s));
+  }
+  function assignJudges(S, it, fresh) {
+    const t = CH[it.ch].type;
+    if (!(NEEDS_JUDGE.includes(t) || t === 'message')) { it.judge = -1; it.judges = []; return; }
+    if (fresh || it.rot == null) { S.chRot = S.chRot || {}; it.rot = S.chRot[it.p] || 0; S.chRot[it.p] = it.rot + 1; }
+    it.judges = judgesFor(S, it.p, it.rot);
+    it.judge = it.judges.length ? it.judges[0] : -1;
+  }
+  const multiJudge = it => Array.isArray(it.judges) && it.judges.length > 1;
+  // Peragakan! dengan banyak penebak: siapa yang masih boleh menebak (sisa kesempatan)
+  const charadesOpen = (S, it) => it && it.type === 'CHALLENGE' && CH[it.ch] && CH[it.ch].type === 'charades' && it.phase === 'guess' && multiJudge(it);
+  const guessLeft = (it, j) => (it.pz.max || 3) - ((it.pz.triesBy || {})[j] || 0);
+  function chActors(S) {
+    const it = S.queue[0];
+    if (charadesOpen(S, it)) return it.judges.filter(j => !PL(S, j).bankrupt && guessLeft(it, j) > 0);
+    const a = actor(S);
+    return a >= 0 ? [a] : [];
+  }
   function chItem(S, i, cat, source) {
-    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, isle: source === 'island', judge: -1 };
-    it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, i) : -1;
+    const it = { type: 'CHALLENGE', p: i, ch: drawChallenge(S, i, cat), cat, source, redraws: 0, isle: source === 'island', judge: -1, judges: [] };
+    assignJudges(S, it, true);
     setupCh(S, it);
     return it;
   }
@@ -3311,13 +3347,14 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     if (!S || !Array.isArray(S.queue)) return S;
     if (!S.proofs) S.proofs = [];
     S.queue.forEach(it => {
+      if (it.type === 'CHALLENGE' && !Array.isArray(it.judges)) it.judges = it.judge >= 0 ? [it.judge] : [];
       if (it.type !== 'CHALLENGE' || (CH[it.ch] && it.phase && it.who != null)) return;
       if (!S.decks) S.decks = { card: [], challenge: {} };
       if (!CH[it.ch]) it.ch = drawChallenge(S, it.p, it.cat || 'any');
       if (it.redraws == null) it.redraws = 0;
       it.isle = it.source === 'island';
-      it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, it.p) : -1;
-      if (NEEDS_JUDGE.includes(CH[it.ch].type) && it.judge < 0) { it.ch = drawChallenge(S, it.p, 'skill'); it.judge = -1; }
+      assignJudges(S, it, false);
+      if (NEEDS_JUDGE.includes(CH[it.ch].type) && it.judge < 0) { it.ch = drawChallenge(S, it.p, 'skill'); it.judge = -1; it.judges = []; }
       setupCh(S, it);
     });
     return S;
@@ -3386,10 +3423,12 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
       p.stats.failed++;
       log(S, p.name + ' gagal ' + def.label + '. Bukti: ' + proof + '.' + (it.source === 'island' && p.island ? ' Tetap di Pulau Rindu.' : ''), 'dot', it.p);
     }
-    if (judgeShare && it.judge >= 0 && !PL(S, it.judge).bankrupt) {
-      const g = rewardTo(S, it.judge, def.judgeReward);
-      if (g) log(S, PL(S, it.judge).name + ' ikut dapat hadiah (' + g + ').', 'heart', it.judge);
-    }
+    const sharers = judgeShare === true ? [it.judge] : Array.isArray(judgeShare) ? judgeShare : [];
+    sharers.forEach(j => {
+      if (j < 0 || !PL(S, j) || PL(S, j).bankrupt) return;
+      const g = rewardTo(S, j, def.judgeReward);
+      if (g) log(S, PL(S, j).name + ' ikut dapat hadiah (' + g + ').', 'heart', j);
+    });
     ev(S, { t: 'challenge', p: it.p, ok, proof, label: def.label, judge: it.judge });
   }
   // ---------- pembayaran & utang ----------
@@ -3925,13 +3964,26 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     if (it.who !== it.p || it.phase !== (FIRST_PHASE[ch.type] || 'play')) fail('Tantangan sudah berjalan, tidak bisa diganti.');
     if (it.redraws >= RULES.maxRedraws) fail('Batas ganti tantangan sudah habis.');
     it.ch = drawChallenge(S, a.p, it.cat);
-    it.judge = NEEDS_JUDGE.includes(CH[it.ch].type) || CH[it.ch].type === 'message' ? judgeFor(S, a.p) : -1;
+    assignJudges(S, it, it.rot == null);
     it.redraws++;
     setupCh(S, it);
   };
+  // voting penilai (3–4 pemain): bergiliran, rahasia satu sama lain; mayoritas menentukan, seri = sah
+  function judgeVote(S, it, okVote, p) {
+    it.pz.votes = it.pz.votes || {};
+    it.pz.votes[p] = !!okVote;
+    const next = it.judges.find(j => !(j in it.pz.votes) && !PL(S, j).bankrupt);
+    if (next != null) { it.who = next; return null; }
+    const vs = it.judges.filter(j => j in it.pz.votes);
+    const yes = vs.filter(j => it.pz.votes[j]).length;
+    const ok = yes >= vs.length - yes;
+    return { ok, vs, txt: (ok ? 'disahkan ' : 'tidak disahkan ') + yes + ' dari ' + vs.length + ' penilai (' + vs.map(j => PL(S, j).name + (it.pz.votes[j] ? ' ✓' : ' ✗')).join(', ') + ')' };
+  }
   H.CH_ANSWER = (S, a) => {
-    const it = head(S, 'CHALLENGE', a.p);
+    const it0 = S.queue[0];
+    const it = charadesOpen(S, it0) && chActors(S).includes(a.p) ? it0 : head(S, 'CHALLENGE', a.p);
     const ch = CH[it.ch], def = CH_TYPES[ch.type], J = it.judge >= 0 ? PL(S, it.judge).name : '';
+    const multi = multiJudge(it);
     if (AUTO_TYPES.includes(ch.type)) {
       const ms = clampInt(a.ms, 0, 3600000), z = it.pz;
       const late = ms > z.secs * 1000 + 2000;
@@ -3963,6 +4015,16 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
       }
       const pick = Number(a.pick);
       if (!(pick >= 0 && pick < 3)) fail('Pilih pernyataan yang menurutmu bohong.');
+      if (multi) {
+        it.pz.picks = it.pz.picks || {};
+        it.pz.picks[a.p] = pick;
+        const next = it.judges.find(j => !(j in it.pz.picks) && !PL(S, j).bankrupt);
+        if (next != null) { it.who = next; return; }
+        const gs = it.judges.filter(j => j in it.pz.picks), caught = gs.filter(j => it.pz.picks[j] === it.pz.lie), fooled = gs.length - caught.length;
+        const okB = fooled >= caught.length;
+        chFinish(S, it, okB, fooled + ' dari ' + gs.length + ' tertipu, yang bohong #' + (it.pz.lie + 1) + (caught.length ? ' · ketahuan ' + caught.map(j => PL(S, j).name).join(' & ') : ''), caught);
+        return;
+      }
       it.pz.pick = pick;
       const fooled = pick !== it.pz.lie;
       chFinish(S, it, fooled, J + ' menebak #' + (pick + 1) + ', yang bohong #' + (it.pz.lie + 1) + (fooled ? ' (berhasil mengecoh)' : ' (ketahuan)'), !fooled);
@@ -3971,6 +4033,23 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     if (ch.type === 'charades') {
       const z = it.pz;
       if (it.phase === 'act') { it.phase = 'guess'; it.who = it.judge; return; }
+      if (multi) {
+        z.triesBy = z.triesBy || {}; z.gby = z.gby || [];
+        const nm = PL(S, a.p).name;
+        if (a.timeout) { chFinish(S, it, false, 'waktu habis, tidak ada yang menebak "' + z.word + '"' + (z.guesses.length ? ' (' + z.guesses.length + ' tebakan)' : ''), false); return; }
+        if (a.giveUp) z.triesBy[a.p] = z.max;
+        else {
+          const g = cleanText(a.guess, 40);
+          if (!normWord(g)) fail('Ketik tebakanmu.');
+          z.guesses.push(g); z.gby.push(a.p); z.tries++;
+          z.triesBy[a.p] = (z.triesBy[a.p] || 0) + 1;
+          if (normWord(g) === normWord(z.word)) { chFinish(S, it, true, nm + ' menebak "' + z.word + '" di tebakan ke-' + z.triesBy[a.p], [a.p]); return; }
+        }
+        const left = chActors(S);
+        if (!left.length) { chFinish(S, it, false, 'semua penebak kehabisan kesempatan, jawabannya "' + z.word + '"', false); return; }
+        if (!left.includes(it.who)) it.who = left[0];
+        return;
+      }
       if (a.giveUp) { chFinish(S, it, false, J + ' tidak berhasil menebak "' + z.word + '"' + (z.guesses.length ? ' (' + z.guesses.length + ' tebakan)' : ''), false); return; }
       const g = cleanText(a.guess, 40);
       if (!normWord(g)) fail('Ketik tebakanmu.');
@@ -3986,15 +4065,21 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
         if (bad.length) fail('Belum lolos syarat: ' + bad.map(c => c.label).join(', ') + '.');
         it.pz = { text };
         if (it.judge >= 0) { it.phase = 'judge'; it.who = it.judge; return; }
+      } else if (multi) {
+        const v = judgeVote(S, it, a.ok, a.p);
+        if (!v) return;
+        if (!v.ok) { chFinish(S, it, false, 'lolos syarat, tapi ' + v.txt, v.vs); return; }
+        it.pz.voteTxt = v.txt; it.pz.voters = v.vs;
       } else if (!a.ok) { chFinish(S, it, false, 'lolos syarat, tapi tidak disahkan ' + J, false); return; }
       const text = it.pz.text, p = PL(S, it.p);
       S.letters.push({ p: it.p, text, r: S.round }); if (S.letters.length > 40) S.letters.shift();
       p.stats.letters++; ev(S, { t: 'letter', p: it.p });
-      chFinish(S, it, true, 'lolos semua syarat' + (it.judge >= 0 ? ' · disahkan ' + J : ' (dicek otomatis)'), it.judge >= 0);
+      chFinish(S, it, true, 'lolos semua syarat' + (it.pz.voteTxt ? ' · ' + it.pz.voteTxt : it.judge >= 0 ? ' · disahkan ' + J : ' (dicek otomatis)'), it.pz.voters || it.judge >= 0);
       return;
     }
     if (ch.type === 'dare') {
-      if (it.phase === 'do') { it.phase = 'judge'; it.who = it.judge; return; }
+      if (it.phase === 'do') { it.phase = 'judge'; it.who = it.judge; it.pz.votes = {}; return; }
+      if (multi) { const v = judgeVote(S, it, a.ok, a.p); if (v) chFinish(S, it, v.ok, v.txt, v.vs); return; }
       chFinish(S, it, !!a.ok, a.ok ? 'disahkan oleh ' + J : 'tidak disahkan oleh ' + J, !!a.ok);
       return;
     }
@@ -4002,14 +4087,16 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
       if (it.phase === 'do') {
         const ph = String(a.photo || '');
         if (!ph || ph.length > PHOTO_MAX || !PHOTO_RE.test(ph)) fail('Ambil foto bukti dulu.');
-        it.pz = { photo: ph };
+        it.pz = { photo: ph, votes: {} };
         it.phase = 'judge'; it.who = it.judge; return;
       }
       // foto disimpan (maksimal 4 terakhir) dan dipajang di papan; yang ditolak tetap tersimpan sebagai bukti
+      let okP = !!a.ok, txtP = (a.ok ? 'foto disahkan oleh ' : 'foto tidak disahkan oleh ') + J, shareP = okP;
+      if (multi) { const v = judgeVote(S, it, a.ok, a.p); if (!v) return; okP = v.ok; txtP = 'foto ' + v.txt; shareP = v.vs; }
       S.photos = S.photos || [];
-      S.photos.push({ p: it.p, img: it.pz.photo, text: ch.text.replace(/\{j\}/g, J), ok: !!a.ok, judge: it.judge, r: S.round });
+      S.photos.push({ p: it.p, img: it.pz.photo, text: ch.text.replace(/\{j\}/g, J), ok: okP, judge: it.judge, r: S.round });
       while (S.photos.length > PHOTO_KEEP) S.photos.shift();
-      chFinish(S, it, !!a.ok, (a.ok ? 'foto disahkan oleh ' : 'foto tidak disahkan oleh ') + J, !!a.ok);
+      chFinish(S, it, okP, txtP, shareP);
       return;
     }
     fail('Tantangan ini tidak memakai jawaban.');
@@ -4071,7 +4158,8 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
       if (S.paused && action.type !== 'PAUSE') fail('Permainan sedang dijeda.');
       // pemilik tantangan boleh membatalkan (skip) walau sedang menunggu penilai, supaya tidak macet bila penilai pergi
       const chCancel = action.type === 'CH_RESOLVE' && action.result === 'skip' && S.queue[0] && S.queue[0].type === 'CHALLENGE' && S.queue[0].p === p;
-      if (action.type !== 'PAUSE' && !chCancel && actor(S) !== p) fail('Bukan giliranmu.');
+      const chGuess = action.type === 'CH_ANSWER' && charadesOpen(S, S.queue[0]) && chActors(S).includes(p);
+      if (action.type !== 'PAUSE' && !chCancel && !chGuess && actor(S) !== p) fail('Bukan giliranmu.');
       H[action.type](S, action);
       S.queue = S._new.concat(S.queue);
       S._new = [];
@@ -4094,7 +4182,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
   }
 
   G.LoveEngine = {
-    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, migrate, newsInfo, peakOn, newsGap, tripleOk, travelFee: S => (newsOn(S, 'promo') ? 0 : RULES.travelFee),
+    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, judgesFor, chActors, migrate, newsInfo, peakOn, newsGap, tripleOk, travelFee: S => (newsOn(S, 'promo') ? 0 : RULES.travelFee),
     rentFor, rentInfo, netWorth, liquidation, tileValue, sellValue, levelCost, costRange, buyCost, upgradeCost,
     buyLevels, upgradeLevels, capLevel, targetCandidates, swapTargets,
     ownsGroup, countGroup, fullGroups, ownedBy, citiesOf, spotsOf, buildingLevels, tierOf, tierInfo,
@@ -5006,6 +5094,17 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
   const KEYS = { save: 'loveopoly.v2.save', prefs: 'loveopoly.v1.prefs', online: 'loveopoly.v2.online', setup: 'loveopoly.v2.setup', tour: 'loveopoly.v2.tour', guide: 'loveopoly.v2.guide' };
   const reduceMotion = () => { try { return G.matchMedia && G.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
   const coin = '<i class="coin-ic" aria-hidden="true"></i>';
+  // tutup dengan animasi keluar ringan (kelas .leaving di style.css, cermin animasi buka). Elemen langsung lepas dari
+  // logika: tanpa id (deep: id di dalamnya juga, kecuali SVG), inert & aria-hidden, lalu dihapus setelah animasi.
+  function leave(el, ms, deep) {
+    if (!el) return;
+    if (reduceMotion() || !el.isConnected) { el.remove(); return; }
+    el.removeAttribute('id');
+    if (deep) $$('[id]', el).forEach(n => { if (!(n instanceof SVGElement)) n.removeAttribute('id'); });
+    el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true');
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), ms || 260);
+  }
 
   const App = {
     S: null, shown: null, mode: 'local', seat: -1,
@@ -7157,7 +7256,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
 
   G.LoveUI = Object.assign(G.LoveUI || {}, {
     App, D, E, AI, SND, ART, TILES, GROUPS, RULES, KEYS, N,
-    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported, renderAmbience,
+    view3d, fmt, esc, ic, $, $$, leave, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported, renderAmbience,
     applyLayout, sizeBoard, bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax,
     buildBoard, renderBoard, renderTokens, renderPlayers, renderHeader, renderStage, renderCenter: renderStage, renderTicker, renderAll,
     startPick, renderPick, endPick, merpiSay, merpiPoke, pulse, restart, tileEl,
@@ -7177,6 +7276,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     const root = $('#modalRoot');
     UI.cancelAutoEnd();
     if (App.modal && App.modal.cleanup) { try { App.modal.cleanup(); } catch (e) { /* abaikan */ } }
+    $$('.modal-root.leaving').forEach(g => g.remove()); // dialog baru langsung menggantikan sisa animasi tutup
     App.modal = def;
     root.hidden = false;
     paint(def, true);
@@ -7231,8 +7331,16 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     const root = $('#modalRoot');
     if (App.modal && App.modal.cleanup) { try { App.modal.cleanup(); } catch (e) { /* abaikan */ } }
     App.modal = null;
-    root.hidden = true;
-    root.innerHTML = '';
+    if (!root.hidden && root.firstChild && !UI.reduceMotion()) {
+      // animasi tutup: wadah lama jadi "bayangan" yang memudar/turun, #modalRoot baru langsung siap dipakai
+      const fresh = root.cloneNode(false);
+      fresh.hidden = true;
+      root.parentNode.insertBefore(fresh, root);
+      UI.leave(root, 280, true);
+    } else {
+      root.hidden = true;
+      root.innerHTML = '';
+    }
     if (quiet === true) return;
     UI.renderStage();
     UI.scheduleAI();
@@ -7321,7 +7429,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
   function openDecision(it, key) {
     const map = { BUY: dBuy, UPGRADE: dUpgrade, RENT: dRent, TAKEOVER: dTakeover, TAX: dTax, CARD: dCard, CHALLENGE: dChallenge, DEBT: dDebt, TARGET: pTarget, TOUR: pTour };
     const f = map[it.type];
-    if (f) { f(key); if (App.modal) App.modal.itype = it.type; }
+    if (f) { f(key); if (App.modal) { App.modal.itype = it.type; if (it.type === 'CHALLENGE') App.modal.chk = chKey(it); } }
   }
 
   function dBuy(key) {
@@ -7530,13 +7638,18 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     if (r.gain) out.push('<span class="chip gold">' + coin + '+' + r.gain + '</span>');
     if (r.love) out.push('<span class="chip rose">' + ic('heart') + 'Love +' + r.love + '</span>');
     if (ch.type === 'dilemma') out.push('<span class="chip lilac">' + ic('scale') + 'Pilihanmu mengubah strategi</span>');
-    if (jr && it && it.judge >= 0) out.push('<span class="chip mint">' + ic('users') + (ch.type === 'bluff' ? 'Ketahuan: ' : 'Penilai juga: ') + [jr.gain ? '+' + jr.gain : '', jr.love ? 'Love +' + jr.love : ''].filter(Boolean).join(' ') + '</span>');
+    if (jr && it && it.judge >= 0) out.push('<span class="chip mint">' + ic('users') + (ch.type === 'bluff' ? (isMulti(it) ? 'Penebak benar: ' : 'Ketahuan: ') : ch.type === 'charades' && isMulti(it) ? 'Penebak benar: ' : isMulti(it) ? 'Tiap penilai: ' : 'Penilai juga: ') + [jr.gain ? '+' + jr.gain : '', jr.love ? 'Love +' + jr.love : ''].filter(Boolean).join(' ') + '</span>');
     if (it && it.isle) out.push('<span class="chip lilac">' + ic('island') + 'Lulus = keluar dari Pulau Rindu</span>');
     if (s.love) out.push('<span class="chip plain">Lewati: Love ' + s.love + '</span>');
     return '<div class="reward-row">' + out.join('') + '</div>';
   }
   const VERIFY_TXT = { auto: 'Dinilai otomatis oleh game', duel: 'Lawan ikut main · dinilai game', judge: 'Disahkan lawan', choice: 'Pilih strategi' };
-  const chFill = (txt, it) => String(txt || '').replace(/\{j\}/g, it.judge >= 0 ? App.S.players[it.judge].name : 'lawanmu').replace(/\{n\}/g, App.S.players[it.p].name);
+  const nameList = arr => arr.length <= 1 ? (arr[0] || '') : arr.slice(0, -1).join(', ') + ' & ' + arr[arr.length - 1];
+  const judgeList = it => (it.judges || []).map(j => App.S.players[j].name);
+  // all = true: {j} jadi semua lawan yang ikut (penjelasan cara main di 3–4 pemain); teks tantangan tetap memakai penilai utama
+  const chFill = (txt, it, all) => String(txt || '').replace(/\{j\}/g, all && (it.judges || []).length > 1 ? nameList(judgeList(it)) : it.judge >= 0 ? App.S.players[it.judge].name : 'lawanmu').replace(/\{n\}/g, App.S.players[it.p].name);
+  const isMulti = it => (it.judges || []).length > 1;
+  const multiGuess = it => isMulti(it) && E.CH[it.ch] && E.CH[it.ch].type === 'charades' && it.phase === 'guess';
   const chKey = it => it.p + '|' + it.ch + '|' + it.redraws + '|' + App.S.round;
   let chSeen = { key: '', who: -1 };
   const chClock = {};   // waktu mulai per tantangan+fase (tetap jalan walau dialog digambar ulang)
@@ -7547,8 +7660,10 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     return { ms, left: Math.max(0, secs * 1000 - ms), reset: () => { delete chClock[k]; } };
   }
   const timerBar = (left, secs) => '<div class="ch-timer' + (left < 5000 ? ' hurry' : '') + '" role="timer" aria-label="Sisa waktu"><i style="--v:' + Math.max(0, left / (secs * 1000) * 100).toFixed(1) + '%"></i><b>' + Math.ceil(left / 1000) + '</b></div>';
+  // kemajuan voting penilai (3–4 pemain): urutan saja, isi suara orang lain dirahasiakan
+  const voteNote = it => isMulti(it) ? '<div class="note gold">' + ic('users') + '<span>Penilai ' + (Object.keys((it.pz && it.pz.votes) || {}).length + 1) + ' dari ' + it.judges.length + '. Pilihanmu rahasia; mayoritas menentukan (seri = sah).</span></div>' : '';
   function dChallenge(key) {
-    const local = { answers: [], idx: 0, text: '', lines: ['', '', ''], lie: -1, pick: -1, guess: '', reveal: false, photo: '', tick: null, game: null, cam: null, fb: '' };
+    const local = { answers: [], idx: 0, text: '', lines: ['', '', ''], lie: -1, pick: -1, guess: '', reveal: false, photo: '', tick: null, game: null, cam: null, fb: '', guesser: -1 };
     const stopTick = () => { if (local.tick) { clearInterval(local.tick); local.tick = null; } };
     // Dua Fakta Satu Bohong: syarat kirim (sama dengan engine: 3 pernyataan ≥ RULES.bluffMin huruf + 1 ditandai)
     const bluffFilled = () => local.lines.filter(x => x.trim().length >= RULES.bluffMin).length;
@@ -7571,9 +7686,15 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
         const hero = '<span class="hero-art">' + G.LoveArt.merpi(it.who === it.p ? 'is-wow' : 'is-think') + '</span>';
         const ownerPhase = it.who === it.p;
         // layar serah-HP (main bersama di satu perangkat)
-        const k = chKey(it);
-        if (chSeen.key !== k) chSeen = { key: k, who: it.who };
-        if (App.mode !== 'online' && humanCount() >= 2 && chSeen.who !== it.who) {
+        const k = chKey(it), gateId = multiGuess(it) ? 'guess' : it.who;
+        if (chSeen.key !== k) chSeen = { key: k, who: gateId };
+        if (App.mode !== 'online' && humanCount() >= 2 && chSeen.who !== gateId && multiGuess(it)) {
+          local.gate = true;
+          return { kicker, title: 'Waktunya menebak!', who: whoLine(it.p, 'memperagakan'), hero,
+            body: '<div class="ch-gate"><p><b>' + esc(nameList(judgeList(it))) + '</b>: tebak peragaan ' + esc(owner.name) + '.</p><p class="muted">Siapa cepat dia dapat! Tiap penebak punya ' + (it.pz.max || 3) + ' kesempatan. Pilih namamu sebelum mengetik tebakan.</p></div>',
+            foot: '<span class="grow"></span>' + btn('id="bGate" data-focus', 'primary big', 'check', 'Mulai menebak') };
+        }
+        if (App.mode !== 'online' && humanCount() >= 2 && chSeen.who !== gateId) {
           local.gate = true;
           return { kicker, title: 'Serahkan ke ' + me.name, who: whoLine(it.who, ownerPhase ? 'giliran menjawab' : 'penilai'), hero,
             body: '<div class="ch-gate">' + avatarHTML(me, 'lg') + '<p><b>' + esc(me.name) + '</b>, sekarang giliranmu' + (ownerPhase ? '' : ' menilai tantangan ' + esc(owner.name)) + '.</p><p class="muted">' + (ch.type === 'secret' || ch.type === 'charades' ? 'Yang lain jangan mengintip layar, ya!' : 'Pegang perangkatnya, lalu lanjut.') + '</p></div>',
@@ -7584,7 +7705,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
         const first = ownerPhase && (D.AUTO_TYPES.includes(ch.type) ? !local.started : ['intro', 'write', 'act', 'do', 'choose'].includes(it.phase));
         const ownerBtns = ownerPhase ? (first ? btn('id="bRedraw"', 'ghost', 'refresh', 'Ganti (' + redrawLeft + ')', redrawLeft <= 0) : '') + btn('id="bSkip"', 'ghost', '', 'Lewati') : '';
         const task = '<div class="notepaper">' + esc(chFill(ch.text, it)) + '</div>';
-        const how = '<div class="tiny muted ch-how">' + ic('info') + ' ' + esc(chFill(def.how, it)) + '</div>';
+        const how = '<div class="tiny muted ch-how">' + ic('info') + ' ' + esc(chFill(def.how, it, ch.type !== 'secret')) + (isMulti(it) && ch.type !== 'secret' ? ' ' + (ch.verify === 'judge' || ch.type === 'message' || def.verify === 'judge' ? 'Semua lawan menilai bergantian; mayoritas menentukan (seri = sah).' : 'Semua lawan ikut menebak.') : '') + '</div>';
         let body = '', foot = '', title = def.label;
         // --- auto: mini-game berwaktu ---
         if (D.AUTO_TYPES.includes(ch.type)) {
@@ -7629,7 +7750,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
             foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChSend" data-jn="' + esc(jName) + '"', 'primary big', 'chevron', bluffLabel(jName), !bluffOk());
           } else {
             title = 'Mana yang bohong?';
-            body = '<div class="note">' + ic('question') + ' ' + esc(owner.name) + ' menulis 3 pernyataan. Satu bohong. Tebak yang mana!</div><div class="bluff-pick">' + it.pz.lines.map((l, i) => '<button type="button" class="ch-opt big" data-pick="' + i + '" aria-pressed="' + (local.pick === i) + '"><b>#' + (i + 1) + '</b> ' + esc(l) + '</button>').join('') + '</div>';
+            body = (isMulti(it) ? '<div class="note gold">' + ic('users') + '<span>Penebak ' + (Object.keys(it.pz.picks || {}).length + 1) + ' dari ' + it.judges.length + '. Tebakanmu rahasia; hanya yang benar dapat hadiah.</span></div>' : '') + '<div class="note">' + ic('question') + ' ' + esc(owner.name) + ' menulis 3 pernyataan. Satu bohong. Tebak yang mana!</div><div class="bluff-pick">' + it.pz.lines.map((l, i) => '<button type="button" class="ch-opt big" data-pick="' + i + '" aria-pressed="' + (local.pick === i) + '"><b>#' + (i + 1) + '</b> ' + esc(l) + '</button>').join('') + '</div>';
             foot = '<span class="grow"></span>' + btn('id="bChSend"', 'primary big', 'target', 'Ini yang bohong!', local.pick < 0);
           }
           return { kicker, title, who: whoLine(it.who), body, foot, hero };
@@ -7642,6 +7763,17 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
           } else {
             const c = clockOf(it, 'cr', z.secs);
             title = 'Tebak peragaan ' + owner.name;
+            if (isMulti(it)) {
+              const open = E.chActors(S), mine = open.filter(j => controls(j));
+              if (!mine.includes(local.guesser)) local.guesser = mine.length ? mine[0] : -1;
+              const left = j => (z.max || 3) - ((z.triesBy || {})[j] || 0);
+              const pickRow = mine.length > 1 ? '<div class="field"><span class="label">Siapa yang menebak?</span><div class="partner-pick">' + mine.map(j => '<button type="button" data-gsr="' + j + '" aria-pressed="' + (j === local.guesser) + '">' + avatarHTML(S.players[j], 'xs') + esc(S.players[j].name) + ' · ' + left(j) + '</button>').join('') + '</div></div>' : '';
+              body = timerBar(c.left, z.secs) + '<div class="note">' + ic('users') + '<span>' + esc(owner.name) + ' memperagakan tanpa suara. Siapa cepat dia dapat! ' + (local.guesser >= 0 ? esc(S.players[local.guesser].name) + ': ' + left(local.guesser) + ' kesempatan lagi.' : 'Kesempatanmu sudah habis, tunggu yang lain.') + '</span></div>' +
+                (z.guesses.length ? '<div class="ch-guesses">' + z.guesses.map((g, gi) => '<span class="chip plain">' + ic('x') + (z.gby && S.players[z.gby[gi]] ? esc(S.players[z.gby[gi]].name) + ': ' : '') + esc(g) + '</span>').join('') + '</div>' : '') +
+                pickRow + (local.guesser >= 0 ? '<div class="field"><label for="chGuess">Tebakan ' + esc(S.players[local.guesser].name) + '</label><input class="input" id="chGuess" maxlength="40" autocomplete="off" value="' + esc(local.guess) + '"></div>' : '');
+              foot = local.guesser >= 0 ? btn('id="bChGiveUp"', 'ghost', 'x', 'Menyerah') + '<span class="grow"></span>' + btn('id="bChSend"', 'primary big', 'target', 'Tebak!', !local.guess.trim()) : '<span class="tiny muted">Menunggu penebak lain…</span>';
+              return { kicker, title, who: whoLine(it.p, 'memperagakan'), body, foot, hero };
+            }
             body = timerBar(c.left, z.secs) + '<div class="note">' + ic('users') + ' ' + esc(owner.name) + ' memperagakan tanpa suara. Ketik tebakanmu (' + (z.max - z.tries) + ' kesempatan lagi).</div>' +
               (z.guesses.length ? '<div class="ch-guesses">' + z.guesses.map(g => '<span class="chip plain">' + ic('x') + esc(g) + '</span>').join('') + '</div>' : '') +
               '<div class="field"><label for="chGuess">Tebakan</label><input class="input" id="chGuess" maxlength="40" autocomplete="off" value="' + esc(local.guess) + '"></div>';
@@ -7657,7 +7789,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
             foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChSend"', 'primary big', 'letter', J ? 'Kirim ke ' + J.name : 'Kirim', !allOk);
           } else {
             title = 'Sahkan surat ' + owner.name + '?';
-            body = '<div class="note good">' + ic('check') + ' Semua syarat sudah lolos cek otomatis.</div><div class="notepaper ch-letter">' + esc(it.pz.text).replace(/\n/g, '<br>') + '</div><div class="tiny muted">Tantangan: ' + esc(chFill(ch.text, it)) + '</div>';
+            body = voteNote(it) + '<div class="note good">' + ic('check') + ' Semua syarat sudah lolos cek otomatis.</div><div class="notepaper ch-letter">' + esc(it.pz.text).replace(/\n/g, '<br>') + '</div><div class="tiny muted">Tantangan: ' + esc(chFill(ch.text, it)) + '</div>';
             foot = btn('id="bJudgeNo"', 'soft', 'x', 'Tidak sah') + '<span class="grow"></span>' + btn('id="bJudgeOk" data-focus', 'primary big', 'check', 'Sah, manis!');
           }
           return { kicker, title, who: whoLine(it.who), body, foot, hero };
@@ -7676,8 +7808,8 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
             }
           } else {
             title = 'Sah atau tidak?';
-            body = (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + safeImg(it.pz.photo) + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
-              '<div class="tiny muted">Nilai dengan adil. Kalau sah, kamu juga dapat Love.</div>';
+            body = voteNote(it) + (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + safeImg(it.pz.photo) + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
+              '<div class="tiny muted">' + (isMulti(it) ? 'Nilai dengan adil. Tiap penilai dapat Love, apa pun hasilnya.' : 'Nilai dengan adil. Kalau sah, kamu juga dapat Love.') + '</div>';
             foot = btn('id="bJudgeNo"', 'soft', 'x', 'Tidak sah') + '<span class="grow"></span>' + btn('id="bJudgeOk" data-focus', 'primary big', 'check', 'Sah!');
           }
           return { kicker, title, who: whoLine(it.who), body, foot, hero };
@@ -7687,9 +7819,10 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
       mount: m => {
         const it = head();
         if (!it || !E.CH[it.ch]) return;
-        const ch = E.CH[it.ch], p = it.who;
+        const ch = E.CH[it.ch], p = multiGuess(it) ? local.guesser : it.who;
         const send = extra => act(Object.assign({ type: 'CH_ANSWER', p }, extra || {}));
-        on(m, '#bGate', () => { chSeen.who = it.who; refreshModal(); });
+        on(m, '#bGate', () => { chSeen.who = multiGuess(it) ? 'guess' : it.who; refreshModal(); });
+        $$('[data-gsr]', m).forEach(b => b.addEventListener('click', () => { local.guesser = Number(b.dataset.gsr); SND.play('click'); refreshModal(); }));
         if (local.gate) return;
         on(m, '#bRedraw', () => { local.started = false; local.answers = []; act({ type: 'CH_REDRAW', p: it.p }); });
         on(m, '#bSkip', () => act({ type: 'CH_RESOLVE', p: it.p, result: 'skip' }));
@@ -7763,7 +7896,12 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
             tb.classList.toggle('hurry', c.left < 5000);
             tb.querySelector('i').style.setProperty('--v', (c.left / (secs * 1000) * 100).toFixed(1) + '%');
             tb.querySelector('b').textContent = Math.ceil(c.left / 1000);
-            if (c.left <= 0) { stopTick(); SND.play('bad'); if (ch.type === 'charades') send({ giveUp: true }); }
+            if (c.left <= 0) {
+              stopTick(); SND.play('bad');
+              if (ch.type !== 'charades') return;
+              if (!multiGuess(it)) send({ giveUp: true });
+              else if (controls(E.actor(App.S))) act({ type: 'CH_ANSWER', p: E.actor(App.S), timeout: true });
+            }
           }, 200);
         }
         const camHost = m.querySelector('#camHost');
@@ -8029,9 +8167,12 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
   function syncModal(force) {
     const S = App.S;
     if (!S || S.over) return;
-    const it = S.queue[0], a = E.actor(S);
+    const it = S.queue[0];
+    let a = E.actor(S);
+    if (it && it.type === 'CHALLENGE' && !controls(a)) { const alt = E.chActors(S).find(j => controls(j)); if (alt != null) a = alt; }
     if (it && controls(a)) {
       const key = 'd' + S.seq;
+      if (!force && it.type === 'CHALLENGE' && multiGuess(it) && App.modal && App.modal.decision && App.modal.itype === 'CHALLENGE' && App.modal.chk === chKey(it)) { App.modal.key = key; refreshModal(); return; }
       if (it.type === 'TARGET' || it.type === 'TOUR') {
         if (App.modal && App.modal.decision) closeModal(true);
         if (!force && App.pick && App.pick.key === key) return;
@@ -9077,7 +9218,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     },
     {
       id: 'proof', title: 'Tantangan wajib terbukti', say: 'Tidak ada lagi klik "Selesai". Buktikan!',
-      pts: ['Mini-game berwaktu dinilai otomatis: Kuis Keliling Dunia, Tebak Harga, Ingat Urutan, Hitung Ongkos, Susun Nama Kota, Tebak Emoji.', 'Lawan ikut main: Tebak Isi Hati, Dua Fakta Satu Bohong, Peragakan!. Game yang membandingkan jawaban.', 'Aksi Berani & Foto Bukti punya syarat sah yang jelas, dan lawan yang mengesahkan. Semua hasil tercatat sebagai bukti di log.'],
+      pts: ['Mini-game berwaktu dinilai otomatis: Kuis Keliling Dunia, Tebak Harga, Ingat Urutan, Hitung Ongkos, Susun Nama Kota, Tebak Emoji.', 'Lawan ikut main: Tebak Isi Hati, Dua Fakta Satu Bohong, Peragakan!. Main bertiga atau berempat? Semua lawan ikut menebak, dan hadiah hanya untuk yang benar.', 'Aksi Berani, Foto Bukti & Surat punya syarat sah yang jelas, dan lawan yang mengesahkan. Bertiga/berempat: semua lawan memilih, suara terbanyak menang (seri = sah). Semua hasil tercatat sebagai bukti di log.'],
       scene: () => '<div class="sc sc-proof">' +
         '<span class="gp-card c1"><span class="gp-tag">' + ic('clock') + 'Dinilai game</span><span class="gp-timer"><i></i></span><span class="gp-emoji">🗼🥐💕</span><b class="gp-res">4/4 benar · 17,3 dtk</b></span>' +
         '<span class="gp-card c2"><span class="gp-tag">' + ic('users') + 'Lawan ikut main</span><span class="gp-duo"><span class="gp-av" style="--c:' + PINK + '">🐻</span><b>?</b><span class="gp-av" style="--c:' + VIOLET + '">🐰</span></span><b class="gp-res">2/3 cocok</b></span>' +
@@ -9135,8 +9276,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     render();
   }
   function close() {
-    const ov = $('#guideOv');
-    if (ov) ov.remove();
+    UI.leave($('#guideOv'));
     if (keyH) document.removeEventListener('keydown', keyH);
     keyH = null;
     UI.store.set(UI.KEYS.guide, 'seen');
@@ -9824,10 +9964,10 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
       el.className = 'overlay'; el.id = 'pauseOv';
       el.innerHTML = '<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pauseT">' + ART.merpi('is-think') + '<h2 id="pauseT">Istirahat dulu</h2><p class="muted">Minum air, kirim stiker ke pasangan. Permainan menunggu.</p><button type="button" class="btn go" id="pResume">' + ic('play') + '<span>Lanjutkan</span></button><button type="button" class="btn ghost" id="pExit">' + ic('exit') + '<span>Keluar ke menu</span></button></div>';
       root.appendChild(el);
-      $('#pResume').onclick = togglePause;
-      $('#pExit').onclick = UI.openExit;
-      setTimeout(() => $('#pResume') && $('#pResume').focus(), 50);
-    } else if (exist) exist.remove();
+      $('#pResume', el).onclick = togglePause;
+      $('#pExit', el).onclick = UI.openExit;
+      setTimeout(() => { const b = $('#pResume', el); if (b && el.isConnected) b.focus(); }, 50);
+    } else if (exist) UI.leave(exist);
   }
   function closeOverlay() { $('#overlayRoot').innerHTML = ''; }
 
@@ -9911,7 +10051,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
     root.appendChild(el);
     SND.play('win');
     confettiStop = confetti($('#confetti'));
-    $('#wBoard').onclick = () => { if (confettiStop) confettiStop(); el.remove(); };
+    $('#wBoard').onclick = () => { if (confettiStop) confettiStop(); UI.leave(el, 320); };
     $('#wHome').onclick = () => { if (confettiStop) confettiStop(); exitToHome(); };
     const again = $('#wAgain');
     if (again) again.onclick = () => {
@@ -9936,8 +10076,7 @@ body[data-amb="sale"] .sky-b, body[data-amb="promo"] .sky-b, body[data-amb="bonu
   }
   let tourPlace = null;
   function endTour(done) {
-    const ov = $('#tourOv');
-    if (ov) ov.remove();
+    UI.leave($('#tourOv'));
     if (tourPlace) { removeEventListener('resize', tourPlace); tourPlace = null; }
     if (done) store.set(KEYS.tour, 'done');
     if (!App.tour) return;

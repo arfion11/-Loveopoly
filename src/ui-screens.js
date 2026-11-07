@@ -646,10 +646,10 @@
       el.className = 'overlay'; el.id = 'pauseOv';
       el.innerHTML = '<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pauseT">' + ART.merpi('is-think') + '<h2 id="pauseT">Istirahat dulu</h2><p class="muted">Minum air, kirim stiker ke pasangan. Permainan menunggu.</p><button type="button" class="btn go" id="pResume">' + ic('play') + '<span>Lanjutkan</span></button><button type="button" class="btn ghost" id="pExit">' + ic('exit') + '<span>Keluar ke menu</span></button></div>';
       root.appendChild(el);
-      $('#pResume').onclick = togglePause;
-      $('#pExit').onclick = UI.openExit;
-      setTimeout(() => $('#pResume') && $('#pResume').focus(), 50);
-    } else if (exist) exist.remove();
+      $('#pResume', el).onclick = togglePause;
+      $('#pExit', el).onclick = UI.openExit;
+      setTimeout(() => { const b = $('#pResume', el); if (b && el.isConnected) b.focus(); }, 50);
+    } else if (exist) UI.leave(exist);
   }
   function closeOverlay() { $('#overlayRoot').innerHTML = ''; }
 
@@ -733,7 +733,7 @@
     root.appendChild(el);
     SND.play('win');
     confettiStop = confetti($('#confetti'));
-    $('#wBoard').onclick = () => { if (confettiStop) confettiStop(); el.remove(); };
+    $('#wBoard').onclick = () => { if (confettiStop) confettiStop(); UI.leave(el, 320); };
     $('#wHome').onclick = () => { if (confettiStop) confettiStop(); exitToHome(); };
     const again = $('#wAgain');
     if (again) again.onclick = () => {
@@ -758,8 +758,7 @@
   }
   let tourPlace = null;
   function endTour(done) {
-    const ov = $('#tourOv');
-    if (ov) ov.remove();
+    UI.leave($('#tourOv'));
     if (tourPlace) { removeEventListener('resize', tourPlace); tourPlace = null; }
     if (done) store.set(KEYS.tour, 'done');
     if (!App.tour) return;

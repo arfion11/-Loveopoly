@@ -1268,6 +1268,15 @@ main { position: relative; }
 .modal.still { animation: none; }
 .modal.wide { width: min(100%, 820px); }
 @keyframes modalIn { from { transform: translateY(24px) scale(.94); opacity: 0; } }
+/* tutup dialog: cermin animasi buka, singkat & ringan (UI.leave memberi .leaving lalu menghapus elemen) */
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes modalOut { to { transform: translateY(14px) scale(.96); opacity: 0; } }
+@keyframes sheetOut { to { transform: translateY(100%); } }
+.leaving { pointer-events: none !important; }
+.modal-root.leaving { z-index: 69; }
+.modal-root.leaving .scrim, .overlay.leaving, .guide.leaving, .tour.leaving { animation: fadeOut .22s ease-in forwards; }
+.modal-root.leaving .modal, .overlay.leaving .pause-card, .guide.leaving .g-card, .tour.leaving .tour-card { animation: modalOut .22s ease-in forwards; }
+.win.leaving { animation: fadeOut .3s ease-in forwards; }
 .modal-hero { display: grid; place-items: center; padding: 18px 0 0; }
 .hero-art { display: block; width: 92px; height: 92px; --oc: var(--brand); }
 .modal-head { display: flex; align-items: flex-start; gap: 12px; padding: 20px 22px 12px; }
@@ -1840,6 +1849,7 @@ main { position: relative; }
   .mode-card.mc-sm > .ic { display: none; }
   .modal-root { place-items: end center; padding: 0; }
   .modal { width: 100%; max-height: 92dvh; border-radius: 28px 28px 0 0; animation: sheetIn .4s cubic-bezier(.3, 1.2, .5, 1); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .modal-root.leaving .modal { animation: sheetOut .26s cubic-bezier(.5, 0, .75, 0) forwards; }
   .modal.wide { width: 100%; }
   .modal-head { padding: 18px 18px 10px; }
   .modal-body { padding: 2px 18px 14px; }

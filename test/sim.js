@@ -217,3 +217,76 @@ if (chFails) process.exitCode = 1;
   console.log('aturan peluncuran: ' + (fails ? fails + ' gagal' : 'semua lulus'));
   if (fails) process.exitCode = 1;
 })();
+
+// ---------- tantangan 3–4 pemain: semua lawan ikut, penilai bergiliran, hadiah hanya untuk yang ikut/benar ----------
+(() => {
+  let fails = 0;
+  const ok = (n, c, d) => { if (!c) { fails++; console.log('FAIL multi: ' + n + (d ? ' — ' + d : '')); } };
+  const P4 = [{ name: 'A' }, { name: 'B' }, { name: 'C' }, { name: 'D' }];
+  const mk = (type, players, extra) => { const S = E.create({ players: players || P4, seed: 21 }); const id = D.CHALLENGES.find(c => c.type === type).id; S.queue.push(Object.assign({ type: 'CHALLENGE', p: 0, ch: id, cat: type, source: 'card', redraws: 0 }, extra || {})); return E.migrate(S); };
+  const d = (S, a) => { const r = E.dispatch(S, a); if (!r.ok) throw new Error(a.type + ' p' + a.p + ': ' + r.error); return r.state; };
+  const cash = S => S.players.map(p => p.cash), love = S => S.players.map(p => p.love);
+  // penilai utama bergiliran per pemilik (lewat kartu tantangan sungguhan)
+  let S = E.create({ players: P4, seed: 3 });
+  const firsts = [];
+  for (let k = 0; k < 3; k++) {
+    S.queue = [{ type: 'CARD', p: 0, card: 'K37' }];
+    S = d(S, { type: 'CARD_OK', p: 0 });
+    const it = S.queue.find(x => x.type === 'CHALLENGE');
+    firsts.push(it ? it.judge : 'x');
+  }
+  ok('penilai utama bergiliran: B, C, D', firsts.join() === '1,2,3', firsts.join());
+  ok('judgesFor: semua lawan manusia, mulai dari giliran', E.judgesFor(S, 0, 0).join() === '1,2,3' && E.judgesFor(S, 0, 1).join() === '2,3,1');
+  // voting Aksi Berani: 2 setuju, 1 tolak → sah; semua penilai dapat Love
+  S = mk('dare'); const base = love(S); const c0 = cash(S);
+  S = d(S, { type: 'CH_ANSWER', p: 0 });
+  ok('dare: penilai pertama giliran', E.actor(S) === S.queue[0].judges[0], E.actor(S));
+  const J = S.queue[0].judges;
+  S = d(S, { type: 'CH_ANSWER', p: J[0], ok: true });
+  ok('dare: penilai kedua menyusul', E.actor(S) === J[1]);
+  S = d(S, { type: 'CH_ANSWER', p: J[1], ok: false });
+  S = d(S, { type: 'CH_ANSWER', p: J[2], ok: true });
+  ok('dare: 2 dari 3 setuju → sah, pemilik dapat hadiah', !S.queue.length && S.players[0].cash > c0[0], S.proofs.slice(-1)[0].proof);
+  ok('dare: ketiga penilai dapat Love', J.every(j => S.players[j].love === base[j] + D.CH_TYPES.dare.judgeReward.love), love(S).join());
+  // seri (4 pemain: 3 penilai tidak bisa seri; pakai 3 pemain → 2 penilai)
+  S = mk('dare', P4.slice(0, 3)); S = d(S, { type: 'CH_ANSWER', p: 0 });
+  const J3 = S.queue[0].judges; const c3 = S.players[0].cash;
+  S = d(S, { type: 'CH_ANSWER', p: J3[0], ok: true }); S = d(S, { type: 'CH_ANSWER', p: J3[1], ok: false });
+  ok('dare 3 pemain: seri 1-1 → sah', S.players[0].cash > c3, S.proofs.slice(-1)[0].proof);
+  // mayoritas tolak → gagal
+  S = mk('dare'); S = d(S, { type: 'CH_ANSWER', p: 0 }); const Jx = S.queue[0].judges, cx = S.players[0].cash;
+  S = d(S, { type: 'CH_ANSWER', p: Jx[0], ok: false }); S = d(S, { type: 'CH_ANSWER', p: Jx[1], ok: false }); S = d(S, { type: 'CH_ANSWER', p: Jx[2], ok: true });
+  ok('dare: mayoritas tolak → tidak sah', S.players[0].cash === cx && !S.proofs.slice(-1)[0].ok);
+  // penilai tidak bisa menilai di luar gilirannya
+  S = mk('dare'); S = d(S, { type: 'CH_ANSWER', p: 0 }); const Jy = S.queue[0].judges;
+  ok('dare: penilai ketiga tidak bisa menyalip', !E.dispatch(S, { type: 'CH_ANSWER', p: Jy[2], ok: true }).ok);
+  // Dua Fakta Satu Bohong: semua menebak; yang benar dapat hadiah, pemilik menang bila mayoritas tertipu
+  S = mk('bluff'); S = d(S, { type: 'CH_ANSWER', p: 0, lines: ['Aku ke Bali', 'Takut kucing', 'Bisa gitar'], lie: 2 });
+  const Jb = S.queue[0].judges, cb = cash(S);
+  S = d(S, { type: 'CH_ANSWER', p: Jb[0], pick: 2 }); S = d(S, { type: 'CH_ANSWER', p: Jb[1], pick: 0 }); S = d(S, { type: 'CH_ANSWER', p: Jb[2], pick: 1 });
+  ok('bluff: 2 tertipu dari 3 → pemilik menang', S.players[0].cash > cb[0], S.proofs.slice(-1)[0].proof);
+  ok('bluff: hanya penebak benar dapat hadiah', S.players[Jb[0]].cash > cb[Jb[0]] && S.players[Jb[1]].cash === cb[Jb[1]] && S.players[Jb[2]].cash === cb[Jb[2]]);
+  // Peragakan!: semua bisa menebak serentak; yang duluan benar dapat hadiah
+  S = mk('charades'); const word = S.queue[0].pz.word; S = d(S, { type: 'CH_ANSWER', p: 0 });
+  const Jc = S.queue[0].judges, lc = love(S);
+  ok('charades: semua penebak boleh beraksi', E.chActors(S).join() === Jc.join(), E.chActors(S).join());
+  S = d(S, { type: 'CH_ANSWER', p: Jc[2], guess: 'salah' });
+  S = d(S, { type: 'CH_ANSWER', p: Jc[1], guess: word });
+  ok('charades: penebak benar (bukan giliran utama) menang, pemilik & dia dapat hadiah', !S.queue.length && S.players[Jc[1]].love > lc[Jc[1]] && S.players[Jc[0]].love === lc[Jc[0]] && S.players[0].love > lc[0], S.proofs.slice(-1)[0].proof);
+  // Peragakan!: kesempatan per penebak, habis semua → gagal
+  S = mk('charades'); S = d(S, { type: 'CH_ANSWER', p: 0 }); const Jd = S.queue[0].judges;
+  for (const j of Jd) for (let t = 0; t < 3; t++) S = d(S, { type: 'CH_ANSWER', p: j, guess: 'zzz' + t });
+  ok('charades: semua kehabisan kesempatan → gagal', !S.queue.length && !S.proofs.slice(-1)[0].ok);
+  S = mk('charades'); S = d(S, { type: 'CH_ANSWER', p: 0 }); const Je = S.queue[0].judges;
+  S = d(S, { type: 'CH_ANSWER', p: Je[0], giveUp: true });
+  ok('charades: satu menyerah, yang lain masih bisa menebak', S.queue.length && !E.chActors(S).includes(Je[0]) && E.chActors(S).length === 2);
+  S = d(S, { type: 'CH_ANSWER', p: Je[1], timeout: true });
+  ok('charades: waktu habis mengakhiri untuk semua', !S.queue.length);
+  // 2 pemain: tetap satu penilai (aturan lama)
+  S = mk('dare', P4.slice(0, 2)); ok('2 pemain: satu penilai', S.queue[0].judges.length === 1 && S.queue[0].judge === 1);
+  // bot tidak pernah menilai
+  S = mk('dare', [{ name: 'A' }, { name: 'B', kind: 'ai' }, { name: 'C' }, { name: 'D', kind: 'ai' }]);
+  ok('bot tidak masuk daftar penilai', S.queue[0].judges.join() === '2');
+  console.log('tantangan 3–4 pemain: ' + (fails ? fails + ' gagal' : 'semua lulus'));
+  if (fails) process.exitCode = 1;
+})();

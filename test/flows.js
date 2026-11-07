@@ -251,6 +251,34 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   st = await S();
   ok('dua fakta satu bohong: pernyataan pendek terkirim, tombol menjelaskan langkah kurang', /^true Ketuk Bohong dulu$/.test(blLabel) && st.queue[0] && st.queue[0].phase === 'guess', blLabel + ' → ' + (st.queue[0] && st.queue[0].phase));
 
+  // 3 pemain di satu HP: Aksi Berani dinilai semua lawan bergantian (layar serah-HP tiap penilai), mayoritas menentukan
+  const P3 = [HUMANS[0], HUMANS[1], { name: 'Dimas', avatar: '🦊', color: '#12B5A6' }];
+  await newGame('S.queue.push({ type: "CHALLENGE", p: 0, ch: "dr1", cat: "dare", source: "card", redraws: 0 }); E.migrate(S);', null, P3);
+  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await jsClick('#bChStep');
+  const voters = [];
+  for (let k = 0; k < 2; k++) {
+    voters.push(await title());
+    await jsClick('#bGate');
+    voters.push(await page.evaluate(() => (document.querySelector('#modalRoot .note.gold') || {}).textContent || ''));
+    await jsClick(k === 0 ? '#bJudgeOk' : '#bJudgeNo');
+  }
+  st = await S();
+  ok('3 pemain: Aksi Berani dinilai 2 lawan bergantian, seri = sah', /Serahkan ke Nadia/.test(voters[0]) && /Penilai 1 dari 2/.test(voters[1]) && /Serahkan ke Dimas/.test(voters[2]) && /Penilai 2 dari 2/.test(voters[3]) && st.proofs.slice(-1)[0].ok && /1 dari 2 penilai/.test(st.proofs.slice(-1)[0].proof), JSON.stringify(voters) + ' ' + st.proofs.slice(-1)[0].proof);
+  // 3 pemain: Peragakan! semua lawan menebak, pilih nama penebak, yang benar dapat hadiah
+  await newGame('S.queue.push({ type: "CHALLENGE", p: 0, ch: "cr", cat: "charades", source: "card", redraws: 0 }); E.migrate(S);', null, P3);
+  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  const word3 = await page.evaluate(() => window.LoveUI.App.S.queue[0].pz.word);
+  await jsClick('#bChStep');
+  ok('3 pemain: Peragakan! satu layar "Waktunya menebak!"', /Waktunya menebak/.test(await title()), await title());
+  await jsClick('#bGate');
+  const gs = await page.evaluate(() => [...document.querySelectorAll('#modalRoot [data-gsr]')].map(b => b.textContent));
+  await page.$eval('#modalRoot [data-gsr]:last-child', b => b.click()); await page.waitForTimeout(150);
+  await page.fill('#chGuess', word3);
+  await jsClick('#bChSend');
+  st = await S();
+  ok('3 pemain: penebak yang dipilih (Dimas) benar → dia & pemilik dapat hadiah', gs.length === 2 && !st.queue.length && /Dimas menebak/.test(st.proofs.slice(-1)[0].proof), JSON.stringify(gs) + ' ' + (st.proofs.slice(-1)[0] || {}).proof);
+
   // Foto Bukti lewat unggah foto → dinilai lawan → dipajang di papan
   await chGame('ph1');
   await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();

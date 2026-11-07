@@ -65,7 +65,7 @@
     },
     {
       id: 'proof', title: 'Tantangan wajib terbukti', say: 'Tidak ada lagi klik "Selesai". Buktikan!',
-      pts: ['Mini-game berwaktu dinilai otomatis: Kuis Keliling Dunia, Tebak Harga, Ingat Urutan, Hitung Ongkos, Susun Nama Kota, Tebak Emoji.', 'Lawan ikut main: Tebak Isi Hati, Dua Fakta Satu Bohong, Peragakan!. Game yang membandingkan jawaban.', 'Aksi Berani & Foto Bukti punya syarat sah yang jelas, dan lawan yang mengesahkan. Semua hasil tercatat sebagai bukti di log.'],
+      pts: ['Mini-game berwaktu dinilai otomatis: Kuis Keliling Dunia, Tebak Harga, Ingat Urutan, Hitung Ongkos, Susun Nama Kota, Tebak Emoji.', 'Lawan ikut main: Tebak Isi Hati, Dua Fakta Satu Bohong, Peragakan!. Main bertiga atau berempat? Semua lawan ikut menebak, dan hadiah hanya untuk yang benar.', 'Aksi Berani, Foto Bukti & Surat punya syarat sah yang jelas, dan lawan yang mengesahkan. Bertiga/berempat: semua lawan memilih, suara terbanyak menang (seri = sah). Semua hasil tercatat sebagai bukti di log.'],
       scene: () => '<div class="sc sc-proof">' +
         '<span class="gp-card c1"><span class="gp-tag">' + ic('clock') + 'Dinilai game</span><span class="gp-timer"><i></i></span><span class="gp-emoji">🗼🥐💕</span><b class="gp-res">4/4 benar · 17,3 dtk</b></span>' +
         '<span class="gp-card c2"><span class="gp-tag">' + ic('users') + 'Lawan ikut main</span><span class="gp-duo"><span class="gp-av" style="--c:' + PINK + '">🐻</span><b>?</b><span class="gp-av" style="--c:' + VIOLET + '">🐰</span></span><b class="gp-res">2/3 cocok</b></span>' +
@@ -123,8 +123,7 @@
     render();
   }
   function close() {
-    const ov = $('#guideOv');
-    if (ov) ov.remove();
+    UI.leave($('#guideOv'));
     if (keyH) document.removeEventListener('keydown', keyH);
     keyH = null;
     UI.store.set(UI.KEYS.guide, 'seen');

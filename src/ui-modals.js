@@ -10,6 +10,7 @@
     const root = $('#modalRoot');
     UI.cancelAutoEnd();
     if (App.modal && App.modal.cleanup) { try { App.modal.cleanup(); } catch (e) { /* abaikan */ } }
+    $$('.modal-root.leaving').forEach(g => g.remove()); // dialog baru langsung menggantikan sisa animasi tutup
     App.modal = def;
     root.hidden = false;
     paint(def, true);
@@ -64,8 +65,16 @@
     const root = $('#modalRoot');
     if (App.modal && App.modal.cleanup) { try { App.modal.cleanup(); } catch (e) { /* abaikan */ } }
     App.modal = null;
-    root.hidden = true;
-    root.innerHTML = '';
+    if (!root.hidden && root.firstChild && !UI.reduceMotion()) {
+      // animasi tutup: wadah lama jadi "bayangan" yang memudar/turun, #modalRoot baru langsung siap dipakai
+      const fresh = root.cloneNode(false);
+      fresh.hidden = true;
+      root.parentNode.insertBefore(fresh, root);
+      UI.leave(root, 280, true);
+    } else {
+      root.hidden = true;
+      root.innerHTML = '';
+    }
     if (quiet === true) return;
     UI.renderStage();
     UI.scheduleAI();
@@ -154,7 +163,7 @@
   function openDecision(it, key) {
     const map = { BUY: dBuy, UPGRADE: dUpgrade, RENT: dRent, TAKEOVER: dTakeover, TAX: dTax, CARD: dCard, CHALLENGE: dChallenge, DEBT: dDebt, TARGET: pTarget, TOUR: pTour };
     const f = map[it.type];
-    if (f) { f(key); if (App.modal) App.modal.itype = it.type; }
+    if (f) { f(key); if (App.modal) { App.modal.itype = it.type; if (it.type === 'CHALLENGE') App.modal.chk = chKey(it); } }
   }
 
   function dBuy(key) {
@@ -363,13 +372,18 @@
     if (r.gain) out.push('<span class="chip gold">' + coin + '+' + r.gain + '</span>');
     if (r.love) out.push('<span class="chip rose">' + ic('heart') + 'Love +' + r.love + '</span>');
     if (ch.type === 'dilemma') out.push('<span class="chip lilac">' + ic('scale') + 'Pilihanmu mengubah strategi</span>');
-    if (jr && it && it.judge >= 0) out.push('<span class="chip mint">' + ic('users') + (ch.type === 'bluff' ? 'Ketahuan: ' : 'Penilai juga: ') + [jr.gain ? '+' + jr.gain : '', jr.love ? 'Love +' + jr.love : ''].filter(Boolean).join(' ') + '</span>');
+    if (jr && it && it.judge >= 0) out.push('<span class="chip mint">' + ic('users') + (ch.type === 'bluff' ? (isMulti(it) ? 'Penebak benar: ' : 'Ketahuan: ') : ch.type === 'charades' && isMulti(it) ? 'Penebak benar: ' : isMulti(it) ? 'Tiap penilai: ' : 'Penilai juga: ') + [jr.gain ? '+' + jr.gain : '', jr.love ? 'Love +' + jr.love : ''].filter(Boolean).join(' ') + '</span>');
     if (it && it.isle) out.push('<span class="chip lilac">' + ic('island') + 'Lulus = keluar dari Pulau Rindu</span>');
     if (s.love) out.push('<span class="chip plain">Lewati: Love ' + s.love + '</span>');
     return '<div class="reward-row">' + out.join('') + '</div>';
   }
   const VERIFY_TXT = { auto: 'Dinilai otomatis oleh game', duel: 'Lawan ikut main · dinilai game', judge: 'Disahkan lawan', choice: 'Pilih strategi' };
-  const chFill = (txt, it) => String(txt || '').replace(/\{j\}/g, it.judge >= 0 ? App.S.players[it.judge].name : 'lawanmu').replace(/\{n\}/g, App.S.players[it.p].name);
+  const nameList = arr => arr.length <= 1 ? (arr[0] || '') : arr.slice(0, -1).join(', ') + ' & ' + arr[arr.length - 1];
+  const judgeList = it => (it.judges || []).map(j => App.S.players[j].name);
+  // all = true: {j} jadi semua lawan yang ikut (penjelasan cara main di 3–4 pemain); teks tantangan tetap memakai penilai utama
+  const chFill = (txt, it, all) => String(txt || '').replace(/\{j\}/g, all && (it.judges || []).length > 1 ? nameList(judgeList(it)) : it.judge >= 0 ? App.S.players[it.judge].name : 'lawanmu').replace(/\{n\}/g, App.S.players[it.p].name);
+  const isMulti = it => (it.judges || []).length > 1;
+  const multiGuess = it => isMulti(it) && E.CH[it.ch] && E.CH[it.ch].type === 'charades' && it.phase === 'guess';
   const chKey = it => it.p + '|' + it.ch + '|' + it.redraws + '|' + App.S.round;
   let chSeen = { key: '', who: -1 };
   const chClock = {};   // waktu mulai per tantangan+fase (tetap jalan walau dialog digambar ulang)
@@ -380,8 +394,10 @@
     return { ms, left: Math.max(0, secs * 1000 - ms), reset: () => { delete chClock[k]; } };
   }
   const timerBar = (left, secs) => '<div class="ch-timer' + (left < 5000 ? ' hurry' : '') + '" role="timer" aria-label="Sisa waktu"><i style="--v:' + Math.max(0, left / (secs * 1000) * 100).toFixed(1) + '%"></i><b>' + Math.ceil(left / 1000) + '</b></div>';
+  // kemajuan voting penilai (3–4 pemain): urutan saja, isi suara orang lain dirahasiakan
+  const voteNote = it => isMulti(it) ? '<div class="note gold">' + ic('users') + '<span>Penilai ' + (Object.keys((it.pz && it.pz.votes) || {}).length + 1) + ' dari ' + it.judges.length + '. Pilihanmu rahasia; mayoritas menentukan (seri = sah).</span></div>' : '';
   function dChallenge(key) {
-    const local = { answers: [], idx: 0, text: '', lines: ['', '', ''], lie: -1, pick: -1, guess: '', reveal: false, photo: '', tick: null, game: null, cam: null, fb: '' };
+    const local = { answers: [], idx: 0, text: '', lines: ['', '', ''], lie: -1, pick: -1, guess: '', reveal: false, photo: '', tick: null, game: null, cam: null, fb: '', guesser: -1 };
     const stopTick = () => { if (local.tick) { clearInterval(local.tick); local.tick = null; } };
     // Dua Fakta Satu Bohong: syarat kirim (sama dengan engine: 3 pernyataan ≥ RULES.bluffMin huruf + 1 ditandai)
     const bluffFilled = () => local.lines.filter(x => x.trim().length >= RULES.bluffMin).length;
@@ -404,9 +420,15 @@
         const hero = '<span class="hero-art">' + G.LoveArt.merpi(it.who === it.p ? 'is-wow' : 'is-think') + '</span>';
         const ownerPhase = it.who === it.p;
         // layar serah-HP (main bersama di satu perangkat)
-        const k = chKey(it);
-        if (chSeen.key !== k) chSeen = { key: k, who: it.who };
-        if (App.mode !== 'online' && humanCount() >= 2 && chSeen.who !== it.who) {
+        const k = chKey(it), gateId = multiGuess(it) ? 'guess' : it.who;
+        if (chSeen.key !== k) chSeen = { key: k, who: gateId };
+        if (App.mode !== 'online' && humanCount() >= 2 && chSeen.who !== gateId && multiGuess(it)) {
+          local.gate = true;
+          return { kicker, title: 'Waktunya menebak!', who: whoLine(it.p, 'memperagakan'), hero,
+            body: '<div class="ch-gate"><p><b>' + esc(nameList(judgeList(it))) + '</b>: tebak peragaan ' + esc(owner.name) + '.</p><p class="muted">Siapa cepat dia dapat! Tiap penebak punya ' + (it.pz.max || 3) + ' kesempatan. Pilih namamu sebelum mengetik tebakan.</p></div>',
+            foot: '<span class="grow"></span>' + btn('id="bGate" data-focus', 'primary big', 'check', 'Mulai menebak') };
+        }
+        if (App.mode !== 'online' && humanCount() >= 2 && chSeen.who !== gateId) {
           local.gate = true;
           return { kicker, title: 'Serahkan ke ' + me.name, who: whoLine(it.who, ownerPhase ? 'giliran menjawab' : 'penilai'), hero,
             body: '<div class="ch-gate">' + avatarHTML(me, 'lg') + '<p><b>' + esc(me.name) + '</b>, sekarang giliranmu' + (ownerPhase ? '' : ' menilai tantangan ' + esc(owner.name)) + '.</p><p class="muted">' + (ch.type === 'secret' || ch.type === 'charades' ? 'Yang lain jangan mengintip layar, ya!' : 'Pegang perangkatnya, lalu lanjut.') + '</p></div>',
@@ -417,7 +439,7 @@
         const first = ownerPhase && (D.AUTO_TYPES.includes(ch.type) ? !local.started : ['intro', 'write', 'act', 'do', 'choose'].includes(it.phase));
         const ownerBtns = ownerPhase ? (first ? btn('id="bRedraw"', 'ghost', 'refresh', 'Ganti (' + redrawLeft + ')', redrawLeft <= 0) : '') + btn('id="bSkip"', 'ghost', '', 'Lewati') : '';
         const task = '<div class="notepaper">' + esc(chFill(ch.text, it)) + '</div>';
-        const how = '<div class="tiny muted ch-how">' + ic('info') + ' ' + esc(chFill(def.how, it)) + '</div>';
+        const how = '<div class="tiny muted ch-how">' + ic('info') + ' ' + esc(chFill(def.how, it, ch.type !== 'secret')) + (isMulti(it) && ch.type !== 'secret' ? ' ' + (ch.verify === 'judge' || ch.type === 'message' || def.verify === 'judge' ? 'Semua lawan menilai bergantian; mayoritas menentukan (seri = sah).' : 'Semua lawan ikut menebak.') : '') + '</div>';
         let body = '', foot = '', title = def.label;
         // --- auto: mini-game berwaktu ---
         if (D.AUTO_TYPES.includes(ch.type)) {
@@ -462,7 +484,7 @@
             foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChSend" data-jn="' + esc(jName) + '"', 'primary big', 'chevron', bluffLabel(jName), !bluffOk());
           } else {
             title = 'Mana yang bohong?';
-            body = '<div class="note">' + ic('question') + ' ' + esc(owner.name) + ' menulis 3 pernyataan. Satu bohong. Tebak yang mana!</div><div class="bluff-pick">' + it.pz.lines.map((l, i) => '<button type="button" class="ch-opt big" data-pick="' + i + '" aria-pressed="' + (local.pick === i) + '"><b>#' + (i + 1) + '</b> ' + esc(l) + '</button>').join('') + '</div>';
+            body = (isMulti(it) ? '<div class="note gold">' + ic('users') + '<span>Penebak ' + (Object.keys(it.pz.picks || {}).length + 1) + ' dari ' + it.judges.length + '. Tebakanmu rahasia; hanya yang benar dapat hadiah.</span></div>' : '') + '<div class="note">' + ic('question') + ' ' + esc(owner.name) + ' menulis 3 pernyataan. Satu bohong. Tebak yang mana!</div><div class="bluff-pick">' + it.pz.lines.map((l, i) => '<button type="button" class="ch-opt big" data-pick="' + i + '" aria-pressed="' + (local.pick === i) + '"><b>#' + (i + 1) + '</b> ' + esc(l) + '</button>').join('') + '</div>';
             foot = '<span class="grow"></span>' + btn('id="bChSend"', 'primary big', 'target', 'Ini yang bohong!', local.pick < 0);
           }
           return { kicker, title, who: whoLine(it.who), body, foot, hero };
@@ -475,6 +497,17 @@
           } else {
             const c = clockOf(it, 'cr', z.secs);
             title = 'Tebak peragaan ' + owner.name;
+            if (isMulti(it)) {
+              const open = E.chActors(S), mine = open.filter(j => controls(j));
+              if (!mine.includes(local.guesser)) local.guesser = mine.length ? mine[0] : -1;
+              const left = j => (z.max || 3) - ((z.triesBy || {})[j] || 0);
+              const pickRow = mine.length > 1 ? '<div class="field"><span class="label">Siapa yang menebak?</span><div class="partner-pick">' + mine.map(j => '<button type="button" data-gsr="' + j + '" aria-pressed="' + (j === local.guesser) + '">' + avatarHTML(S.players[j], 'xs') + esc(S.players[j].name) + ' · ' + left(j) + '</button>').join('') + '</div></div>' : '';
+              body = timerBar(c.left, z.secs) + '<div class="note">' + ic('users') + '<span>' + esc(owner.name) + ' memperagakan tanpa suara. Siapa cepat dia dapat! ' + (local.guesser >= 0 ? esc(S.players[local.guesser].name) + ': ' + left(local.guesser) + ' kesempatan lagi.' : 'Kesempatanmu sudah habis, tunggu yang lain.') + '</span></div>' +
+                (z.guesses.length ? '<div class="ch-guesses">' + z.guesses.map((g, gi) => '<span class="chip plain">' + ic('x') + (z.gby && S.players[z.gby[gi]] ? esc(S.players[z.gby[gi]].name) + ': ' : '') + esc(g) + '</span>').join('') + '</div>' : '') +
+                pickRow + (local.guesser >= 0 ? '<div class="field"><label for="chGuess">Tebakan ' + esc(S.players[local.guesser].name) + '</label><input class="input" id="chGuess" maxlength="40" autocomplete="off" value="' + esc(local.guess) + '"></div>' : '');
+              foot = local.guesser >= 0 ? btn('id="bChGiveUp"', 'ghost', 'x', 'Menyerah') + '<span class="grow"></span>' + btn('id="bChSend"', 'primary big', 'target', 'Tebak!', !local.guess.trim()) : '<span class="tiny muted">Menunggu penebak lain…</span>';
+              return { kicker, title, who: whoLine(it.p, 'memperagakan'), body, foot, hero };
+            }
             body = timerBar(c.left, z.secs) + '<div class="note">' + ic('users') + ' ' + esc(owner.name) + ' memperagakan tanpa suara. Ketik tebakanmu (' + (z.max - z.tries) + ' kesempatan lagi).</div>' +
               (z.guesses.length ? '<div class="ch-guesses">' + z.guesses.map(g => '<span class="chip plain">' + ic('x') + esc(g) + '</span>').join('') + '</div>' : '') +
               '<div class="field"><label for="chGuess">Tebakan</label><input class="input" id="chGuess" maxlength="40" autocomplete="off" value="' + esc(local.guess) + '"></div>';
@@ -490,7 +523,7 @@
             foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChSend"', 'primary big', 'letter', J ? 'Kirim ke ' + J.name : 'Kirim', !allOk);
           } else {
             title = 'Sahkan surat ' + owner.name + '?';
-            body = '<div class="note good">' + ic('check') + ' Semua syarat sudah lolos cek otomatis.</div><div class="notepaper ch-letter">' + esc(it.pz.text).replace(/\n/g, '<br>') + '</div><div class="tiny muted">Tantangan: ' + esc(chFill(ch.text, it)) + '</div>';
+            body = voteNote(it) + '<div class="note good">' + ic('check') + ' Semua syarat sudah lolos cek otomatis.</div><div class="notepaper ch-letter">' + esc(it.pz.text).replace(/\n/g, '<br>') + '</div><div class="tiny muted">Tantangan: ' + esc(chFill(ch.text, it)) + '</div>';
             foot = btn('id="bJudgeNo"', 'soft', 'x', 'Tidak sah') + '<span class="grow"></span>' + btn('id="bJudgeOk" data-focus', 'primary big', 'check', 'Sah, manis!');
           }
           return { kicker, title, who: whoLine(it.who), body, foot, hero };
@@ -509,8 +542,8 @@
             }
           } else {
             title = 'Sah atau tidak?';
-            body = (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + safeImg(it.pz.photo) + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
-              '<div class="tiny muted">Nilai dengan adil. Kalau sah, kamu juga dapat Love.</div>';
+            body = voteNote(it) + (ch.type === 'photo' ? '<figure class="proof-photo"><img src="' + safeImg(it.pz.photo) + '" alt="Foto bukti dari ' + esc(owner.name) + '"><figcaption>Foto bukti ' + esc(owner.name) + '</figcaption></figure>' : '') + task + crit +
+              '<div class="tiny muted">' + (isMulti(it) ? 'Nilai dengan adil. Tiap penilai dapat Love, apa pun hasilnya.' : 'Nilai dengan adil. Kalau sah, kamu juga dapat Love.') + '</div>';
             foot = btn('id="bJudgeNo"', 'soft', 'x', 'Tidak sah') + '<span class="grow"></span>' + btn('id="bJudgeOk" data-focus', 'primary big', 'check', 'Sah!');
           }
           return { kicker, title, who: whoLine(it.who), body, foot, hero };
@@ -520,9 +553,10 @@
       mount: m => {
         const it = head();
         if (!it || !E.CH[it.ch]) return;
-        const ch = E.CH[it.ch], p = it.who;
+        const ch = E.CH[it.ch], p = multiGuess(it) ? local.guesser : it.who;
         const send = extra => act(Object.assign({ type: 'CH_ANSWER', p }, extra || {}));
-        on(m, '#bGate', () => { chSeen.who = it.who; refreshModal(); });
+        on(m, '#bGate', () => { chSeen.who = multiGuess(it) ? 'guess' : it.who; refreshModal(); });
+        $$('[data-gsr]', m).forEach(b => b.addEventListener('click', () => { local.guesser = Number(b.dataset.gsr); SND.play('click'); refreshModal(); }));
         if (local.gate) return;
         on(m, '#bRedraw', () => { local.started = false; local.answers = []; act({ type: 'CH_REDRAW', p: it.p }); });
         on(m, '#bSkip', () => act({ type: 'CH_RESOLVE', p: it.p, result: 'skip' }));
@@ -596,7 +630,12 @@
             tb.classList.toggle('hurry', c.left < 5000);
             tb.querySelector('i').style.setProperty('--v', (c.left / (secs * 1000) * 100).toFixed(1) + '%');
             tb.querySelector('b').textContent = Math.ceil(c.left / 1000);
-            if (c.left <= 0) { stopTick(); SND.play('bad'); if (ch.type === 'charades') send({ giveUp: true }); }
+            if (c.left <= 0) {
+              stopTick(); SND.play('bad');
+              if (ch.type !== 'charades') return;
+              if (!multiGuess(it)) send({ giveUp: true });
+              else if (controls(E.actor(App.S))) act({ type: 'CH_ANSWER', p: E.actor(App.S), timeout: true });
+            }
           }, 200);
         }
         const camHost = m.querySelector('#camHost');
@@ -862,9 +901,12 @@
   function syncModal(force) {
     const S = App.S;
     if (!S || S.over) return;
-    const it = S.queue[0], a = E.actor(S);
+    const it = S.queue[0];
+    let a = E.actor(S);
+    if (it && it.type === 'CHALLENGE' && !controls(a)) { const alt = E.chActors(S).find(j => controls(j)); if (alt != null) a = alt; }
     if (it && controls(a)) {
       const key = 'd' + S.seq;
+      if (!force && it.type === 'CHALLENGE' && multiGuess(it) && App.modal && App.modal.decision && App.modal.itype === 'CHALLENGE' && App.modal.chk === chKey(it)) { App.modal.key = key; refreshModal(); return; }
       if (it.type === 'TARGET' || it.type === 'TOUR') {
         if (App.modal && App.modal.decision) closeModal(true);
         if (!force && App.pick && App.pick.key === key) return;

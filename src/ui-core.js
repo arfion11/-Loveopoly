@@ -42,6 +42,17 @@
   const KEYS = { save: 'loveopoly.v2.save', prefs: 'loveopoly.v1.prefs', online: 'loveopoly.v2.online', setup: 'loveopoly.v2.setup', tour: 'loveopoly.v2.tour', guide: 'loveopoly.v2.guide' };
   const reduceMotion = () => { try { return G.matchMedia && G.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
   const coin = '<i class="coin-ic" aria-hidden="true"></i>';
+  // tutup dengan animasi keluar ringan (kelas .leaving di style.css, cermin animasi buka). Elemen langsung lepas dari
+  // logika: tanpa id (deep: id di dalamnya juga, kecuali SVG), inert & aria-hidden, lalu dihapus setelah animasi.
+  function leave(el, ms, deep) {
+    if (!el) return;
+    if (reduceMotion() || !el.isConnected) { el.remove(); return; }
+    el.removeAttribute('id');
+    if (deep) $$('[id]', el).forEach(n => { if (!(n instanceof SVGElement)) n.removeAttribute('id'); });
+    el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true');
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), ms || 260);
+  }
 
   const App = {
     S: null, shown: null, mode: 'local', seat: -1,
@@ -2193,7 +2204,7 @@
 
   G.LoveUI = Object.assign(G.LoveUI || {}, {
     App, D, E, AI, SND, ART, TILES, GROUPS, RULES, KEYS, N,
-    view3d, fmt, esc, ic, $, $$, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported, renderAmbience,
+    view3d, fmt, esc, ic, $, $$, leave, sleep, store, toast, banner, clearFx, controls, runsAI, viewer, pname, winLabel, hotseat, coin, avatarHTML, EMOTES, showEmote, sendEmote, safeImg, imported, renderAmbience,
     applyLayout, sizeBoard, bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax,
     buildBoard, renderBoard, renderTokens, renderPlayers, renderHeader, renderStage, renderCenter: renderStage, renderTicker, renderAll,
     startPick, renderPick, endPick, merpiSay, merpiPoke, pulse, restart, tileEl,

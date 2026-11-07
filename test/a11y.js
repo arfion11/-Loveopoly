@@ -37,11 +37,12 @@ const PLAYERS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Na
     checked++;
     res.forEach(v => found.push(Object.assign({ where: label }, v)));
   }
-  const newGame = (p, mut) => p.evaluate(m => {
-    const E = window.LoveEngine, S = E.create({ players: [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Nadia', avatar: '🐰', color: '#7B61FF' }], settings: { debug: true, roundLimit: 10 }, seed: 21 });
+  const P4 = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Nadia', avatar: '🐰', color: '#7B61FF' }, { name: 'Dimas', avatar: '🦊', color: '#12B5A6' }, { name: 'Sinta', avatar: '🐱', color: '#FF8A3D' }];
+  const newGame = (p, mut, n) => p.evaluate(([m, n, P4]) => {
+    const E = window.LoveEngine, S = E.create({ players: P4.slice(0, n), settings: { debug: true, roundLimit: 10 }, seed: 21 });
     if (m) (new Function('S', 'E', m))(S, E);
     window.LoveUI.enterGame('local', -1, S);
-  }, mut || '');
+  }, [mut || '', n || 2, P4]);
   const settle = p => p.waitForFunction(() => !window.LoveUI.App.animating && !window.LoveUI.App.pending.length, null, { timeout: 15000 }).then(() => p.waitForTimeout(250));
   const click = (p, sel) => p.$eval(sel, e => e.click());
 
@@ -107,6 +108,25 @@ const PLAYERS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Na
       await settle(p); await p.evaluate(() => window.LoveUI.syncModal(true)); await p.waitForTimeout(200);
       if (await p.$('#modalRoot #bGate')) { await click(p, '#bGate'); await p.waitForTimeout(150); }
       await audit(p, tag + ' tantangan: penilai foto', '#modalRoot');
+      // tantangan 4 pemain: voting penilai, tebak bersama (pilih penebak), dua fakta satu bohong banyak penebak
+      const gate = async () => { if (await p.$('#modalRoot #bGate')) { await click(p, '#bGate'); await p.waitForTimeout(150); } };
+      await newGame(p, 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "dr2", cat: "card", source: "card", redraws: 0 }); E.migrate(S); S.queue[0].phase = "judge"; S.queue[0].pz = { votes: { 1: true } }; S.queue[0].who = S.queue[0].judges[1];', 4);
+      await settle(p); await p.evaluate(() => window.LoveUI.syncModal(true)); await p.waitForTimeout(200); await gate();
+      await p.waitForSelector('#modalRoot .note.gold >> text=Penilai 2 dari 3', { timeout: 4000 }); await p.waitForSelector('#modalRoot #bJudgeOk');
+      await audit(p, tag + ' tantangan 4P: voting penilai', '#modalRoot');
+      await newGame(p, 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "cr", cat: "card", source: "card", redraws: 0 }); E.migrate(S);', 4);
+      await settle(p); await p.evaluate(() => window.LoveUI.syncModal(true)); await p.waitForTimeout(200);
+      await click(p, '#bChStep'); await p.waitForTimeout(200);
+      await p.waitForSelector('#modalRoot >> text=Waktunya menebak!', { timeout: 4000 });
+      await audit(p, tag + ' tantangan 4P: gerbang tebak bersama', '#modalRoot');
+      await gate();
+      await p.waitForSelector('#modalRoot [data-gsr]', { timeout: 4000 });
+      await audit(p, tag + ' tantangan 4P: pilih penebak', '#modalRoot');
+      await newGame(p, 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "bl", cat: "card", source: "card", redraws: 0 }); E.migrate(S);', 4);
+      await settle(p); await p.evaluate(() => window.LoveUI.act({ type: 'CH_ANSWER', p: 0, lines: ['Aku pernah ke Bali', 'Aku takut kucing', 'Aku bisa main gitar'], lie: 1 })); await settle(p);
+      await p.evaluate(() => window.LoveUI.syncModal(true)); await p.waitForTimeout(200); await gate();
+      await p.waitForSelector('#modalRoot [data-pick] >> nth=2', { timeout: 4000 }); await p.waitForSelector('#modalRoot .note.gold >> text=Penebak 1 dari 3');
+      await audit(p, tag + ' tantangan 4P: tebak bohong', '#modalRoot');
       // pengaturan & layar menang
       await p.evaluate(() => window.LoveUI.closeModal(true));
       await newGame(p, '[1, 2].forEach(t => { S.tiles[t].owner = 0; });');

@@ -94,32 +94,13 @@
   width: 100%;
   aspect-ratio: 1;
 }
-/* kartu berdiri punya ketebalan & punggung sungguhan: lapisan tepi (::after) dan punggung bermotif (::before)
-   di belakang muka, persis seukuran kartu (tidak menjulur keluar kotak, lihat catatan kompositor di bawah) */
+/* kartu berdiri = SATU bidang datar (label, ilustrasi, nama). Jangan menambah lapisan 3D tipis di dalamnya
+   (ketebalan/punggung dengan translateZ beberapa px): Safari/WebKit tidak bisa mengurutkan bidang yang berjarak
+   ±1px, lalu memakai urutan DOM → muka kartu tertutup lapisannya sendiri, label koin tertutup kartu tetangga, dan
+   urutannya berganti-ganti saat animasi (berkedip di iPhone). Kesan tebal cukup dari bayangan bawah .tp-card. */
 .board.b3d .t-pop,
 .board.b3d .tp-card {
-  transform-style: preserve-3d;
-}
-.board.b3d .tp-card::before,
-.board.b3d .tp-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-}
-.board.b3d .tp-card::after {
-  background: color-mix(in srgb, var(--pc, var(--g)) 55%, #4a2a55);
-  transform: translateZ(-0.25cqi);
-}
-.board.b3d .tp-card::before {
-  background:
-    radial-gradient(circle at 50% 50%, #fff 0 18%, transparent 19%),
-    linear-gradient(160deg, color-mix(in srgb, var(--pc, var(--g)) 60%, #fff), var(--pc, var(--g)));
-  box-shadow: inset 0 0 0 0.34cqi #fff;
-  transform: translateZ(-0.5cqi) rotateY(180deg);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+  transform-style: flat;
 }
 /* pion mendarat: kartu petak melompat & bergoyang. */
 /* tidak memakai putaran 3D (rotateY): kartu yang berputar menembus label harga, bangunan & pion di dekatnya.

@@ -43,6 +43,7 @@ Board game web untuk pasangan & teman (Bahasa Indonesia). JS biasa (ES modules, 
 - Pion berdiri di depan kartu (baris atas/bawah & sudut) atau di sisi dalam petak (kolom kiri/kanan). Kartu tidak boleh menutupi pusat petak di belakangnya, karena ketukan harus mengenai petak yang benar.
 - Mengangkat badge "ke atas layar" tanpa `transform` (supaya animasi tidak bentrok): `translate: x calc(L * -1 * cos(var(--tilt))) calc(L * sin(var(--tilt)))`.
 - Efek datar di bidang papan (riak, debu) diberi `translate: 0 0 3px` agar tidak tertutup muka petak.
+- **Jangan membuat lapisan 3D yang berjarak tipis** (beberapa px `translateZ`) di dalam elemen berdiri, misalnya ketebalan/punggung kartu. Safari/WebKit tidak bisa mengurutkan bidang sedekat itu dan jatuh ke urutan DOM: muka kartu tertutup lapisannya sendiri, label koin tertutup kartu tetangga, lalu berkedip saat animasi (dilaporkan di iPhone). Kartu `.t-pop`/`.tp-card` sengaja `transform-style: flat` (satu bidang). Cek perubahan papan 3D juga di WebKit (`playwright` `webkit`, ukuran HP).
 
 ## Aturan peluncuran (keseimbangan & kejutan)
 

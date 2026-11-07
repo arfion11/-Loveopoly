@@ -230,6 +230,10 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await p.evaluate(() => window.LoveUI.act({ type: 'FINISH_NOW', p: 0 }));
       await p.waitForSelector('#winOv', { timeout: 10000 }).catch(() => {});
       await audit(p, tag + ' layar menang', '#winOv');
+      await click(p, '#wShare');
+      await p.waitForSelector('#memOv .mem-prev img', { timeout: 15000 });
+      await p.waitForTimeout(500);
+      await audit(p, tag + ' Kartu Kenangan', '#memOv');
       await p.close();
     }
   }

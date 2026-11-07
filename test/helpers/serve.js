@@ -17,6 +17,7 @@ const TYPES = {
   '.jpg': 'image/jpeg',
   '.txt': 'text/plain; charset=utf-8',
   '.xml': 'application/xml',
+  '.webmanifest': 'application/manifest+json',
 };
 
 if (!fs.existsSync(path.join(DIST, 'index.html'))) {

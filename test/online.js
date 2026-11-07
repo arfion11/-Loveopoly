@@ -475,6 +475,48 @@ const server = await serveDist(8127);
   const emo = await host.evaluate(() => window.__emo);
   ok('reaksi emoji online: tamu → host, state permainan tidak berubah', emo === '1:😂' && (await seqOf(host)) === seqE, 'emo=' + emo);
 
+  // privasi: dokumen lobi tamu dihapus saat permainan dimulai; host keluar dari game selesai → room dihapus,
+  // tamu tetap di layar menang (bukan ditendang ke beranda)
+  const lobbyLeft = await guest.evaluate(() => localStorage.getItem('mockdb:lobby/u_guest'));
+  ok('privasi: dokumen lobi tamu terhapus setelah permainan dimulai', lobbyLeft === null, String(lobbyLeft).slice(0, 60));
+  await settle(host);
+  // giliran game baru diundi: pastikan giliran host sebelum mengakhiri permainan
+  await host.evaluate(() => {
+    const N = window.LoveNet;
+    const S = JSON.parse(JSON.stringify(N.doc.state));
+    S.queue = [];
+    S.turn.p = 0;
+    S.turn.rolled = false;
+    S.seq += 5;
+    S.lastEvents = [];
+    S.evSeq = S.seq;
+    N.doc.state = S;
+    N.doc.seq = S.seq;
+    window.LoveUI.commit(S);
+    N.writeRoom();
+  });
+  await settle(host);
+  await act(host, { type: 'FINISH_NOW', p: 0 });
+  await guest.waitForFunction(() => window.LoveUI.App.S && window.LoveUI.App.S.over, null, { timeout: 8000 });
+  await host.waitForSelector('#wHome', { timeout: 8000 });
+  await guest.waitForSelector('#winOv', { timeout: 8000 });
+  await host.$eval('#wHome', b => b.click());
+  await guest.waitForFunction(() => !window.LoveNet.code, null, { timeout: 8000 }).catch(() => {});
+  const closed = await guest.evaluate(
+    c => ({
+      room: localStorage.getItem('mockdb:rooms/' + c),
+      win: !!document.getElementById('winOv'),
+      toast: [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' | '),
+      saved: localStorage.getItem('loveopoly.v2.online'),
+    }),
+    code
+  );
+  ok(
+    'privasi: host keluar dari game selesai → room dihapus, tamu tetap di layar menang',
+    closed.room === null && closed.win && /dihapus dari server/.test(closed.toast) && !closed.saved,
+    JSON.stringify(closed).slice(0, 220)
+  );
+
   console.log(results.join('\n'));
   console.log('ERRORS (' + errors.length + '):', errors.slice(0, 10).join('\n'));
   await browser.close();

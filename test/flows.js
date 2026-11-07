@@ -941,6 +941,58 @@ const URL = (await serveDist()).url + '/';
     JSON.stringify(wm)
   );
 
+  // Kartu Kenangan: dari layar menang → gambar 1080×1920 siap disimpan/dibagikan, Escape menutup
+  await page.$eval('#wShare', b => b.click());
+  await page.waitForSelector('#memOv .mem-prev img', { timeout: 15000 }).catch(() => {});
+  const mem = await page.evaluate(async () => {
+    const img = document.querySelector('#memOv .mem-prev img');
+    if (!img) return { img: false, note: (document.querySelector('#memOv .mem-prev') || {}).textContent };
+    await img.decode().catch(() => {});
+    const blob = await (await fetch(img.src)).blob();
+    return {
+      img: true,
+      w: img.naturalWidth,
+      h: img.naturalHeight,
+      kb: Math.round(blob.size / 1024),
+      type: blob.type,
+      alt: img.alt,
+      save: !document.getElementById('memSave').disabled,
+    };
+  });
+  ok(
+    'Kartu Kenangan: gambar Story 1080×1920 dibuat dari layar menang',
+    mem.img && mem.w === 1080 && mem.h === 1920 && mem.type === 'image/jpeg' && mem.kb > 30 && /Kartu Kenangan/.test(mem.alt) && mem.save,
+    JSON.stringify(mem)
+  );
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(450);
+  ok('Kartu Kenangan: Escape menutup pratinjau', !(await page.$('#memOv')) && !!(await page.$('#winOv')));
+
+  // Pasang Aplikasi: tombol di menu beranda muncul saat browser menawarkan pemasangan (beforeinstallprompt)
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.evaluate(() => {
+    const e = new Event('beforeinstallprompt', { cancelable: true });
+    e.prompt = () => {
+      window.__installPrompted = true;
+    };
+    e.userChoice = Promise.resolve({ outcome: 'accepted' });
+    window.dispatchEvent(e);
+  });
+  await page.$eval('#hMenu', b => b.click());
+  await page.waitForSelector('#modalRoot #mInstall', { timeout: 4000 }).catch(() => {});
+  const hasInstall = !!(await page.$('#modalRoot #mInstall'));
+  if (hasInstall) await page.$eval('#modalRoot #mInstall', b => b.click());
+  await page.waitForTimeout(400);
+  const inst = await page.evaluate(() => ({
+    prompted: !!window.__installPrompted,
+    toast: [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' | '),
+  }));
+  ok(
+    'Pasang Aplikasi: tombol menu memanggil dialog pasang browser',
+    hasInstall && inst.prompted && /layar utama/.test(inst.toast),
+    JSON.stringify(inst).slice(0, 160)
+  );
+
   console.log(results.join('\n'));
   const fails = results.filter(r => r.startsWith('FAIL')).length;
   console.log(

@@ -29,10 +29,12 @@ npm run dev          # pratinjau di http://localhost:5173 (muat ulang otomatis)
 | `npm run test:online` | Online 2 & 3 tab dengan mock database (room, aksi, keamanan, reconnect, voting, tebak serentak) |
 | `npm run test:ui` | Monkey test desktop, HP tegak & HP mendatar (klik acak, harus 0 error) |
 | `npm run test:a11y` | axe-core WCAG 2.1 AA di layar & dialog utama, terang/gelap, desktop/HP |
+| `npm run test:pwa` | Manifest & ikon, service worker, situs bisa dipasang, main lokal tanpa internet |
 | `npm run test:migrate` | Pindah data dari alamat lama ke alamat baru |
 | `npm run test:rules` | Aturan keamanan Firestore & RTDB di Firebase Emulator |
 | `npm run test:backend` | Adapter `src/net/backend.js` terhadap emulator (auth, dokumen, lease host, presence) |
 | `npm run og-image` | Buat ulang gambar pratinjau tautan `public/og-image.jpg` (setelah build) |
+| `npm run icons` | Buat ulang semua ikon PNG (tab, iOS, PWA, maskable) dari `public/icon.svg` |
 | `npm run deploy:preview` | Build + kanal pratinjau Firebase (alamat sementara 7 hari) |
 | `npm run deploy` | Build + deploy hosting & aturan ke project Firebase |
 
@@ -43,7 +45,8 @@ Screenshot hasil uji tersimpan di `test/out/` (diabaikan git). CI GitHub Actions
 ```
 index.html               halaman (tag SEO & ikon di <head>), memuat src/main.js
 src/
-  main.js                titik masuk: gaya, modul, kait uji window.Love*, start()
+  main.js                titik masuk: gaya, modul, kait uji window.Love*, start(), service worker
+  service-worker.js      cache offline (disusun saat build jadi dist/sw.js)
   engine/                aturan murni & deterministik (jalan di browser & Node)
     data.js              papan 32 petak, grup warna, kartu cinta, tantangan, teks Merpi
     engine.js            API E: create(), dispatch(state, action) -> { ok, state | error }
@@ -59,9 +62,9 @@ src/
     guide.js             Buku Panduan bergambar
   net/                   firebase-config.js, backend.js (adapter Firebase), net.js (online host-authoritative)
   styles/                index.css + bagian-bagian (token tema, papan, modal, …; urutan = kaskade)
-public/                  disalin apa adanya: ikon, og-image.jpg, robots.txt, sitemap.xml
+public/                  disalin apa adanya: ikon, manifest.webmanifest, og-image.jpg, robots.txt, sitemap.xml
 test/                    uji (sim, flows, online, ui, a11y, migrate, rules, backend, smoke) + helpers/
-tools/og-image.mjs       pembuat gambar pratinjau tautan
+tools/                   og-image.mjs (gambar pratinjau tautan), icons.mjs (ikon PNG dari icon.svg)
 legacy/                  halaman pengalih alamat lama
 firestore.rules database.rules.json firebase.json   aturan & konfigurasi Firebase
 ```

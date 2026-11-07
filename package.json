@@ -18,7 +18,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -p jsconfig.json",
     "check": "npm run lint && npm run format:check && npm run typecheck",
-    "test": "npm run build && npm run test:sim && npm run test:flows && npm run test:online && npm run test:ui && npm run test:a11y && npm run test:migrate && npm run test:rules && npm run test:backend",
+    "test": "npm run build && npm run test:sim && npm run test:flows && npm run test:online && npm run test:ui && npm run test:a11y && npm run test:pwa && npm run test:migrate && npm run test:rules && npm run test:backend",
     "test:sim": "node test/sim.js 200",
     "test:flows": "node test/flows.js",
     "test:online": "node test/online.js && node test/online3.js",
@@ -30,7 +30,9 @@
     "test:smoke": "node test/smoke.js",
     "og-image": "node tools/og-image.mjs",
     "deploy": "npm run build && firebase deploy --only hosting,firestore,database",
-    "deploy:preview": "npm run build && firebase hosting:channel:deploy pratinjau --only main --expires 7d"
+    "deploy:preview": "npm run build && firebase hosting:channel:deploy pratinjau --only main --expires 7d",
+    "icons": "node tools/icons.mjs",
+    "test:pwa": "node test/pwa.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

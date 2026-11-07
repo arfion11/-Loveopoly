@@ -22,4 +22,5 @@ export default [
   // uji & alat: Node, plus fungsi page.evaluate yang berjalan di browser
   { files: ['test/**/*.js', 'tools/**/*.mjs'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
   { files: ['*.config.js'], languageOptions: { globals: { ...globals.node } } },
+  { files: ['src/service-worker.js'], languageOptions: { globals: { ...globals.serviceworker } } },
 ];

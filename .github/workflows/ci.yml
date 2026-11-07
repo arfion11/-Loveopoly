@@ -33,6 +33,7 @@ jobs:
       - run: npm run test:online
       - run: npm run test:migrate
       - run: npm run test:a11y
+      - run: npm run test:pwa
       - run: npm run test:ui
       - name: Simpan screenshot uji bila gagal
         if: failure()

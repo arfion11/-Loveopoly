@@ -361,6 +361,7 @@ const PAGES = [
       'Trio Warna: kuasai 3 grup warna penuh, minimal satu grup 3 kota.',
       'Raja Jalur: kuasai semua kota dan wisata di satu sisi papan.',
       'Kolektor Wisata: kuasai 5 tempat wisata. Atau buat lawan bangkrut, atau punya aset terbesar saat ronde habis.',
+      'Selesai main? Ketuk Bagikan Kenangan di layar menang untuk membuat kartu Story berisi pemenang, kota, dan foto bukti.',
     ],
     scene: () =>
       '<div class="sc sc-win"><div class="g-wrow r1"><span class="gw-ic">' +

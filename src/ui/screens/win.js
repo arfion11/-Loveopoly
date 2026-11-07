@@ -5,6 +5,7 @@ import { App, D, E, SND, ART, fmt, esc, ic, $, coin, avatarHTML } from '../core.
 import { UI } from '../ns.js';
 import { recordPassport } from './passport.js';
 import { enterGame, exitToHome } from './game.js';
+import { openMemoryCard } from './memory.js';
 
 // ---------- layar menang ----------
 let confettiStop = null;
@@ -272,7 +273,9 @@ function showWin() {
     esc(msg) +
     '”' +
     (author ? '<span class="win-msg-by">' + esc(author.name) + '</span>' : '') +
-    '</p></div>' +
+    '</p><button type="button" class="btn go win-share" id="wShare">' +
+    ic('share') +
+    '<span>Bagikan Kenangan</span></button></div>' +
     '<div class="panel"><h3>' +
     ic('trophy') +
     'Peringkat</h3><div class="rank-list">' +
@@ -307,6 +310,7 @@ function showWin() {
   root.appendChild(el);
   SND.play('win');
   confettiStop = confetti($('#confetti'));
+  $('#wShare').onclick = () => openMemoryCard(S, { reason, msg, author });
   $('#wBoard').onclick = () => {
     if (confettiStop) confettiStop();
     UI.leave(el, 320);

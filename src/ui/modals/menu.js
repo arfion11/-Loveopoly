@@ -3,6 +3,7 @@ import { App, SND, esc, ic, $, $$, toast, controls, viewer, act } from '../core.
 import { UI } from '../ns.js';
 import { btn, closeModal, on, refreshModal, showModal } from './base.js';
 import { openHistory, openPortfolio } from './info.js';
+import { installMode, promptInstall } from '../install.js';
 
 // ---------- menu permainan ----------
 function onlineControls() {
@@ -51,6 +52,7 @@ function openHomeMenu() {
         btn('id="mSet"', 'tile-btn', 'sliders', 'Pengaturan') +
         btn('id="mPass"', 'tile-btn', 'user', 'Paspor Cinta') +
         btn('id="mPriv"', 'tile-btn', 'shield', 'Privasi & data') +
+        (installMode() ? btn('id="mInstall"', 'tile-btn', 'download', 'Pasang Aplikasi') : '') +
         '</div>',
       foot: '',
     }),
@@ -58,6 +60,19 @@ function openHomeMenu() {
       on(m, '#mGuide', () => {
         closeModal(true);
         UI.openGuide();
+      });
+      on(m, '#mInstall', async () => {
+        if (installMode() === 'ios') {
+          closeModal();
+          toast('Di Safari: ketuk tombol Bagikan, lalu pilih "Tambah ke Layar Utama".', {
+            title: 'Pasang Loveopoly',
+            icon: 'download',
+            ms: 9000,
+          });
+          return;
+        }
+        closeModal();
+        if (await promptInstall()) toast('Loveopoly sudah ada di layar utama. Sampai ketemu di sana!', { kind: 'good', icon: 'heart' });
       });
       on(m, '#mSound', () => UI.toggleSound());
       on(m, '#mSet', openSettings);
@@ -343,7 +358,7 @@ function openPrivacy() {
           row(
             'clock',
             'Berapa lama disimpan',
-            'Room online beserta Foto Bukti dan surat di dalamnya saat ini tetap tersimpan di server setelah permainan selesai. Kirim hanya foto yang kamu nyaman dibagikan ke pemain lain di room.'
+            'Room online beserta Foto Bukti dan surat di dalamnya dihapus dari server saat host kembali ke menu setelah permainan selesai. Room yang ditinggal sebelum selesai tetap tersimpan, jadi kirim hanya foto yang kamu nyaman dibagikan ke pemain lain di room.'
           ) +
           '</div>' +
           '<div class="pv-del">' +

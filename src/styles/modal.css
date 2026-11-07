@@ -79,6 +79,7 @@
 }
 .modal-root.leaving .modal,
 .overlay.leaving .pause-card,
+.overlay.leaving .mem-card,
 .guide.leaving .g-card,
 .tour.leaving .tour-card {
   animation: modalOut 0.22s ease-in forwards;

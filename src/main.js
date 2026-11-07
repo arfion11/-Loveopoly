@@ -12,6 +12,7 @@ import './ui/modals.js';
 import { Net } from './net/net.js';
 import './ui/guide.js';
 import { start } from './ui/screens.js';
+import { registerServiceWorker } from './ui/install.js';
 
 // kait uji & debug: uji Playwright dan konsol browser memakai window.Love* (bukan dipakai antarmodul)
 Object.assign(window, {
@@ -27,3 +28,4 @@ Object.assign(window, {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
 else start();
+registerServiceWorker();

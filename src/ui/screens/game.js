@@ -232,7 +232,11 @@ function exitToHome() {
   UI.closeModal(true);
   closeOverlay();
   endTour(false);
-  if (App.mode === 'online') Net.teardown();
+  if (App.mode === 'online') {
+    // privasi: host yang keluar dari permainan yang sudah selesai menghapus room di server (tamu tetap di layar menang)
+    if (App.S && App.S.over && Net.isHost()) Net.closeRoom();
+    Net.teardown();
+  }
   UI.clearFx();
   App.S = null;
   App.shown = null;

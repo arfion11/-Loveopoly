@@ -13,9 +13,12 @@ import { SND } from '../assets/audio.js';
 import { backend } from './backend.js';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const LEASE_MS = 45000,
-  RENEW_MS = 15000,
-  POLL_MS = 6000;
+// hemat kuota Firestore: lease host 60 dtk diperpanjang tiap 25 dtk (gagal sekali masih aman), polling cadangan
+// 10 dtk (jalur utama tetap listener realtime), ambil manual setelah sinyal RTDB hanya bila data belum tiba
+const LEASE_MS = 60000,
+  RENEW_MS = 25000,
+  POLL_MS = 10000,
+  CATCHUP_MS = 1500;
 const MSG = {
   offline: 'Layanan online tidak bisa dihubungi. Periksa koneksi internetmu, lalu coba lagi.',
   auth: 'Gagal masuk ke server game. Coba lagi sebentar lagi.',
@@ -53,6 +56,7 @@ const Net = {
   role: 'none',
   doc: null,
   joined: false,
+  lobbyDoc: false,
   unsubRoom: null,
   unsubLobby: null,
   inboxUnsubs: {},
@@ -200,6 +204,7 @@ const Net = {
       await this.db
         .doc('lobby/' + this.uid)
         .set({ room: code, name: profile.name, avatar: profile.avatar, color: profile.color, msg: seatMsg(profile.msg), ts: Date.now() });
+      this.lobbyDoc = true;
     } else this.joined = true;
     store.set(KEYS.online, { code });
     this.role = 'guest';
@@ -239,6 +244,7 @@ const Net = {
     }
     clearInterval(this.leaseTimer);
     clearInterval(this.pollTimer);
+    clearTimeout(this.syncTimer);
     Object.assign(this, {
       unsubRoom: null,
       unsubLobby: null,
@@ -307,10 +313,15 @@ const Net = {
     this.lastSync = Date.now();
     if (!s.exists) {
       if (this.code) {
-        toast('Room sudah dihapus host.', { kind: 'err' });
+        const finished = !!(App.S && App.S.over && App.mode === 'online');
         this.teardown();
         store.del(KEYS.online);
-        UI.exitToHome(true);
+        // game sudah selesai: tetap di layar menang, room memang ditutup host (privasi)
+        if (finished) toast('Room ditutup host. Foto bukti & riwayat permainan sudah dihapus dari server.', { icon: 'heart' });
+        else {
+          toast('Room sudah dihapus host.', { kind: 'err' });
+          UI.exitToHome(true);
+        }
       }
       return;
     }
@@ -322,6 +333,13 @@ const Net = {
       return;
     }
     this.doc = d;
+    if (this.lobbyDoc && d.status !== 'lobby') {
+      this.lobbyDoc = false;
+      this.db
+        .doc('lobby/' + this.uid)
+        .delete()
+        .catch(() => {});
+    }
     // reaksi emoji (di luar state permainan, jadi tidak membuat aksi pemain lain "tertinggal")
     if (d.fx && d.fx.n !== this.fxN) {
       const mine = d.fx.p === this.mySeat() && this.fxSelf > 0; // emoji sendiri sudah tampil saat dikirim
@@ -422,11 +440,16 @@ const Net = {
           'sync',
           m => {
             const seq = m && m.data && m.data.seq;
-            if (!this.isHost() && typeof seq === 'number' && App.S && seq > App.S.seq)
-              this.roomRef()
-                .get()
-                .then(s => this.onRoomSnap(s))
-                .catch(() => {});
+            if (this.isHost() || typeof seq !== 'number') return;
+            clearTimeout(this.syncTimer);
+            // snapshot Firestore biasanya tiba lebih dulu; baca manual hanya bila masih tertinggal
+            this.syncTimer = setTimeout(() => {
+              if (this.code && !this.isHost() && App.S && seq > App.S.seq)
+                this.roomRef()
+                  .get()
+                  .then(s => this.onRoomSnap(s))
+                  .catch(() => {});
+            }, CATCHUP_MS);
           },
           () => {}
         )
@@ -434,8 +457,13 @@ const Net = {
       this.roomUnsubs.push(
         this.named.on(
           'nudge',
-          () => {
-            if (this.isHost()) this.pollInboxes();
+          m => {
+            const id = m && m.data && m.data.id;
+            if (!this.isHost()) return;
+            // listener inbox biasanya sudah memproses intent ini; pindai inbox hanya bila belum
+            setTimeout(() => {
+              if (this.isHost() && !(id && this.processed.has(id))) this.pollInboxes();
+            }, CATCHUP_MS);
           },
           () => {}
         )
@@ -920,6 +948,21 @@ const Net = {
     toast(on ? s.name + ' sementara dikendalikan AI.' : s.name + ' kembali mengendalikan pionnya.', { icon: 'bot' });
     UI.renderAll();
     UI.scheduleAI();
+  },
+  // host menutup room yang permainannya sudah selesai: dokumen room (state, foto bukti, riwayat) & kunci host
+  // dihapus dari server. Kode & db diambil dulu karena teardown() (dipanggil pemanggil) mengosongkannya.
+  async closeRoom() {
+    if (!this.isHost() || !this.code || !this.db) return false;
+    const db = this.db,
+      code = this.code;
+    store.del(KEYS.online);
+    try {
+      await db.doc('rooms/' + code).delete();
+      await db.doc('rooms/' + code + '/locks/host').delete();
+      return true;
+    } catch (e) {
+      return false;
+    }
   },
   async deleteRoom() {
     if (!this.isHost()) return;

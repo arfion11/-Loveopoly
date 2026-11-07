@@ -37,6 +37,77 @@
 .pause-card .btn {
   width: 100%;
 }
+/* Kartu Kenangan: pratinjau gambar recap di atas layar menang */
+.mem-ov {
+  z-index: 90;
+}
+.mem-card {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 420px);
+  max-height: calc(100dvh - 32px);
+  padding: 18px 18px 16px;
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    0 8px 0 var(--line-2),
+    var(--shadow-lg);
+  animation: modalIn 0.42s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.mem-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 600 22px var(--fd);
+  color: var(--brand-ink);
+}
+.mem-prev {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 0;
+  aspect-ratio: 9 / 16;
+  max-height: calc(100dvh - 230px);
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 18px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+/* gambar mengisi kotak 9:16 apa adanya (contain), juga saat kotak dibatasi tinggi layar */
+.mem-prev:has(img) {
+  position: relative;
+  background: none;
+}
+.mem-prev img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.mem-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.mem-foot {
+  display: flex;
+  gap: 8px;
+}
+.mem-foot .btn {
+  flex: 1;
+}
+.mem-foot .btn.ghost {
+  flex: 0 0 auto;
+}
+.win-share {
+  margin-top: 14px;
+}
 .win {
   position: fixed;
   inset: 0;

@@ -28,8 +28,9 @@ export const SITE = 'https://loveopoly.web.app/';
 const SEO = {
   title: 'Loveopoly · Board game keliling dunia bareng pasangan & teman',
   desc: 'Main board game keliling dunia bareng pasangan atau teman, gratis tanpa install. Beli kota romantis, jalani tantangan seru, main online, di satu HP, atau lawan AI.',
-  // Google Search Console, metode "Tag HTML": isi dengan nilai content="…" dari Search Console, lalu build & deploy
-  googleVerify: 'qkstZsCormFtTkSLJLMsvsfO2dHYHdbEz9VMxEo4uCc',
+  // Google Search Console, metode "Tag HTML": nilai content="…" per akun Google pemilik (boleh lebih dari satu).
+  // Menghapus kode = akun itu kehilangan status pemilik terverifikasi.
+  googleVerify: ['qkstZsCormFtTkSLJLMsvsfO2dHYHdbEz9VMxEo4uCc', 'sA9oXKQPlpvqr2dVvHfpcuAQlJPam0NeA8ruUvs8tZo'],
 };
 function headSeo() {
   const a = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -40,7 +41,7 @@ function headSeo() {
   ] };
   const m = (k, v, attr) => '<meta ' + (attr || 'name') + '="' + k + '" content="' + a(v) + '">';
   return '<title>' + a(SEO.title) + '</title>' + m('description', SEO.desc) + '<link rel="canonical" href="' + SITE + '">' +
-    (SEO.googleVerify ? m('google-site-verification', SEO.googleVerify) : '') +
+    [].concat(SEO.googleVerify).filter(Boolean).map(v => m('google-site-verification', v)).join('') +
     m('og:type', 'website', 'property') + m('og:site_name', 'Loveopoly', 'property') + m('og:locale', 'id_ID', 'property') + m('og:url', SITE, 'property') +
     m('og:title', SEO.title, 'property') + m('og:description', SEO.desc, 'property') +
     m('og:image', img, 'property') + m('og:image:type', 'image/jpeg', 'property') + m('og:image:width', '1200', 'property') + m('og:image:height', '630', 'property') + m('og:image:alt', imgAlt, 'property') +

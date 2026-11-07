@@ -180,6 +180,9 @@ function renderLobby() {
       '>' +
       ic('chevron') +
       '<span>Gabung Room</span></button><div class="err" id="oErr" hidden></div></div></div>' +
+      (window.LOVE_FIREBASE && window.LOVE_FIREBASE.appCheckSiteKey
+        ? '<p class="tiny muted rc-note">Main online dilindungi reCAPTCHA; berlaku <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Kebijakan Privasi</a> dan <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Persyaratan Layanan</a> Google.</p>'
+        : '') +
       '</div>';
     bindProfile(host);
     $('#oBack').onclick = () => {

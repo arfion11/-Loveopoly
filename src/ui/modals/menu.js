@@ -359,7 +359,10 @@ function openPrivacy() {
           row(
             'globe',
             'Main online',
-            'Saat main online kamu masuk tanpa akun (login anonim Firebase: kode acak, tanpa email/nomor HP). Nama, avatar, isi permainan, surat, dan Foto Bukti disimpan di room (Google Firebase) dan hanya bisa dibuka oleh orang yang tahu kode room-nya.'
+            'Saat main online kamu masuk tanpa akun (login anonim Firebase: kode acak, tanpa email/nomor HP). Nama, avatar, isi permainan, surat, dan Foto Bukti disimpan di room (Google Firebase) dan hanya bisa dibuka oleh orang yang tahu kode room-nya.' +
+              (window.LOVE_FIREBASE && window.LOVE_FIREBASE.appCheckSiteKey
+                ? ' Untuk menangkal bot, main online memakai Google reCAPTCHA.'
+                : '')
           ) +
           row(
             'polaroid',

@@ -736,3 +736,15 @@ main {
     inset 0 0 0 2px var(--line),
     inset 5px 0 0 var(--c);
 }
+/* reCAPTCHA (App Check, main online): lencana mengambang disembunyikan, teks wajibnya ada di layar online */
+.grecaptcha-badge {
+  visibility: hidden;
+}
+.rc-note {
+  margin: 4px 0 0;
+  text-align: center;
+}
+.rc-note a {
+  color: inherit;
+  text-decoration: underline;
+}

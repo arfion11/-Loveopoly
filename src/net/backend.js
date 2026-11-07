@@ -8,9 +8,10 @@
 import './firebase-config.js';
 
 const VER = '10.14.1';
-const SDK = ['app', 'auth', 'firestore', 'database'].map(
-  n => 'https://www.gstatic.com/firebasejs/' + VER + '/firebase-' + n + '-compat.js'
-);
+const sdkUrl = n => 'https://www.gstatic.com/firebasejs/' + VER + '/firebase-' + n + '-compat.js';
+// App Check hanya dimuat bila kunci situsnya diisi (src/net/firebase-config.js)
+const appCheckOn = () => !!(window.LOVE_FIREBASE && window.LOVE_FIREBASE.appCheckSiteKey);
+const sdkList = () => ['app', ...(appCheckOn() ? ['app-check'] : []), 'auth', 'firestore', 'database'].map(sdkUrl);
 const INDEX_KEYS = ['hostUid', 'status', 'room', 'uid', 'exp', 'holder'];
 // privasi: setiap dokumen (room + Foto Bukti, lease, lobby, intent) diberi expireAt 7 hari setelah tulisan terakhir.
 // Penghapusannya baru aktif setelah kebijakan TTL Firestore dipasang (butuh paket Blaze; lihat CLAUDE.md)
@@ -18,7 +19,8 @@ const KEEP_DAYS = 7;
 
 let loading = null,
   authing = null,
-  app = null;
+  app = null,
+  appChecked = false;
 const loaded = new Set();
 let tries = 0;
 
@@ -57,13 +59,20 @@ function loadScript(src) {
 function loadSdk() {
   if (!loading) {
     // berurutan: app harus ada sebelum modul lain; yang sudah termuat tidak disisipkan lagi saat Coba lagi
-    loading = SDK.reduce((p, src) => p.then(() => loadScript(src)), Promise.resolve())
+    loading = sdkList()
+      .reduce((p, src) => p.then(() => loadScript(src)), Promise.resolve())
       .then(() => {
         const cfg = window.LOVE_FIREBASE || {};
         if (!cfg.projectId) throw { code: 'sdk-load', message: 'Konfigurasi Firebase belum diisi.' };
         const fb = window.firebase;
         app = fb.apps.length ? fb.app() : fb.initializeApp(cfg);
         const em = cfg.emulator;
+        // App Check (reCAPTCHA Enterprise): bukti permintaan datang dari situs Loveopoly asli, bukan bot/skrip yang
+        // menghabiskan kuota. Hanya di domain terdaftar (bukan emulator, localhost, atau kanal pratinjau).
+        if (cfg.appCheckSiteKey && !em && fb.appCheck && location.hostname === 'loveopoly.web.app' && !appChecked) {
+          appChecked = true;
+          fb.appCheck().activate(new fb.appCheck.ReCaptchaEnterpriseProvider(cfg.appCheckSiteKey), true);
+        }
         if (em) {
           fb.auth().useEmulator('http://' + em.host + ':9099', { disableWarnings: true });
           fb.firestore().useEmulator(em.host, 8080);

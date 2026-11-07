@@ -84,7 +84,7 @@
     },
     {
       id: 'events', title: 'Kejutan di jalan', say: 'Tiap ronde bisa beda ceritanya!',
-      pts: ['Ketemuan! Berhenti di petak yang sama dengan pemain lain: kalian berdua dapat ' + RULES.meetCash + ' dan Love +' + RULES.meetLove + '.', 'Kabar Merpi tiap ' + RULES.newsEvery + ' ronde: Musim Hujan, Musim Liburan, Diskon Properti, Promo Maskapai, Bonus Tahunan, Pekan Kasih Sayang (berlaku ' + RULES.newsLasts + ' ronde).', 'Musim Puncak: ' + RULES.peakRounds + ' ronde terakhir semua tol ×1,5, jadi masih bisa menyalip. Kirim reaksi 😂😍😱 kapan saja lewat tombol di pojok papan.'],
+      pts: ['Ketemuan! Berhenti di petak yang sama dengan pemain lain: kalian berdua dapat ' + RULES.meetCash + ' dan Love +' + RULES.meetLove + '.', 'Kabar Merpi tiap ' + RULES.newsGap.short + '–' + RULES.newsGap.long + ' ronde (makin panjang durasi, makin jarang): Musim Hujan, Musim Liburan, Diskon Properti, Promo Maskapai, Bonus Tahunan, Pekan Kasih Sayang (berlaku ' + RULES.newsLasts + ' ronde).', 'Musim Puncak: ' + RULES.peakRounds + ' ronde terakhir semua tol ×1,5, jadi masih bisa menyalip. Kirim reaksi 😂😍😱 kapan saja lewat tombol di pojok papan.'],
       scene: () => '<div class="sc sc-proof">' +
         '<span class="gp-card c1"><span class="gp-tag">' + ic('heart') + 'Ketemuan!</span><span class="gp-duo"><span class="gp-av" style="--c:' + PINK + '">🐻</span><b>❤</b><span class="gp-av" style="--c:' + VIOLET + '">🐰</span></span><b class="gp-res">+' + RULES.meetCash + ' · Love +' + RULES.meetLove + '</b></span>' +
         '<span class="gp-card c2"><span class="gp-tag">' + ic('sparkle') + 'Kabar Merpi</span><span class="gp-emoji">☀️🏖️</span><b class="gp-res">Musim Liburan<br>tol ×1,5</b></span>' +

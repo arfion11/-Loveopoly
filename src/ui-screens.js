@@ -36,7 +36,7 @@
       color: D.TOKEN_COLORS.includes(p.color) ? p.color : D.TOKEN_COLORS[0],
       since: p.since || 0, games: p.games | 0, wins: p.wins | 0,
       stamps: Array.isArray(p.stamps) ? p.stamps.filter(i => TILES[i] && TILES[i].type === 'city') : [],
-      skipped: !!p.skipped, last: p.last || ''
+      skipped: !!p.skipped, last: p.last || '', msg: typeof p.msg === 'string' ? p.msg.slice(0, 240) : ''
     };
   }
   const savePassport = p => store.set(PKEY, p);
@@ -88,7 +88,7 @@
     if ($('#passOv')) return;
     const p = passport();
     const edit = !!p.name;
-    const st = { name: p.name, avatar: p.avatar, color: p.color, open: UI.reduceMotion(), done: false };
+    const st = { name: p.name, avatar: p.avatar, color: p.color, msg: p.msg, open: UI.reduceMotion(), done: false };
     const ov = document.createElement('div');
     ov.className = 'pass-ov';
     ov.id = 'passOv';
@@ -115,6 +115,9 @@
         '<span class="pp-lbl">Berlaku / Valid</span><b class="pp-val">Selamanya ❤</b></div></div>' +
         '<div class="pp-lbl">Pilih wajah pionmu</div><div class="pp-avs" role="group" aria-label="Avatar">' + D.AVATARS.map(a => '<button type="button" data-ppav="' + a + '" aria-pressed="' + (st.avatar === a) + '" aria-label="Avatar ' + a + '">' + a + '</button>').join('') + '</div>' +
         '<div class="pp-lbl">Warna pion</div><div class="pp-cols" role="group" aria-label="Warna pion">' + D.TOKEN_COLORS.map(c => '<button type="button" data-ppcol="' + c + '" style="--sw:' + c + '" aria-pressed="' + (st.color === c) + '" aria-label="Warna ' + c + '"></button>').join('') + '</div>' +
+        '<label class="pp-lbl" for="ppMsg">Pesan romantis di layar kemenangan</label>' +
+        '<textarea class="pp-msg" id="ppMsg" maxlength="240" rows="2" placeholder="' + esc(D.WIN_MESSAGES[0]) + '">' + esc(st.msg) + '</textarea>' +
+        '<p class="pp-msg-note">Opsional. Muncul di layar kemenangan setiap game. Saat main online, pesan ini juga terlihat oleh pemain lain di room.</p>' +
         (edit ? '<div class="pp-lbl">Cap kota · ' + p.stamps.length + '/' + CITY_TILES.length + ' · ' + p.games + ' main · ' + p.wins + ' menang</div>' + stampGrid(p, 'sm') : '') +
         '<div class="pp-foot">' + (edit ? '<button type="button" class="pp-ghost" id="ppCancel">Tutup</button>' : '<button type="button" class="pp-ghost" id="ppSkip">Nanti saja</button>') +
         '<button type="submit" class="pp-gold" id="ppGo"' + (valid ? '' : ' disabled') + '>' + ic('check') + '<span>' + (edit ? 'Simpan Paspor' : 'Terbitkan Paspor') + '</span></button></div>' +
@@ -145,6 +148,7 @@
       const c = $('#ppCancel', ov); if (c) c.onclick = close;
       const n = $('#ppName', ov);
       if (n) n.addEventListener('input', () => { st.name = n.value; syncBtn(); });
+      const mi = $('#ppMsg', ov); if (mi) mi.addEventListener('input', () => { st.msg = mi.value; });
       $$('[data-ppav]', ov).forEach(b => b.onclick = () => { st.avatar = b.dataset.ppav; SND.play('click'); $$('[data-ppav]', ov).forEach(x => x.setAttribute('aria-pressed', String(x === b))); $('.pp-photo span', ov).textContent = st.avatar; });
       $$('[data-ppcol]', ov).forEach(b => b.onclick = () => { st.color = b.dataset.ppcol; SND.play('click'); $$('[data-ppcol]', ov).forEach(x => x.setAttribute('aria-pressed', String(x === b))); $('.pp-photo', ov).style.setProperty('--c', st.color); });
       const f = $('#ppForm', ov);
@@ -153,7 +157,7 @@
         const nm = st.name.trim();
         if (!nm || nm.length > 16) return;
         const q = passport();
-        Object.assign(q, { name: nm, avatar: st.avatar, color: st.color, skipped: false, since: q.since || Date.now() });
+        Object.assign(q, { name: nm, avatar: st.avatar, color: st.color, msg: String(st.msg || '').replace(/\s+/g, ' ').trim().slice(0, 240), skipped: false, since: q.since || Date.now() });
         savePassport(q);
         SND.play('stamp');
         $('.pp-book', ov).classList.add('done');
@@ -248,7 +252,7 @@
       players: kind === 'ai'
         ? [{ name: 'Kamu', avatar: '🐻', color: D.TOKEN_COLORS[0], kind: 'human', ai: 'normal' }, { name: D.AI_NAMES[0], avatar: '🐰', color: D.TOKEN_COLORS[1], kind: 'ai', ai: 'normal' }]
         : [{ name: 'Pemain 1', avatar: '🐻', color: D.TOKEN_COLORS[0], kind: 'human', ai: 'normal' }, { name: 'Pemain 2', avatar: '🐰', color: D.TOKEN_COLORS[1], kind: 'human', ai: 'normal' }],
-      startCash: RULES.startCash, roundLimit: 25, winMessage: '',
+      startCash: RULES.startCash, roundLimit: 25,
       takeover: true, instantWin: true, diceControl: true
     };
     if (base && base.kind === kind && Array.isArray(base.players) && base.players.length >= 2) {
@@ -308,7 +312,6 @@
       '<div class="toggle-row"><div><b>Menang instan</b><div class="tiny muted">Trio Warna, Raja Jalur, atau Kolektor Wisata = langsung menang.</div></div><button type="button" class="switch" role="switch" id="sInstant" aria-checked="' + s.instantWin + '" aria-label="Menang instan"></button></div>' +
       '<div class="toggle-row"><div><b>Kontrol dadu</b><div class="tiny muted">Bidik hasil kecil, sedang, atau besar sebelum melempar.</div></div><button type="button" class="switch" role="switch" id="sAimCtl" aria-checked="' + s.diceControl + '" aria-label="Kontrol dadu"></button></div>' +
       (!s.takeover && !s.instantWin && !s.diceControl && s.players.some(p => p.kind === 'ai') ? '<div class="note gold">' + ic('dice') + ' Tanpa ketiga aturan ini permainan lebih banyak ditentukan keberuntungan dadu, jadi level AI hanya sedikit berpengaruh.</div>' : '') +
-      '<div class="field"><label for="sMsg">Pesan romantis di layar kemenangan (opsional)</label><textarea class="input" id="sMsg" maxlength="240" placeholder="' + esc(D.WIN_MESSAGES[0]) + '">' + esc(s.winMessage) + '</textarea></div>' +
       '</div></div></div>' +
       '<div class="setup-foot sticky-cta"><button type="button" class="btn go" id="sStart"' + (Object.keys(errs).length ? ' disabled' : '') + '>' + ic('heart') + '<span>Mulai Main!</span></button></div>' +
       '</div>';
@@ -346,12 +349,12 @@
     $('#sTakeover').onclick = () => { s.takeover = !s.takeover; re(); };
     $('#sInstant').onclick = () => { s.instantWin = !s.instantWin; re(); };
     $('#sAimCtl').onclick = () => { s.diceControl = !s.diceControl; re(); };
-    const msg = $('#sMsg'); msg.addEventListener('input', () => { s.winMessage = msg.value; store.set(KEYS.setup, s); });
     $('#sStart').onclick = () => {
       if (Object.keys(setupErrors()).length) { renderSetup(); return; }
       store.set(KEYS.setup, s);
-      const settings = { startCash: s.startCash, roundLimit: s.roundLimit, winMessage: s.winMessage.trim(), takeover: s.takeover !== false, instantWin: s.instantWin !== false, diceControl: s.diceControl !== false };
-      const S = E.create({ players: s.players.map(p => ({ name: p.name.trim(), avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai })), settings, first: 'random' });
+      const settings = { startCash: s.startCash, roundLimit: s.roundLimit, takeover: s.takeover !== false, instantWin: s.instantWin !== false, diceControl: s.diceControl !== false };
+      const pp = passport();
+      const S = E.create({ players: s.players.map(p => ({ name: p.name.trim(), avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai, msg: p.kind === 'human' && pp.name && p.name.trim().toLowerCase() === pp.name.trim().toLowerCase() ? pp.msg : '' })), settings, first: 'random' });
       SND.unlock();
       SND.play('fanfare');
       enterGame('local', -1, S);
@@ -435,7 +438,7 @@
         onlineBusy = true; renderLobby();
         try {
           const seru = st.rules === 'seru';
-          await Net.createRoom({ name: onlineProfile.name.trim(), avatar: onlineProfile.avatar, color: onlineProfile.color }, { startCash: st.startCash, roundLimit: st.roundLimit, takeover: seru, instantWin: seru, diceControl: seru });
+          await Net.createRoom({ name: onlineProfile.name.trim(), avatar: onlineProfile.avatar, color: onlineProfile.color, msg: passport().msg }, { startCash: st.startCash, roundLimit: st.roundLimit, takeover: seru, instantWin: seru, diceControl: seru });
           onlineErr = '';
         } catch (e) { onlineErr = 'Gagal membuat room: ' + (e && e.message ? e.message : e); }
         onlineBusy = false; renderLobby();
@@ -445,7 +448,7 @@
         const code = $('#oCode').value.trim().toUpperCase();
         if (!/^[A-Z0-9]{6}$/.test(code)) { err.hidden = false; err.textContent = 'Kode room terdiri dari 6 huruf/angka.'; $('#oCode').classList.add('invalid'); return; }
         onlineBusy = true; renderLobby();
-        try { await Net.joinRoom(code, { name: onlineProfile.name.trim(), avatar: onlineProfile.avatar, color: onlineProfile.color }); onlineErr = ''; }
+        try { await Net.joinRoom(code, { name: onlineProfile.name.trim(), avatar: onlineProfile.avatar, color: onlineProfile.color, msg: passport().msg }); onlineErr = ''; }
         catch (e) { onlineErr = e && e.message ? e.message : String(e); Net.teardown(); }
         onlineBusy = false;
         if (!(Net.doc && Net.doc.status === 'playing')) renderLobby();
@@ -679,7 +682,6 @@
     addEventListener('resize', resize);
     return () => { cancelAnimationFrame(raf); removeEventListener('resize', resize); };
   }
-  let winMsgOverride = null;
   function showWin() {
     try { recordPassport(App.S); } catch (e) { /* abaikan */ }
     const S = App.S;
@@ -696,7 +698,9 @@
       bankrupt: 'Semua lawan bangkrut', rounds: 'Aset terbesar saat batas ronde', manual: 'Aset terbesar saat permainan diakhiri', resign: 'Lawan menyerah',
       triple: 'Trio Warna: menguasai 3 grup warna', line: 'Raja Jalur: menguasai seluruh ' + (o.detail ? E.sideName(o.detail.side) : 'jalur'), spots: 'Kolektor Wisata: menguasai 5 tempat wisata'
     }[o.reason] || '';
-    const msg = winMsgOverride || S.settings.winMessage || D.WIN_MESSAGES[S.seed % D.WIN_MESSAGES.length];
+    // pesan romantis dari Paspor Cinta: milik pemenang, atau pemain lain yang menulisnya; game lama: settings.winMessage
+    const author = w.msg ? w : S.players.find(p => p.msg && !p.bankrupt) || S.players.find(p => p.msg);
+    const msg = author ? author.msg : (S.settings.winMessage || D.WIN_MESSAGES[S.seed % D.WIN_MESSAGES.length]);
     const rows = o.ranking.map((i, k) => {
       const p = S.players[i];
       return '<div class="rank-row' + (k === 0 ? ' first' : '') + '" style="--c:' + p.color + '"><span class="rk">' + (k + 1) + '</span>' + avatarHTML(p, 'sm') + '<span class="rk-name"><b>' + esc(p.name) + '</b><small>' + esc(o.titles[i] || '') + (p.bankrupt ? ' · bangkrut ronde ' + p.stats.bankruptRound : '') + '</small></span><span class="rk-worth">' + coin + fmt(o.worth ? o.worth[i] : E.netWorth(S, i)) + '</span></div>';
@@ -718,8 +722,7 @@
       '<div class="win-hero"><div class="eyebrow">' + (instant ? 'Menang instan' : 'Pemenang') + ' · ronde ' + o.round + '</div>' +
       '<div class="win-stage"><span class="rays" aria-hidden="true"></span><span class="win-merpi">' + ART.merpi('is-love') + '</span><div class="win-av">' + avatarHTML(w, 'xl') + '<span class="win-crown">' + ic('crown') + '</span></div></div>' +
       '<div class="win-name" id="winName">' + esc(w.name) + '</div><div class="win-title">' + esc(o.titles[o.winner] || 'Juragan Cinta') + '</div><div class="win-reason">' + esc(reason) + '</div>' +
-      '<p class="win-msg" id="winMsg">“' + esc(msg) + '”</p>' +
-      '<div class="field msg-edit"><label for="winMsgIn">Ubah pesan romantis</label><textarea class="input" id="winMsgIn" maxlength="240">' + esc(msg) + '</textarea></div></div>' +
+      '<p class="win-msg" id="winMsg">“' + esc(msg) + '”' + (author ? '<span class="win-msg-by">' + esc(author.name) + '</span>' : '') + '</p></div>' +
       '<div class="panel"><h3>' + ic('trophy') + 'Peringkat</h3><div class="rank-list">' + rows + '</div></div>' +
       '<div class="panel"><h3>' + ic('level') + 'Statistik</h3><div class="stats-wrap" tabindex="0" role="region" aria-label="Tabel statistik (bisa digulir)"><table class="stats"><thead><tr><th>Pemain</th><th>Kota</th><th>Landmark</th><th>Tol masuk</th><th>Ambil alih</th><th>Tantangan</th><th>Love</th></tr></thead><tbody>' + statRows + '</tbody></table></div></div>' +
       '<div class="panel stack"><h3>' + ic('sparkle') + 'Achievement</h3>' + ach + '</div>' +
@@ -730,16 +733,13 @@
     root.appendChild(el);
     SND.play('win');
     confettiStop = confetti($('#confetti'));
-    const inp = $('#winMsgIn');
-    inp.addEventListener('input', () => { winMsgOverride = inp.value.trim() || null; $('#winMsg').textContent = '“' + (inp.value.trim() || msg) + '”'; });
     $('#wBoard').onclick = () => { if (confettiStop) confettiStop(); el.remove(); };
-    $('#wHome').onclick = () => { if (confettiStop) confettiStop(); winMsgOverride = null; exitToHome(); };
+    $('#wHome').onclick = () => { if (confettiStop) confettiStop(); exitToHome(); };
     const again = $('#wAgain');
     if (again) again.onclick = () => {
       if (confettiStop) confettiStop();
-      winMsgOverride = null;
       if (App.mode === 'online') { Net.startGame(); return; }
-      const ns = E.create({ players: S.players.map(p => ({ name: p.name, avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai })), settings: S.settings, first: 'random' });
+      const ns = E.create({ players: S.players.map(p => ({ name: p.name, avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai, msg: p.msg })), settings: S.settings, first: 'random' });
       enterGame('local', -1, ns);
     };
     setTimeout(() => { const b = $('#wHome'); if (b) b.focus({ preventScroll: true }); }, 60);

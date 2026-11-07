@@ -32,7 +32,8 @@
     maxRedraws: 2,
     bluffMin: 3,                             // Dua Fakta Satu Bohong: minimal huruf per pernyataan
     peakRounds: 3, peakMult: 1.5,            // Musim Puncak: N ronde terakhir, tol ×1,5
-    newsEvery: 3, newsLasts: 2,              // Kabar Merpi tiap 3 ronde, berlaku 2 ronde
+    // Kabar Merpi: jeda mengikuti durasi (makin panjang game, makin jarang), berlaku 2 ronde, tidak muncul saat Musim Puncak
+    newsGap: { short: 4, normal: 5, long: 6, free: 5 }, newsLasts: 2,
     newsRain: 0.5, newsHoliday: 1.5, newsSale: 0.2, newsBonus: 100,
     meetLove: 3, meetCash: 40,               // Ketemuan! (berhenti di petak yang sama dengan pemain lain)
     maxRounds: 300

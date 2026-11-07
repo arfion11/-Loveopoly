@@ -463,6 +463,20 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem('loveopoly.v1.profile')) || {}).games === 1, null, { timeout: 10000 }).catch(() => {});
   const pp2 = await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')));
   ok('paspor: hasil game tercatat (main, menang, cap kota)', pp2.games === 1 && pp2.wins === 1 && pp2.stamps.length === 2, JSON.stringify({ g: pp2.games, w: pp2.wins, st: pp2.stamps }));
+  // pesan romantis: diisi sekali di paspor, tidak ada lagi di setup, tampil di layar menang dengan nama penulis
+  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(200);
+  await page.click('#hPass'); await page.waitForSelector('#ppMsg', { state: 'visible', timeout: 6000 });
+  await page.fill('#ppMsg', 'Sampai ketemu di Kyoto, sayang!');
+  await page.click('#ppGo'); await page.waitForSelector('#passOv', { state: 'detached', timeout: 5000 });
+  ok('pesan romantis: tersimpan di paspor', (await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')).msg)) === 'Sampai ketemu di Kyoto, sayang!');
+  await page.click('#hLocal'); await page.waitForSelector('#sStart');
+  ok('pesan romantis: field lama di setup sudah dihapus', !(await page.$('#sMsg')));
+  await page.$eval('#sStart', b => b.click());
+  await page.waitForFunction(() => window.LoveUI.App.S && window.LoveUI.App.S.players.some(p => p.msg), null, { timeout: 5000 }).catch(() => {});
+  await page.evaluate(() => { const UI = window.LoveUI, S = UI.App.S; const me = S.players.findIndex(p => p.msg); const other = me === 0 ? 1 : 0; S.queue = []; S.turn.p = other; S.turn.rolled = false; S.players[other].cash = 99999; UI.act({ type: 'FINISH_NOW', p: other }); });
+  await page.waitForSelector('#winOv', { timeout: 8000 }).catch(() => {});
+  const wm = await page.evaluate(() => ({ msg: (document.getElementById('winMsg') || {}).textContent || '', edit: !!document.getElementById('winMsgIn') }));
+  ok('pesan romantis: tampil di layar menang (walau pasangan yang menang) + nama penulis, tanpa editor', /Sampai ketemu di Kyoto, sayang!/.test(wm.msg) && /Arfi/.test(wm.msg) && !wm.edit, JSON.stringify(wm));
 
   console.log(results.join('\n'));
   const fails = results.filter(r => r.startsWith('FAIL')).length;

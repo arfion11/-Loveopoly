@@ -199,6 +199,16 @@ if (chFails) process.exitCode = 1;
   ok('Musim Puncak aktif di 3 ronde terakhir', S.round >= 8 ? E.peakOn(S) : true, 'round=' + S.round);
   S = mk(2, { news: false, roundLimit: 10 }); S.round = 3;
   ok('Kabar Merpi bisa dimatikan', S.settings.news === false);
+  // jeda Kabar Merpi mengikuti durasi; tidak ada kabar baru saat Musim Puncak
+  const gapOf = L => E.newsGap(mk(2, { roundLimit: L }));
+  ok('jeda kabar per durasi: 15→4, 25→5, 35→6, bebas→5', gapOf(15) === 4 && gapOf(25) === 5 && gapOf(35) === 6 && gapOf(0) === 5, [15, 25, 35, 0].map(gapOf).join());
+  const newsRounds = L => { let T = mk(2, { roundLimit: L, instantWin: false, startCash: 6000 }); const out = []; let k = 0;
+    while (!T.over && k++ < 8000) { const a = E.actor(T); const q = E.dispatch(T, globalThis.LoveAI.decide(T, a)); if (!q.ok) break; if (q.state.lastEvents.some(e => e.t === 'news')) out.push(q.state.round); T = q.state; }
+    return { out, over: !!T.over }; };
+  const n25 = newsRounds(25);
+  ok('Normal 25: kabar tepat di ronde 5,10,15,20, tidak ada saat Musim Puncak', n25.out.join() === '5,10,15,20', n25.out.join() + ' over=' + n25.over);
+  const n15 = newsRounds(15);
+  ok('Singkat 15: kabar tepat di ronde 4,8,12', n15.out.join() === '4,8,12', n15.out.join());
   S = mk(2); S.news = { id: 'promo', side: null, from: 1, to: 2 };
   ok('Promo Maskapai: tiket gratis', E.travelFee(S) === 0);
   S.news = { id: 'rain', side: 'bottom', from: 1, to: 2 }; S.tiles[1].owner = 1;

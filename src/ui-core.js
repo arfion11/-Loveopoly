@@ -2039,6 +2039,7 @@
       p.name = String(p.name == null ? 'Pemain' : p.name).slice(0, 16);
       if (!HEX.test(p.color || '')) p.color = D.TOKEN_COLORS[k % D.TOKEN_COLORS.length];
       if (typeof p.avatar !== 'string' || !p.avatar || p.avatar.length > 8) p.avatar = D.AVATARS[k % D.AVATARS.length];
+      p.msg = typeof p.msg === 'string' ? p.msg.slice(0, 240) : '';
     });
     return S;
   }

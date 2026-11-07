@@ -111,6 +111,8 @@ const server = http.createServer((req, res) => {
   const host = await mkPage('u_host');
   const guest = await mkPage('u_guest');
 
+  // pesan romantis dari paspor masing-masing ikut ke kursi room (host & tamu berbagi localStorage di uji ini)
+  await host.evaluate(() => localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ name: 'Arfi', msg: 'Pesan dari host' })));
   await host.click('#hOnline');
   await host.waitForSelector('#oCreate');
   await host.fill('#oName', 'Arfi');
@@ -122,6 +124,7 @@ const server = http.createServer((req, res) => {
   ok('petunjuk room tanpa istilah artifact', /Gabung Room/.test(note) && !/artifact|Editor/.test(note), note.slice(0, 140));
   await host.screenshot({ path: OUT + '/01-host-lobby.png' });
 
+  await guest.evaluate(() => localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ name: 'Nadia', msg: 'Pesan dari tamu' })));
   await guest.click('#hOnline');
   await guest.waitForSelector('#oJoin');
   await guest.fill('#oName', 'Nadia');
@@ -138,6 +141,8 @@ const server = http.createServer((req, res) => {
   await host.waitForSelector('#board .tile', { timeout: 20000 });
   await guest.waitForSelector('#board .tile', { timeout: 20000 });
   ok('kedua tab masuk papan', true);
+  const msgs = await guest.evaluate(() => window.LoveUI.App.S.players.map(p => p.msg));
+  ok('pesan romantis paspor host & tamu ikut ke permainan online', msgs[0] === 'Pesan dari host' && msgs[1] === 'Pesan dari tamu', JSON.stringify(msgs));
 
   const settle = async p => { await p.waitForFunction(() => !window.LoveUI.App.animating && !window.LoveUI.App.pending.length, null, { timeout: 15000 }); await p.waitForTimeout(200); };
   const seqOf = p => p.evaluate(() => window.LoveUI.App.S && window.LoveUI.App.S.seq);
@@ -212,8 +217,8 @@ const server = http.createServer((req, res) => {
     await guest.evaluate(MON); await guest.waitForTimeout(300);
   }
   for (let k = 0; k < 40; k++) { if (await guest.evaluate(() => /Penulis Surat/.test(window.__achCard))) break; await guest.evaluate(MON); await guest.waitForTimeout(400); }
-  const gToast = await host.evaluate(() => window.__goldToast), gCard = await guest.evaluate(() => window.__achCard), hCard = await host.evaluate(() => !!document.querySelector('.ach-pop'));
-  ok('achievement pasangan: host kabar singkat, tamu kartu medali', /Penulis Surat/.test(gToast) && /Penulis Surat/.test(gCard) && !hCard, 'host="' + gToast.slice(0, 60) + '" tamu="' + gCard.slice(0, 60) + '"');
+  const gToast = await host.evaluate(() => window.__goldToast), gCard = await guest.evaluate(() => window.__achCard), hCard = await host.evaluate(() => [...document.querySelectorAll('.ach-pop')].map(e => e.textContent).join(' | '));
+  ok('achievement pasangan: host kabar singkat, tamu kartu medali', /Penulis Surat/.test(gToast) && /Penulis Surat/.test(gCard) && !/Penulis Surat/.test(hCard), 'host="' + gToast.slice(0, 60) + '" tamu="' + gCard.slice(0, 60) + '" kartu host="' + hCard.slice(0, 80) + '"');
   await settle(host); await settle(guest);
 
   // intent basi (baseSeq lama) harus ditolak host

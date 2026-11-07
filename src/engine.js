@@ -111,6 +111,8 @@
   // Kabar Merpi (event dunia berkala) & Musim Puncak (3 ronde terakhir permainan berbatas ronde)
   const newsOn = (S, id) => !!(S.news && S.news.id === id && S.round <= S.news.to);
   const peakOn = S => !!(S.settings.roundLimit && S.round > S.settings.roundLimit - RULES.peakRounds && !S.over);
+  // jeda Kabar Merpi (ronde) menurut durasi: Singkat ≤15 → 4, Normal ≤25 → 5, Panjang → 6, Bebas → 5
+  const newsGap = S => { const L = S.settings.roundLimit, G = RULES.newsGap; return !L ? G.free : L <= 15 ? G.short : L <= 25 ? G.normal : G.long; };
   const discounted = (S, i, cost) => Math.max(0, Math.round(cost * (1 - (PL(S, i).discount || 0)) * (newsOn(S, 'sale') ? 1 - RULES.newsSale : 1)));
   function buyCost(S, i, ti, level) { return discounted(S, i, TILES[ti].type === 'spot' ? TILES[ti].price : costRange(ti, -1, level)); }
   function upgradeCost(S, i, ti, level) { return discounted(S, i, costRange(ti, S.tiles[ti].level, level)); }
@@ -211,11 +213,14 @@
   }
 
   // ---------- pembuatan game ----------
+  // pesan romantis dari Paspor Cinta pemain: teks satu baris, maks 240 huruf
+  const cleanMsg = x => String(x == null ? '' : x).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
   function newPlayer(src, i, cash) {
     return {
       i,
       name: String(src.name || ('Pemain ' + (i + 1))).trim().slice(0, 16) || ('Pemain ' + (i + 1)),
       avatar: String(src.avatar || D.AVATARS[i % D.AVATARS.length]).slice(0, 8),
+      msg: cleanMsg(src.msg),
       color: /^#[0-9a-fA-F]{6}$/.test(src.color || '') ? src.color : D.TOKEN_COLORS[i % D.TOKEN_COLORS.length],
       kind: src.kind === 'ai' ? 'ai' : 'human',
       ai: AI_LEVELS.includes(src.ai) ? src.ai : 'normal',
@@ -766,7 +771,8 @@
       return true;
     }
     if (S.news && S.round > S.news.to) { log(S, 'Kabar Merpi "' + NEWS_LABEL[S.news.id] + '" selesai.', 'dot'); S.news = null; }
-    if (S.settings.news !== false && S.round >= RULES.newsEvery && S.round % RULES.newsEvery === 0) drawNews(S);
+    const gap = newsGap(S);
+    if (S.settings.news !== false && S.round >= gap && S.round % gap === 0 && !peakOn(S)) drawNews(S);
     if (S.settings.roundLimit && S.round === S.settings.roundLimit - RULES.peakRounds + 1) {
       log(S, 'Musim Puncak! ' + RULES.peakRounds + ' ronde terakhir: semua tol ×' + String(RULES.peakMult).replace('.', ',') + '.', 'bolt');
       ev(S, { t: 'peak', rounds: RULES.peakRounds, mult: RULES.peakMult });
@@ -1381,7 +1387,7 @@
   }
 
   G.LoveEngine = {
-    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, migrate, newsInfo, peakOn, tripleOk, travelFee: S => (newsOn(S, 'promo') ? 0 : RULES.travelFee),
+    create, dispatch, check, actor, canRoll, canEnd, islandPre, chSolve, messageChecks, judgeFor, migrate, newsInfo, peakOn, newsGap, tripleOk, travelFee: S => (newsOn(S, 'promo') ? 0 : RULES.travelFee),
     rentFor, rentInfo, netWorth, liquidation, tileValue, sellValue, levelCost, costRange, buyCost, upgradeCost,
     buyLevels, upgradeLevels, capLevel, targetCandidates, swapTargets,
     ownsGroup, countGroup, fullGroups, ownedBy, citiesOf, spotsOf, buildingLevels, tierOf, tierInfo,

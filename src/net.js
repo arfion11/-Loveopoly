@@ -25,6 +25,7 @@
     return id;
   })();
 
+  const seatMsg = x => (typeof x === 'string' ? x.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 240) : '');
   const Net = {
     db: null, user: null, room: null, named: null, uid: null, canWrite: null,
     initDone: false, avail: false, initErr: '',
@@ -76,7 +77,7 @@
       } while (tries < 6);
       const doc = {
         v: 1, code, status: 'lobby', hostUid: this.uid, createdAt: Date.now(), updatedAt: Date.now(),
-        settings: settings || {}, seats: [{ uid: this.uid, name: profile.name, avatar: profile.avatar, color: profile.color, bot: false, afk: false }],
+        settings: settings || {}, seats: [{ uid: this.uid, name: profile.name, avatar: profile.avatar, color: profile.color, msg: seatMsg(profile.msg), bot: false, afk: false }],
         state: null, seq: 0, acks: {}, kicked: []
       };
       await this.roomRef(code).set(doc);
@@ -102,7 +103,7 @@
         if (d.status !== 'lobby') throw new Error('Permainan di room ini sudah dimulai.');
         if (d.seats.length >= 4) throw new Error('Room penuh (maksimal 4 pemain).');
         if (!profile) throw new Error('Isi profil pemain dulu.');
-        await this.db.doc('lobby/' + this.uid).set({ room: code, name: profile.name, avatar: profile.avatar, color: profile.color, ts: Date.now() });
+        await this.db.doc('lobby/' + this.uid).set({ room: code, name: profile.name, avatar: profile.avatar, color: profile.color, msg: seatMsg(profile.msg), ts: Date.now() });
       } else this.joined = true;
       store.set(KEYS.online, { code });
       this.role = 'guest';
@@ -315,7 +316,7 @@
           const used = this.doc.seats.map(s => s.color), usedAv = this.doc.seats.map(s => s.avatar);
           let color = /^#[0-9a-fA-F]{6}$/.test(data.color || '') && !used.includes(data.color) ? data.color : (D.TOKEN_COLORS.find(c => !used.includes(c)) || D.TOKEN_COLORS[0]);
           let avatar = D.AVATARS.includes(data.avatar) && !usedAv.includes(data.avatar) ? data.avatar : (D.AVATARS.find(a => !usedAv.includes(a)) || D.AVATARS[0]);
-          this.doc.seats.push({ uid, name, avatar, color, bot: false, afk: false });
+          this.doc.seats.push({ uid, name, avatar, color, msg: seatMsg(data.msg), bot: false, afk: false });
           changed = true;
         });
         if (changed) { this.syncInboxSubs(); this.writeRoom(); UI.renderLobby && UI.renderLobby(); }
@@ -482,7 +483,7 @@
       const seats = this.doc.seats;
       if (seats.length < 2) { toast('Butuh minimal 2 pemain.', { kind: 'err' }); return false; }
       const setup = {
-        players: seats.map(s => ({ name: s.name, avatar: s.avatar, color: s.color, kind: s.bot ? 'ai' : 'human', ai: s.ai || 'normal', uid: s.uid })),
+        players: seats.map(s => ({ name: s.name, avatar: s.avatar, color: s.color, msg: s.bot ? '' : seatMsg(s.msg), kind: s.bot ? 'ai' : 'human', ai: s.ai || 'normal', uid: s.uid })),
         settings: Object.assign({}, this.doc.settings, { online: true }),
         first: 'random'
       };

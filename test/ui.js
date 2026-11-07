@@ -94,7 +94,7 @@ const MONKEY = () => {
   // ---- permainan singkat sampai layar menang ----
   await page.evaluate(() => {
     const E = window.LoveEngine, UI = window.LoveUI;
-    const S = E.create({ players: [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Nadia', avatar: '🐰', color: '#7B61FF', kind: 'ai', ai: 'hard' }], settings: { roundLimit: 1, winMessage: '' }, seed: 77 });
+    const S = E.create({ players: [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Nadia', avatar: '🐰', color: '#7B61FF', kind: 'ai', ai: 'hard' }], settings: { roundLimit: 1 }, seed: 77 });
     UI.enterGame('local', -1, S);
   });
   await play(page, 'win', 120);

@@ -3,6 +3,7 @@
 import { Icons } from '../../assets/icons.js';
 import { ART, TILES, esc, ic, $, toast, safeImg, reduceMotion } from '../core.js';
 import { UI } from '../ns.js';
+import { track } from '../../analytics.js';
 
 const W = 1080,
   H = 1920;
@@ -321,6 +322,7 @@ let closeMem = null;
 /** Buka pratinjau Kartu Kenangan (overlay di atas layar menang). info: { reason, msg, author } dari layar menang. */
 async function openMemoryCard(S, info) {
   if (!S || !S.over || $('#memOv')) return;
+  track('memory_card', { action: 'open', photos: (S.photos || []).length });
   const ov = document.createElement('div');
   ov.className = 'overlay mem-ov';
   ov.id = 'memOv';
@@ -395,6 +397,7 @@ async function openMemoryCard(S, info) {
     a.click();
     a.remove();
     toast('Kartu Kenangan tersimpan.', { kind: 'good', icon: 'check' });
+    track('memory_card', { action: 'save' });
   };
   const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
   if (!canShare) share.hidden = true;
@@ -407,6 +410,7 @@ async function openMemoryCard(S, info) {
           title: 'Kenangan Loveopoly',
           text: 'Kami baru selesai keliling dunia di Loveopoly 💕 Main gratis: https://' + SITE,
         });
+        track('memory_card', { action: 'share' });
       } catch (e) {
         if (e && e.name !== 'AbortError') toast('Gagal membagikan. Coba Simpan lalu kirim manual.', { kind: 'err' });
       }

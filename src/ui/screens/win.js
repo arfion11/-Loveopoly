@@ -6,6 +6,8 @@ import { UI } from '../ns.js';
 import { recordPassport } from './passport.js';
 import { enterGame, exitToHome } from './game.js';
 import { openMemoryCard } from './memory.js';
+import { track } from '../../analytics.js';
+let trackedEnd = '';
 
 // ---------- layar menang ----------
 let confettiStop = null;
@@ -89,6 +91,11 @@ function showWin() {
   const o = S.over,
     w = S.players[o.winner];
   const instant = o.reason === 'triple' || o.reason === 'line' || o.reason === 'spots';
+  const endKey = S.seed + ':' + o.round + ':' + o.winner;
+  if (trackedEnd !== endKey) {
+    trackedEnd = endKey;
+    track('game_end', { mode: App.mode, reason: o.reason, rounds: o.round, players: S.players.length, winner_ai: w.kind === 'ai' });
+  }
   const reason =
     {
       bankrupt: 'Semua lawan bangkrut',

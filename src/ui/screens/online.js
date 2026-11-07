@@ -1,6 +1,7 @@
 /* LOVEOPOLY — layar › menu online & lobi (dikumpulkan lewat src/ui/screens.js) */
 import { backend } from '../../net/backend.js';
 import { Net } from '../../net/net.js';
+import { track } from '../../analytics.js';
 import { D, RULES, KEYS, fmt, esc, ic, $, $$, store, toast, avatarHTML } from '../core.js';
 import { seg, show } from './base.js';
 import { passport } from './passport.js';
@@ -219,6 +220,7 @@ function renderLobby() {
           { name: onlineProfile.name.trim(), avatar: onlineProfile.avatar, color: onlineProfile.color, msg: passport().msg },
           { startCash: st.startCash, roundLimit: st.roundLimit, takeover: seru, instantWin: seru, diceControl: seru }
         );
+        track('room_create', { rules: st.rules || 'santai', rounds: st.roundLimit || 0 });
         onlineErr = '';
       } catch (e) {
         onlineErr = 'Gagal membuat room: ' + (e && e.message ? e.message : e);
@@ -244,6 +246,7 @@ function renderLobby() {
           color: onlineProfile.color,
           msg: passport().msg,
         });
+        track('room_join');
         onlineErr = '';
       } catch (e) {
         onlineErr = e && e.message ? e.message : String(e);

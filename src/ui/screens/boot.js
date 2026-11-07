@@ -1,5 +1,6 @@
 /* LOVEOPOLY — layar › header & boot (dikumpulkan lewat src/ui/screens.js) */
 import { Icons } from '../../assets/icons.js';
+import { reportError } from '../../analytics.js';
 import { App, SND, ART, ic, $, toast } from '../core.js';
 import { UI } from '../ns.js';
 import { applyTheme, show, syncSoundBtn } from './base.js';
@@ -74,6 +75,7 @@ export const start = () => {
     boot();
   } catch (e) {
     console.error(e);
+    reportError(e && e.message, 'boot', true);
     const m = document.getElementById('fatal');
     if (m) {
       m.hidden = false;

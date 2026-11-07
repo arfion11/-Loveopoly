@@ -1,5 +1,6 @@
 /* LOVEOPOLY — layar › masuk/keluar game, undian giliran, jeda, setelah state stabil (dikumpulkan lewat src/ui/screens.js) */
 import { Net } from '../../net/net.js';
+import { track } from '../../analytics.js';
 import { App, D, E, SND, ART, KEYS, esc, ic, $, $$, store, toast } from '../core.js';
 import { UI } from '../ns.js';
 import { show } from './base.js';
@@ -153,6 +154,13 @@ function enterGame(mode, seat, S) {
   closeOverlay();
   App.mode = mode;
   App.net = mode === 'online' ? Net : null;
+  track('game_start', {
+    mode,
+    players: S.players.length,
+    ai_players: S.players.filter(p => p.kind === 'ai').length,
+    rounds: (S.settings && S.settings.roundLimit) || 0,
+    resumed: S.seq > 0,
+  });
   App.seat = mode === 'online' ? (seat >= 0 ? seat : Net.mySeat()) : -1;
   UI.clearFx();
   App.S = S;

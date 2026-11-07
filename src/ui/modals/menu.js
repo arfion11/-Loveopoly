@@ -4,6 +4,7 @@ import { UI } from '../ns.js';
 import { btn, closeModal, on, refreshModal, showModal } from './base.js';
 import { openHistory, openPortfolio } from './info.js';
 import { installMode, promptInstall } from '../install.js';
+import { analyticsOn, setAnalytics } from '../../analytics.js';
 
 // ---------- menu permainan ----------
 function onlineControls() {
@@ -235,6 +236,9 @@ function openSettings() {
         '<div class="toggle-row"><div><b>Akhiri giliran otomatis</b><div class="tiny muted">Giliran selesai sendiri ±2 detik setelah semua beres. Sentuh layar untuk menahan.</div></div><button type="button" class="switch" role="switch" id="sAutoEnd" aria-checked="' +
         (App.prefs.autoEnd !== false) +
         '" aria-label="Akhiri giliran otomatis"></button></div>' +
+        '<div class="toggle-row"><div><b>Bantu kembangkan Loveopoly</b><div class="tiny muted">Kirim statistik pemakaian anonim (Google Analytics) & laporan error. Tanpa nama, pesan, foto, atau kode room.</div></div><button type="button" class="switch" role="switch" id="sStats" aria-checked="' +
+        analyticsOn() +
+        '" aria-label="Bantu kembangkan Loveopoly"></button></div>' +
         '<div class="opt"><span class="label">Kecepatan animasi</span>' +
         seg(
           'sSpeed',
@@ -279,6 +283,12 @@ function openSettings() {
         SND.setEnabled(App.prefs.sound);
         UI.savePrefs();
         UI.syncSoundBtn && UI.syncSoundBtn();
+        refreshModal();
+      });
+      on(m, '#sStats', () => {
+        App.prefs.analytics = !analyticsOn();
+        UI.savePrefs();
+        setAnalytics(App.prefs.analytics);
         refreshModal();
       });
       on(m, '#sAutoEnd', () => {
@@ -335,10 +345,11 @@ function openPrivacy() {
         title: 'Data kamu di Loveopoly',
         body:
           '<div class="pv-list">' +
+          row('heart', 'Tanpa iklan', 'Loveopoly tidak memakai iklan dan tidak menjual data apa pun.') +
           row(
-            'heart',
-            'Tanpa iklan, tanpa pelacak',
-            'Loveopoly tidak memakai iklan, analitik, atau pelacak pihak ketiga. Kami tidak menjual data apa pun.'
+            'level',
+            'Statistik pemakaian anonim',
+            'Untuk memperbaiki game, kami memakai Google Analytics: jenis kejadian (mulai/selesai main, mode, jumlah pemain, ronde) dan laporan error, dengan pengenal acak di browser (cookie). Tidak pernah nama, pesan, surat, foto, atau kode room; fitur iklan Google dimatikan. Matikan kapan saja di Pengaturan → Bantu kembangkan Loveopoly.'
           ) +
           row(
             'user',

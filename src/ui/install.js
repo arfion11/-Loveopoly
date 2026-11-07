@@ -1,4 +1,6 @@
 /* LOVEOPOLY — pasang sebagai aplikasi (PWA): pendaftaran service worker & tombol "Pasang Aplikasi" di menu beranda. */
+import { track } from '../analytics.js';
+
 let deferred = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault(); // tampilkan lewat tombol di menu, bukan spanduk otomatis
@@ -6,6 +8,7 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 window.addEventListener('appinstalled', () => {
   deferred = null;
+  track('pwa_installed');
 });
 
 const standalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -26,6 +29,7 @@ export async function promptInstall() {
   deferred = null;
   e.prompt();
   const r = await e.userChoice.catch(() => null);
+  track('pwa_prompt', { outcome: (r && r.outcome) || 'unknown' });
   return !!(r && r.outcome === 'accepted');
 }
 

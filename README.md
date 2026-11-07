@@ -29,6 +29,7 @@ npm run dev          # pratinjau di http://localhost:5173 (muat ulang otomatis)
 | `npm run test:online` | Online 2 & 3 tab dengan mock database (room, aksi, keamanan, reconnect, voting, tebak serentak) |
 | `npm run test:ui` | Monkey test desktop, HP tegak & HP mendatar (klik acak, harus 0 error) |
 | `npm run test:a11y` | axe-core WCAG 2.1 AA di layar & dialog utama, terang/gelap, desktop/HP |
+| `npm run test:analytics` | Statistik anonim GA4: event tanpa data pribadi, laporan error, sakelar mati di Pengaturan |
 | `npm run test:pwa` | Manifest & ikon, service worker, situs bisa dipasang, main lokal tanpa internet |
 | `npm run test:migrate` | Pindah data dari alamat lama ke alamat baru |
 | `npm run test:rules` | Aturan keamanan Firestore & RTDB di Firebase Emulator |

@@ -1,5 +1,6 @@
 /* LOVEOPOLY 2.0 — Buku Panduan bergambar dengan adegan animasi, dipandu Merpi */
 import { UI } from './ns.js';
+import { track } from '../analytics.js';
 import { App, D, SND, ART, TILES, RULES, esc, ic, $, $$, coin } from './core.js';
 
 const pawn = (c, av, cls) =>
@@ -438,6 +439,7 @@ function close() {
   }
 }
 function openGuide(start) {
+  track('guide_open', { page: start || 0 });
   if ($('#guideOv')) return;
   k = Math.max(0, Math.min(PAGES.length - 1, start || 0));
   UI.cancelAutoEnd();

@@ -56,7 +56,8 @@
   right: 0;
   bottom: 0;
   aspect-ratio: 1;
-  transform: rotateY(calc(var(--lx, 0) * 24deg));
+  /* menoleh ke petak: geser & miring 2D (rotateY membuat sisi belakang tenggelam ke globe) */
+  transform: translateX(calc(var(--lx, 0) * 5%)) rotate(calc(var(--lx, 0) * 3deg));
   transition: transform 0.5s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 .ms-body {

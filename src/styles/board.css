@@ -97,10 +97,14 @@
   transform-style: preserve-3d;
 }
 /* maskot: alas & bayangan rebah di bidang papan, Merpi berdiri tegak (diputar balik sebesar kemiringan papan) */
-.board.b3d .mascot,
+.board.b3d .mascot {
+  transform-style: preserve-3d;
+}
+/* Merpi berdiri = SATU bidang (badan, koin/hujan/hati, emote, zz): digambar berurutan pasti. Lapisan 3D di
+   dalamnya (koin berputar rotateY, Merpi menoleh rotateY) menembus badan & globe dan berkedip di Safari */
 .board.b3d .ms-stand,
 .board.b3d .ms-look {
-  transform-style: preserve-3d;
+  transform-style: flat;
 }
 .board.b3d .mascot {
   --mw: 36cqmin;

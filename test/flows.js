@@ -964,6 +964,25 @@ const URL = (await serveDist()).url + '/';
     mem.img && mem.w === 1080 && mem.h === 1920 && mem.type === 'image/jpeg' && mem.kb > 30 && /Kartu Kenangan/.test(mem.alt) && mem.save,
     JSON.stringify(mem)
   );
+  // kartu pribadi: bawaannya pemegang paspor (Arfi, kalah) dengan peringkatnya sendiri; bisa diganti ke pemain lain
+  const who = await page.evaluate(() =>
+    [...document.querySelectorAll('#memOv [data-mp]')].map(b => b.textContent + ':' + b.getAttribute('aria-pressed'))
+  );
+  ok(
+    'Kartu Kenangan pribadi: bawaan pemegang paspor dengan peringkatnya, ada pilihan pemain',
+    /^Kartu Kenangan Arfi: peringkat 2 dari 2/.test(mem.alt) && who.length === 2 && who.some(w => w.endsWith('Arfi:true')),
+    mem.alt.slice(0, 60) + ' · ' + who.join(', ')
+  );
+  await page.$eval('#memOv [data-mp]:not([aria-pressed="true"])', b => b.click());
+  await page
+    .waitForFunction(() => /: juara/.test((document.querySelector('#memOv .mem-prev img') || {}).alt || ''), null, { timeout: 15000 })
+    .catch(() => {});
+  const alt2 = await page.evaluate(() => (document.querySelector('#memOv .mem-prev img') || {}).alt || '');
+  ok(
+    'Kartu Kenangan pribadi: ganti pemain → kartu sang juara',
+    /: juara/.test(alt2) && !/Arfi/.test(alt2.split(':')[0]),
+    alt2.slice(0, 60)
+  );
   await page.keyboard.press('Escape');
   await page.waitForTimeout(450);
   ok('Kartu Kenangan: Escape menutup pratinjau', !(await page.$('#memOv')) && !!(await page.$('#winOv')));

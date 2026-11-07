@@ -77,9 +77,6 @@ body[data-amb='promo']:not(.amb-leave) .ms-orbit,
 body.amb-peak:not(.amb-leave) .ms-peak {
   opacity: 1;
 }
-body[data-amb]:not(.amb-leave) .mascot.sleep .ms-fx {
-  opacity: 0.5;
-}
 /* hujan: awan, rintik, payung Merpi */
 .fx-umb svg,
 .fx-heart svg {

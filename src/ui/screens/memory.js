@@ -1,7 +1,9 @@
 /* LOVEOPOLY — layar › Kartu Kenangan: gambar recap 1080×1920 (ukuran Story) setelah permainan selesai,
-   untuk dibagikan (Web Share API) atau disimpan. Digambar di canvas dari seni & font game sendiri. */
+   untuk dibagikan (Web Share API) atau disimpan. Kartu PRIBADI: tokoh utamanya pemain yang membuka (online: kursi
+   sendiri; satu HP: bisa dipilih), juara bermahkota, yang lain dengan peringkat & statistiknya sendiri. */
 import { Icons } from '../../assets/icons.js';
-import { ART, TILES, esc, ic, $, toast, safeImg, reduceMotion } from '../core.js';
+import { App, ART, TILES, fmt, esc, ic, $, $$, toast, safeImg, reduceMotion, avatarHTML } from '../core.js';
+import { passport } from './passport.js';
 import { UI } from '../ns.js';
 import { track } from '../../analytics.js';
 
@@ -15,7 +17,7 @@ const SITE = 'loveopoly.web.app';
 // ekspresi Merpi diatur kelas CSS; saat SVG dijadikan gambar, aturannya disisipkan sendiri
 const MERPI_CSS =
   '.mp-eyes,.mp-blink,.mp-sweat{display:none}.mp-eyes-open{display:inline}' +
-  '.is-love .mp-eyes-open{display:none}.is-love .mp-eyes-love{display:inline}';
+  '.is-love .mp-eyes-open,.is-happy .mp-eyes-open{display:none}.is-love .mp-eyes-love,.is-happy .mp-eyes-happy{display:inline}';
 
 const loadImage = src =>
   new Promise((resolve, reject) => {
@@ -88,31 +90,59 @@ function crown(x, cx, cy, size) {
   x.restore();
 }
 
-/** Data kartu dari state akhir: pemenang, kota, foto terbaik, peringkat. */
-function cardData(S, info) {
+/** Data kartu untuk pemain pi: posisi akhir, kota & foto miliknya (didahulukan), statistik, peringkat. */
+function cardData(S, info, pi) {
   const o = S.over;
-  const w = S.players[o.winner];
-  const owned = S.tiles
+  const me = S.players[pi];
+  const ranking = (o.ranking || S.players.map(p => p.i)).map(i => ({ p: S.players[i], worth: o.worth ? o.worth[i] : 0 }));
+  const rank = ranking.findIndex(r => r.p.i === pi) + 1;
+  const mine = S.tiles
     .map((t, i) => ({ t, i, d: TILES[i] }))
-    .filter(x => x.t.owner === o.winner && (x.d.type === 'city' || x.d.type === 'spot'))
-    .sort((a, b) => (b.d.price || 0) - (a.d.price || 0))
-    .slice(0, 6);
+    .filter(x => x.t.owner === pi && (x.d.type === 'city' || x.d.type === 'spot'))
+    .sort((a, b) => (b.d.price || 0) - (a.d.price || 0));
+  // foto bukti: milik pemain ini dulu, lalu yang disahkan, terbaru dulu
   const photos = (S.photos || [])
     .filter(ph => safeImg(ph.img))
     .slice()
     .reverse()
-    .sort((a, b) => Number(!!b.ok) - Number(!!a.ok))
+    .sort((a, b) => Number(b.p === pi) - Number(a.p === pi) || Number(!!b.ok) - Number(!!a.ok))
     .slice(0, 2);
-  const ranking = (o.ranking || S.players.map(p => p.i)).map(i => ({
-    p: S.players[i],
-    worth: o.worth ? o.worth[i] : 0,
-    title: o.titles[i],
-  }));
-  return { o, w, owned, photos, ranking, ...info };
+  // pesan romantis: milik pemain ini bila ada, selain itu pesan yang tampil di layar menang
+  const words = me.msg ? { msg: me.msg, author: me } : { msg: info.msg, author: info.author };
+  const st = me.stats || {};
+  const stats = [
+    ['🪙', me.bankrupt ? 'Bangkrut' : 'Aset ' + fmt(o.worth ? o.worth[pi] : 0)],
+    ['🏙️', mine.length + ' kota'],
+    ['🎯', (st.challenges || 0) + ' tantangan'],
+    ['💗', 'Love ' + (me.love || 0)],
+  ];
+  return {
+    o,
+    me,
+    pi,
+    rank,
+    winner: pi === o.winner,
+    w: S.players[o.winner],
+    owned: mine.slice(0, 6),
+    photos,
+    ranking,
+    stats,
+    reason: info.reason,
+    ...words,
+  };
 }
 
-async function drawCard(S, info) {
-  const d = cardData(S, info);
+/** Pemain bawaan kartu: online = kursi sendiri; satu HP = pemegang Paspor, lalu pemain manusia terbaik. */
+function defaultViewer(S) {
+  if (App.mode === 'online' && S.players[App.seat]) return App.seat;
+  const humans = (S.over.ranking || S.players.map(p => p.i)).map(i => S.players[i]).filter(p => p.kind === 'human');
+  const pp = passport();
+  const holder = pp.name && humans.find(p => p.name.trim().toLowerCase() === pp.name.trim().toLowerCase());
+  return (holder || humans[0] || S.players[S.over.winner]).i;
+}
+
+async function drawCard(S, info, pi) {
+  const d = cardData(S, info, pi == null ? defaultViewer(S) : pi);
   const fonts = ['700 64px Fredoka', '600 84px Fredoka', '800 40px Nunito', 'italic 600 42px Nunito', '700 32px Nunito'];
   await Promise.all(fonts.map(f => document.fonts.load(f).catch(() => null)));
   const cv = document.createElement('canvas');
@@ -140,7 +170,10 @@ async function drawCard(S, info) {
   });
 
   // merek
-  const [logo, merpi] = await Promise.all([loadImage('/icon.svg').catch(() => null), svgImage(ART.merpi('is-love'), 230, 230, MERPI_CSS)]);
+  const [logo, merpi] = await Promise.all([
+    loadImage('/icon.svg').catch(() => null),
+    svgImage(ART.merpi(d.winner ? 'is-love' : 'is-happy'), 230, 230, MERPI_CSS),
+  ]);
   x.font = '700 64px ' + FD;
   const brandW = x.measureText('Loveopoly').width + 96;
   const bx = (W - brandW) / 2;
@@ -153,8 +186,33 @@ async function drawCard(S, info) {
   x.font = '800 30px ' + FB;
   x.fillText('KENANGAN KELILING DUNIA', W / 2, 206);
 
-  // pemenang: avatar bermahkota + Merpi
-  const ay = 400;
+  // tata letak vertikal: hitung tinggi isi dulu (bagian bawah gugur bila tidak muat: foto > kota > peringkat),
+  // lalu letakkan di tengah ruang antara judul & kaki supaya tidak ada ruang kosong besar
+  x.font = 'italic 600 40px ' + FB;
+  const lines = wrapLines(x, '“' + d.msg + '”', 790, 4);
+  const mh = 64 + lines.length * 54 + (d.author ? 48 : 0);
+  const TOP = 218,
+    FOOT = H - 196,
+    PH = 372,
+    TS = 112;
+  let need = 182 + 430 + mh + 46; // puncak mahkota/peringkat → bawah kartu pesan (+ jarak)
+  const plan = { photos: false, cities: false, rank: false };
+  if (d.photos.length && TOP + need + PH + 20 < FOOT) {
+    plan.photos = true;
+    need += PH + 34;
+  }
+  if (d.owned.length && TOP + need + TS + 84 < FOOT) {
+    plan.cities = true;
+    need += TS + 96;
+  }
+  if (TOP + need + 56 < FOOT) {
+    plan.rank = true;
+    need += 64;
+  }
+  const shift = Math.max(0, Math.floor((FOOT - TOP - need) / 2));
+
+  // tokoh utama: pemain ini (juara bermahkota, yang lain dengan pita peringkat) + Merpi
+  const ay = TOP + 182 + shift;
   shadowed(x, () => {
     x.fillStyle = '#FFFFFF';
     x.beginPath();
@@ -162,32 +220,62 @@ async function drawCard(S, info) {
     x.fill();
   });
   x.lineWidth = 13;
-  x.strokeStyle = d.w.color || C.brand;
+  x.strokeStyle = d.me.color || C.brand;
   x.beginPath();
   x.arc(W / 2, ay, 110, 0, Math.PI * 2);
   x.stroke();
   x.font = '128px ' + FB;
   x.textBaseline = 'middle';
-  x.fillText(d.w.avatar || '💕', W / 2, ay + 8);
+  x.fillText(d.me.avatar || '💕', W / 2, ay + 8);
   x.textBaseline = 'alphabetic';
-  crown(x, W / 2, ay - 138, 88);
+  if (d.winner) crown(x, W / 2, ay - 138, 88);
+  else {
+    const label = d.me.bankrupt ? 'BANGKRUT' : 'PERINGKAT ' + d.rank + ' DARI ' + d.ranking.length;
+    x.font = '800 28px ' + FB;
+    const pw = x.measureText(label).width + 56;
+    x.fillStyle = d.me.bankrupt ? '#B8282E' : C.ink;
+    x.beginPath();
+    x.roundRect((W - pw) / 2, ay - 178, pw, 50, 25);
+    x.fill();
+    x.fillStyle = '#FFFFFF';
+    x.fillText(label, W / 2, ay - 143);
+  }
   x.drawImage(merpi, W / 2 + 108, ay - 50, 210, 210);
 
   x.fillStyle = C.ink;
-  fitText(x, d.w.name, '600 {s}px ' + FD, 80, W - 160);
-  x.fillText(d.w.name, W / 2, 606);
+  fitText(x, d.me.name, '600 {s}px ' + FD, 80, W - 160);
+  x.fillText(d.me.name, W / 2, ay + 206);
   x.fillStyle = C.brand;
   x.font = '800 38px ' + FB;
-  x.fillText(d.o.titles[d.o.winner] || 'Juragan Cinta', W / 2, 664);
+  x.fillText(d.o.titles[d.pi] || (d.winner ? 'Juragan Cinta' : 'Penjelajah Cinta'), W / 2, ay + 264);
   x.fillStyle = C.ink2;
-  fitText(x, d.reason, '700 {s}px ' + FB, 30, W - 160);
-  x.fillText(d.reason, W / 2, 712);
+  const sub = d.winner ? d.reason : 'Juara kali ini: ' + d.w.name;
+  fitText(x, sub, '700 {s}px ' + FB, 30, W - 160);
+  x.fillText(sub, W / 2, ay + 312);
+
+  // statistik pribadi: empat pil
+  x.font = '800 26px ' + FB;
+  const pills = d.stats.map(([e, t]) => ({ t: e + ' ' + t, w: x.measureText(e + ' ' + t).width + 36 }));
+  const gapP = 12;
+  let total = pills.reduce((a, b) => a + b.w, 0) + gapP * (pills.length - 1);
+  const k = Math.min(1, (W - 140) / total);
+  total *= k;
+  let px = (W - total) / 2;
+  pills.forEach(pl => {
+    const w = pl.w * k;
+    x.fillStyle = 'rgba(255, 255, 255, 0.78)';
+    x.beginPath();
+    x.roundRect(px, ay + 340, w, 52, 26);
+    x.fill();
+    x.fillStyle = C.ink;
+    fitText(x, pl.t, '800 {s}px ' + FB, 26, w - 20);
+    x.fillText(pl.t, px + w / 2, ay + 375);
+    px += w + gapP * k;
+  });
 
   // pesan romantis di kertas
   x.font = 'italic 600 40px ' + FB;
-  const lines = wrapLines(x, '“' + d.msg + '”', 790, 4);
-  const mh = 64 + lines.length * 54 + (d.author ? 48 : 0);
-  const my = 752;
+  const my = ay + 430;
   shadowed(x, () => {
     x.fillStyle = C.paper;
     x.beginPath();
@@ -207,11 +295,9 @@ async function drawCard(S, info) {
     x.fillText('— ' + d.author.name, W / 2, my + 72 + lines.length * 54 + 18);
   }
   let y = my + mh + 46;
-  const FOOT = H - 196;
 
   // foto bukti (polaroid)
-  const PH = 372;
-  if (d.photos.length && y + PH + 20 < FOOT) {
+  if (plan.photos) {
     const imgs = await Promise.all(d.photos.map(ph => loadImage(safeImg(ph.img)).catch(() => null)));
     const n = imgs.filter(Boolean).length;
     let k = 0;
@@ -248,13 +334,12 @@ async function drawCard(S, info) {
     y += PH + 34;
   }
 
-  // kota yang dikuasai pemenang
-  const TS = 112;
-  if (d.owned.length && y + TS + 84 < FOOT) {
+  // kota yang dikuasai pemain ini
+  if (plan.cities) {
     x.fillStyle = C.ink2;
     x.font = '800 28px ' + FB;
-    fitText(x, 'KOTA ' + d.w.name.toUpperCase(), '800 {s}px ' + FB, 28, W - 200);
-    x.fillText('KOTA ' + d.w.name.toUpperCase(), W / 2, y + 24);
+    fitText(x, 'KOTA ' + d.me.name.toUpperCase(), '800 {s}px ' + FB, 28, W - 200);
+    x.fillText('KOTA ' + d.me.name.toUpperCase(), W / 2, y + 24);
     const gap = 18,
       total = d.owned.length * TS + (d.owned.length - 1) * gap;
     const arts = await Promise.all(d.owned.map(o => svgImage(ART.art(o.d.art), TS - 22, TS - 22).catch(() => null)));
@@ -272,7 +357,7 @@ async function drawCard(S, info) {
         16,
         7
       );
-      x.strokeStyle = d.w.color || C.brand;
+      x.strokeStyle = d.me.color || C.brand;
       x.lineWidth = 5;
       x.beginPath();
       x.roundRect(tx, ty, TS, TS, 24);
@@ -286,7 +371,7 @@ async function drawCard(S, info) {
   }
 
   // peringkat: satu baris medali
-  if (y + 56 < FOOT) {
+  if (plan.rank) {
     const medal = ['🥇', '🥈', '🥉', '4.'];
     const text = d.ranking.map((r, i) => medal[i] + ' ' + r.p.avatar + ' ' + r.p.name).join('   ');
     x.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -322,7 +407,27 @@ let closeMem = null;
 /** Buka pratinjau Kartu Kenangan (overlay di atas layar menang). info: { reason, msg, author } dari layar menang. */
 async function openMemoryCard(S, info) {
   if (!S || !S.over || $('#memOv')) return;
-  track('memory_card', { action: 'open', photos: (S.photos || []).length });
+  let pi = defaultViewer(S);
+  // satu HP dengan beberapa pemain manusia: pilih kartu siapa (online: selalu kursi sendiri)
+  const choices = App.mode === 'online' ? [] : S.players.filter(p => p.kind === 'human');
+  const picker =
+    choices.length > 1
+      ? '<div class="mem-who"><span class="label" id="memWhoL">Kartu untuk</span><div class="partner-pick" role="group" aria-labelledby="memWhoL">' +
+        choices
+          .map(
+            p =>
+              '<button type="button" data-mp="' +
+              p.i +
+              '" aria-pressed="' +
+              (p.i === pi) +
+              '">' +
+              avatarHTML(p, 'xs') +
+              esc(p.name) +
+              '</button>'
+          )
+          .join('') +
+        '</div></div>'
+      : '';
   const ov = document.createElement('div');
   ov.className = 'overlay mem-ov';
   ov.id = 'memOv';
@@ -330,25 +435,35 @@ async function openMemoryCard(S, info) {
   ov.setAttribute('aria-modal', 'true');
   ov.setAttribute('aria-labelledby', 'memT');
   ov.innerHTML =
-    '<div class="mem-card"><h2 id="memT">' +
+    '<div class="mem-card"><div class="mem-head"><h2 id="memT">' +
     ic('polaroid') +
-    'Kartu Kenangan</h2><div class="mem-prev" aria-busy="true"><div class="spinner"></div><span class="muted">Menyiapkan kartu…</span></div>' +
-    '<p class="mem-note muted">Bagikan ke Story atau chat. Foto bukti ikut tampil, jadi pastikan semua pemain nyaman.</p>' +
-    '<div class="mem-foot"><button type="button" class="btn ghost" id="memClose">' +
+    'Kartu Kenangan</h2><button type="button" class="icon-btn" id="memClose" aria-label="Tutup">' +
     ic('x') +
-    '<span>Tutup</span></button><button type="button" class="btn soft" id="memSave" disabled>' +
+    '</button></div>' +
+    picker +
+    '<div class="mem-prev"></div>' +
+    '<p class="mem-note muted">Bagikan ke Story atau chat. Foto bukti ikut tampil, jadi pastikan semua pemain nyaman.</p>' +
+    '<div class="mem-foot"><button type="button" class="btn soft" id="memSave" disabled>' +
     ic('download') +
     '<span>Simpan</span></button><button type="button" class="btn primary" id="memShare" disabled>' +
     ic('share') +
     '<span>Bagikan</span></button></div></div>';
   ($('#overlayRoot') || document.body).appendChild(ov);
-  let url = '';
+  let url = '',
+    file = null,
+    seq = 0,
+    canShare = null;
+  const name = 'kenangan-loveopoly-' + new Date().toISOString().slice(0, 10) + '.jpg';
+  const prev = $('.mem-prev', ov),
+    save = $('#memSave', ov),
+    share = $('#memShare', ov);
   const key = e => {
     if (e.key === 'Escape') close();
   };
   const close = () => {
     document.removeEventListener('keydown', key);
     closeMem = null;
+    seq++;
     UI.leave(ov);
     if (url) setTimeout(() => URL.revokeObjectURL(url), 1000);
     const b = $('#wShare');
@@ -362,34 +477,8 @@ async function openMemoryCard(S, info) {
   $('#memClose', ov).onclick = close;
   setTimeout(() => $('#memClose', ov) && $('#memClose', ov).focus({ preventScroll: true }), reduceMotion() ? 0 : 60);
 
-  let res;
-  try {
-    res = await drawCard(S, info);
-  } catch (e) {
-    console.warn('kartu kenangan gagal dibuat', e);
-    $('.mem-prev', ov).innerHTML = '<span class="muted">Kartu belum bisa dibuat di browser ini.</span>';
-    return;
-  }
-  if (!ov.isConnected) return;
-  url = URL.createObjectURL(res.blob);
-  const name = 'kenangan-loveopoly-' + new Date().toISOString().slice(0, 10) + '.jpg';
-  const file = new File([res.blob], name, { type: 'image/jpeg' });
-  const prev = $('.mem-prev', ov);
-  prev.removeAttribute('aria-busy');
-  prev.innerHTML =
-    '<img src="' +
-    url +
-    '" alt="Kartu Kenangan: ' +
-    esc(res.data.w.name) +
-    ' menang sebagai ' +
-    esc(res.data.o.titles[res.data.o.winner] || 'Juragan Cinta') +
-    ', ' +
-    esc(res.data.reason) +
-    '">';
-  const save = $('#memSave', ov),
-    share = $('#memShare', ov);
-  save.disabled = false;
   save.onclick = () => {
+    if (!url) return;
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
@@ -399,24 +488,68 @@ async function openMemoryCard(S, info) {
     toast('Kartu Kenangan tersimpan.', { kind: 'good', icon: 'check' });
     track('memory_card', { action: 'save' });
   };
-  const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
-  if (!canShare) share.hidden = true;
-  else {
-    share.disabled = false;
-    share.onclick = async () => {
-      try {
-        await navigator.share({
-          files: [file],
-          title: 'Kenangan Loveopoly',
-          text: 'Kami baru selesai keliling dunia di Loveopoly 💕 Main gratis: https://' + SITE,
-        });
-        track('memory_card', { action: 'share' });
-      } catch (e) {
-        if (e && e.name !== 'AbortError') toast('Gagal membagikan. Coba Simpan lalu kirim manual.', { kind: 'err' });
-      }
-    };
+  share.onclick = async () => {
+    if (!file) return;
+    try {
+      await navigator.share({
+        files: [file],
+        title: 'Kenangan Loveopoly',
+        text: 'Kami baru selesai keliling dunia di Loveopoly 💕 Main gratis: https://' + SITE,
+      });
+      track('memory_card', { action: 'share' });
+    } catch (e) {
+      if (e && e.name !== 'AbortError') toast('Gagal membagikan. Coba Simpan lalu kirim manual.', { kind: 'err' });
+    }
+  };
+
+  async function render() {
+    const my = ++seq;
+    prev.setAttribute('aria-busy', 'true');
+    prev.innerHTML = '<div class="spinner"></div><span class="muted">Menyiapkan kartu…</span>';
+    save.disabled = share.disabled = true;
+    let res;
+    try {
+      res = await drawCard(S, info, pi);
+    } catch (e) {
+      console.warn('kartu kenangan gagal dibuat', e);
+      if (my === seq) prev.innerHTML = '<span class="muted">Kartu belum bisa dibuat di browser ini.</span>';
+      return;
+    }
+    if (my !== seq || !ov.isConnected) return;
+    if (url) URL.revokeObjectURL(url);
+    url = URL.createObjectURL(res.blob);
+    file = new File([res.blob], name, { type: 'image/jpeg' });
+    const d = res.data;
+    prev.removeAttribute('aria-busy');
+    prev.innerHTML =
+      '<img src="' +
+      url +
+      '" alt="Kartu Kenangan ' +
+      esc(d.me.name) +
+      ': ' +
+      (d.winner ? 'juara' : 'peringkat ' + d.rank + ' dari ' + d.ranking.length) +
+      ', ' +
+      esc(d.o.titles[d.pi] || 'Penjelajah Cinta') +
+      ', ' +
+      esc(d.stats.map(st => st[1]).join(', ')) +
+      '">';
+    save.disabled = false;
+    if (canShare == null) canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
+    share.hidden = !canShare;
+    share.disabled = !canShare;
+    track('memory_card', { action: 'open', winner: d.winner, rank: d.rank, photos: (S.photos || []).length });
   }
-  (canShare ? share : save).focus({ preventScroll: true });
+  $$('[data-mp]', ov).forEach(b =>
+    b.addEventListener('click', () => {
+      const v = Number(b.dataset.mp);
+      if (v === pi) return;
+      pi = v;
+      $$('[data-mp]', ov).forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.mp) === pi)));
+      render();
+    })
+  );
+  await render();
+  if (ov.isConnected) (canShare ? share : save).focus({ preventScroll: true });
 }
 const closeMemoryCard = () => closeMem && closeMem();
 

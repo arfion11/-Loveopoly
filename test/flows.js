@@ -1,11 +1,12 @@
 // Uji alur LOVEOPOLY 2.0 di browser: skenario terkontrol (dadu debug + state disiapkan).
-// node test/flows.js   (butuh dist/test.html dari npm run build)
-const { chromium } = require('playwright');
-const path = require('path');
-const fs = require('fs');
-const OUT = process.env.OUT || path.join(__dirname, 'out', 'flows');
+// node test/flows.js   (butuh dist/ dari npm run build)
+import { chromium } from 'playwright';
+import path from 'node:path';
+import fs from 'node:fs';
+import { serveDist } from './helpers/serve.js';
+const OUT = process.env.OUT || path.join(import.meta.dirname, 'out', 'flows');
 fs.mkdirSync(OUT, { recursive: true });
-const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.html')).href;
+const URL = (await serveDist()).url + '/';
 
 (async () => {
   const browser = await chromium.launch();
@@ -13,50 +14,101 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('console', m => {
+    if (m.type() === 'error') errors.push('console: ' + m.text());
+  });
   await page.addInitScript(() => {
     try {
-      localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system', autoEnd: false }));
+      localStorage.setItem(
+        'loveopoly.v1.prefs',
+        JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', theme: 'system', autoEnd: false })
+      );
       if (!sessionStorage.getItem('tourTest')) localStorage.setItem('loveopoly.v2.tour', '"done"');
-      if (!sessionStorage.getItem('passTest') && !localStorage.getItem('loveopoly.v1.profile')) localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true }));
-    } catch (e) { /* abaikan */ }
+      if (!sessionStorage.getItem('passTest') && !localStorage.getItem('loveopoly.v1.profile'))
+        localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true }));
+    } catch (e) {
+      /* abaikan */
+    }
   });
   await page.goto(URL);
   await page.waitForSelector('#hLocal');
 
   const results = [];
-  const ok = (name, cond, detail) => { const line = (cond ? 'PASS ' : 'FAIL ') + name + (detail ? ' — ' + detail : ''); results.push(line); if (process.env.LIVE) console.log(line); };
+  const ok = (name, cond, detail) => {
+    const line = (cond ? 'PASS ' : 'FAIL ') + name + (detail ? ' — ' + detail : '');
+    results.push(line);
+    if (process.env.LIVE) console.log(line);
+  };
   const settle = async () => {
     await page.waitForFunction(() => !window.LoveUI.App.animating && !window.LoveUI.App.pending.length, null, { timeout: 20000 });
     await page.waitForTimeout(160);
   };
   const click = async sel => {
-    try { await page.waitForSelector(sel, { state: 'visible', timeout: 8000 }); }
-    catch (e) {
-      const d = await page.evaluate(() => { const A = window.LoveUI.App; return { pick: !!A.pick, modal: A.modal && A.modal.key, queue: A.S && A.S.queue, turn: A.S && A.S.turn, title: (document.querySelector('#mTitle') || {}).textContent, bar: (document.getElementById('pickbar') || {}).hidden }; });
+    try {
+      await page.waitForSelector(sel, { state: 'visible', timeout: 8000 });
+    } catch (e) {
+      const d = await page.evaluate(() => {
+        const A = window.LoveUI.App;
+        return {
+          pick: !!A.pick,
+          modal: A.modal && A.modal.key,
+          queue: A.S && A.S.queue,
+          turn: A.S && A.S.turn,
+          title: (document.querySelector('#mTitle') || {}).textContent,
+          bar: (document.getElementById('pickbar') || {}).hidden,
+        };
+      });
       await page.screenshot({ path: OUT + '/fail-' + sel.replace(/[^a-z0-9]/gi, '') + '.png' });
-      throw new Error('tidak terlihat: ' + sel + ' ' + JSON.stringify(d));
+      throw new Error('tidak terlihat: ' + sel + ' ' + JSON.stringify(d), { cause: e });
     }
-    await page.click(sel); await settle();
+    await page.click(sel);
+    await settle();
   };
   const S = () => page.evaluate(() => window.LoveUI.App.S);
-  const title = () => page.evaluate(() => { const h = document.querySelector('#modalRoot:not([hidden]) #mTitle'); return h ? h.textContent : ''; });
+  const title = () =>
+    page.evaluate(() => {
+      const h = document.querySelector('#modalRoot:not([hidden]) #mTitle');
+      return h ? h.textContent : '';
+    });
   const shot = n => page.screenshot({ path: OUT + '/' + n + '.png' });
-  const act = async a => { const r = await page.evaluate(a => window.LoveUI.act(a), a); await settle(); return r; };
+  const act = async a => {
+    const r = await page.evaluate(a => window.LoveUI.act(a), a);
+    await settle();
+    return r;
+  };
   const roll = (p, d) => act({ type: 'ROLL', p, dice: d });
   // kamera 3D bergerak dulu (transisi) sebelum petak diketuk, seperti pemain menunggu papan diam
-  const boardStill = () => page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.id === 'board'), null, { timeout: 5000 });
-  const tapTile = async i => { await boardStill(); await page.click('#board .tile[data-i="' + i + '"]'); await page.waitForTimeout(120); };
-  const HUMANS = [{ name: 'Arfi', avatar: '🐻', color: '#FF4F8B' }, { name: 'Nadia', avatar: '🐰', color: '#7B61FF' }];
+  const boardStill = () =>
+    page.waitForFunction(
+      () => !document.getAnimations().some(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.id === 'board'),
+      null,
+      { timeout: 5000 }
+    );
+  const tapTile = async i => {
+    await boardStill();
+    await page.click('#board .tile[data-i="' + i + '"]');
+    await page.waitForTimeout(120);
+  };
+  const HUMANS = [
+    { name: 'Arfi', avatar: '🐻', color: '#FF4F8B' },
+    { name: 'Nadia', avatar: '🐰', color: '#7B61FF' },
+  ];
   // state baru; mut = kode yang memodifikasi S (string)
   const newGame = async (mut, extra, players) => {
-    await page.evaluate(([mutSrc, extra, players]) => {
-      const E = window.LoveEngine, UI = window.LoveUI;
-      const S = E.create({ players, settings: Object.assign({ debug: true, roundLimit: 0 }, extra || {}), seed: 4242 });
-      const own = (t, o, lv) => { S.tiles[t].owner = o; S.tiles[t].level = lv || 0; };
-      if (mutSrc) (new Function('S', 'E', 'own', mutSrc))(S, E, own);
-      UI.enterGame('local', -1, S);
-    }, [mut || '', extra || null, players || HUMANS]);
+    await page.evaluate(
+      ([mutSrc, extra, players]) => {
+        const E = window.LoveEngine,
+          UI = window.LoveUI;
+        const S = E.create({ players, settings: Object.assign({ debug: true, roundLimit: 0 }, extra || {}), seed: 4242 });
+        const own = (t, o, lv) => {
+          S.tiles[t].owner = o;
+          S.tiles[t].level = lv || 0;
+        };
+        if (mutSrc) new Function('S', 'E', 'own', mutSrc)(S, E, own);
+        UI.enterGame('local', -1, S);
+      },
+      [mut || '', extra || null, players || HUMANS]
+    );
     await settle();
   };
 
@@ -65,18 +117,26 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await roll(0, [1, 1]);
   ok('beli: dialog "Beli Bandung?"', (await title()) === 'Beli Bandung?', await title());
   const cost3 = await page.evaluate(() => window.LoveEngine.buyCost(window.LoveUI.App.S, 0, 2, 3));
-  await page.click('[data-lv="3"]'); await page.waitForTimeout(150);
+  await page.click('[data-lv="3"]');
+  await page.waitForTimeout(150);
   await shot('01-buy');
   await click('#bBuy');
   let st = await S();
-  ok('beli: Bandung jadi Hotel milik Arfi', st.tiles[2].owner === 0 && st.tiles[2].level === 3, 'owner=' + st.tiles[2].owner + ' lv=' + st.tiles[2].level);
+  ok(
+    'beli: Bandung jadi Hotel milik Arfi',
+    st.tiles[2].owner === 0 && st.tiles[2].level === 3,
+    'owner=' + st.tiles[2].owner + ' lv=' + st.tiles[2].level
+  );
   ok('beli: uang terpotong sesuai harga', st.players[0].cash === 2500 - cost3, 'cash=' + st.players[0].cash + ' cost=' + cost3);
   ok('beli: dadu kembar memberi lemparan lagi', st.turn.canRollAgain === true);
 
   // 2. Hotel terkunci sebelum 1 putaran
   await newGame('');
   await roll(0, [1, 1]);
-  const hotelLocked = await page.evaluate(() => { const b = document.querySelector('[data-lv="3"]'); return !!b && b.disabled && b.classList.contains('locked'); });
+  const hotelLocked = await page.evaluate(() => {
+    const b = document.querySelector('[data-lv="3"]');
+    return !!b && b.disabled && b.classList.contains('locked');
+  });
   ok('beli: Hotel terkunci sebelum lewat START', hotelLocked);
   await click('#bSkip');
 
@@ -84,7 +144,8 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await newGame('own(13, 0, 1); S.players[0].pos = 4; S.players[0].laps = 1;');
   await roll(0, [4, 5]);
   ok('bangun: dialog "Bangun di Jeju?"', (await title()) === 'Bangun di Jeju?', await title());
-  await page.click('[data-lv="3"]'); await page.waitForTimeout(120);
+  await page.click('[data-lv="3"]');
+  await page.waitForTimeout(120);
   await click('#bUp');
   st = await S();
   ok('bangun: Jeju naik ke Hotel', st.tiles[13].level === 3, 'lv=' + st.tiles[13].level);
@@ -112,7 +173,7 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await click('#bAngel');
   st = await S();
   ok('malaikat: tol 0 dan kartu terpakai', st.players[0].cash === 2500 && !st.players[0].cards.length, 'cash=' + st.players[0].cash);
-  if (await title() === 'Rebut Bali?') await click('#bTkSkip');
+  if ((await title()) === 'Rebut Bali?') await click('#bTkSkip');
 
   // 6. Landmark kebal ambil alih
   await newGame('own(9, 1, 4); S.players[0].pos = 4;');
@@ -129,9 +190,16 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   // 8. Festival Cinta lewat pilih petak di papan
   await newGame('own(1, 0, 1); own(2, 0, 2); S.players[0].pos = 12;');
   await roll(0, [1, 3]);
-  const pickOn = await page.evaluate(() => document.getElementById('board').classList.contains('picking') && !document.getElementById('pickbar').hidden);
+  const pickOn = await page.evaluate(
+    () => document.getElementById('board').classList.contains('picking') && !document.getElementById('pickbar').hidden
+  );
   ok('festival: mode pilih petak aktif', pickOn);
-  const pickable = await page.evaluate(() => [...document.querySelectorAll('#board .tile.pickable')].map(t => Number(t.dataset.i)).sort((a, b) => a - b).join(','));
+  const pickable = await page.evaluate(() =>
+    [...document.querySelectorAll('#board .tile.pickable')]
+      .map(t => Number(t.dataset.i))
+      .sort((a, b) => a - b)
+      .join(',')
+  );
   ok('festival: hanya kota milik sendiri yang bisa dipilih', pickable === '1,2', pickable);
   await tapTile(2);
   await shot('08-festival');
@@ -150,11 +218,18 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await act({ type: 'END_TURN', p: 1 });
   const tourPick = await page.evaluate(() => !!window.LoveUI.App.pick);
   ok('world tour: giliran berikut membuka pilih tujuan', tourPick);
-  const pay = await page.evaluate(() => { const p = window.LoveUI.App.S.players[0]; return window.LoveUI.RULES.salary + window.LoveEngine.tierInfo(p.love).salary; });
+  const pay = await page.evaluate(() => {
+    const p = window.LoveUI.App.S.players[0];
+    return window.LoveUI.RULES.salary + window.LoveEngine.tierInfo(p.love).salary;
+  });
   await tapTile(9);
   await click('#pbOk');
   st = await S();
-  ok('world tour: terbang ke Bali, bayar 100, tetap dapat gaji lewat START', st.players[0].pos === 9 && st.players[0].cash === 2500 - 100 + pay && !st.players[0].tour, 'pos=' + st.players[0].pos + ' cash=' + st.players[0].cash + ' gaji=' + pay);
+  ok(
+    'world tour: terbang ke Bali, bayar 100, tetap dapat gaji lewat START',
+    st.players[0].pos === 9 && st.players[0].cash === 2500 - 100 + pay && !st.players[0].tour,
+    'pos=' + st.players[0].pos + ' cash=' + st.players[0].cash + ' gaji=' + pay
+  );
   if (/Beli Bali/.test(await title())) await click('#bSkip');
 
   // 10. Pulau Rindu: bayar perahu
@@ -174,7 +249,8 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
 
   // 12. Kartu aksi: Badai Rindu menurunkan bangunan lawan
   await newGame('own(9, 1, 3); S.queue.push({ type: "TARGET", p: 0, kind: "storm", src: "card" });');
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
   await tapTile(9);
   await click('#pbOk');
   st = await S();
@@ -182,12 +258,17 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
 
   // 13. Kartu aksi: Tukar Kota
   await newGame('own(1, 0, 1); own(9, 1, 2); S.queue.push({ type: "TARGET", p: 0, kind: "swap", src: "card" });');
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
   await tapTile(1);
   await tapTile(9);
   await click('#pbOk');
   st = await S();
-  ok('tukar: kepemilikan Kota Tua & Bali bertukar', st.tiles[1].owner === 1 && st.tiles[9].owner === 0, 'kt=' + st.tiles[1].owner + ' bali=' + st.tiles[9].owner);
+  ok(
+    'tukar: kepemilikan Kota Tua & Bali bertukar',
+    st.tiles[1].owner === 1 && st.tiles[9].owner === 0,
+    'kt=' + st.tiles[1].owner + ' bali=' + st.tiles[9].owner
+  );
 
   // 14. Kartu Cinta dari petak kartu
   await newGame('const d = S.decks.card; d.splice(d.indexOf("K17"), 1); d.unshift("K17");');
@@ -200,61 +281,128 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   ok('kartu: hadiah 150 diterima', st.players[0].cash === 2650, 'cash=' + st.players[0].cash);
 
   // 15. Tantangan terbukti: tidak ada lagi "klik Selesai"; mini-game dinilai engine, duel & foto dinilai lawan
-  const jsClick = async sel => { await page.waitForSelector(sel, { state: 'visible', timeout: 8000 }); await page.$eval(sel, e => e.click()); await page.waitForTimeout(120); await settle(); };
-  const chGame = (id, mut) => newGame((mut || '') + 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "' + id + '", cat: "card", source: "card", redraws: 0 }); E.migrate(S);');
+  const jsClick = async sel => {
+    await page.waitForSelector(sel, { state: 'visible', timeout: 8000 });
+    await page.$eval(sel, e => e.click());
+    await page.waitForTimeout(120);
+    await settle();
+  };
+  const chGame = (id, mut) =>
+    newGame(
+      (mut || '') + 'S.queue.push({ type: "CHALLENGE", p: 0, ch: "' + id + '", cat: "card", source: "card", redraws: 0 }); E.migrate(S);'
+    );
   await chGame('tv');
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
-  ok('tantangan: tidak ada tombol "Benar/Selesai" tanpa bukti', !(await page.$('#modalRoot #bDone')) && !!(await page.$('#modalRoot #bChGo')));
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
+  ok(
+    'tantangan: tidak ada tombol "Benar/Selesai" tanpa bukti',
+    !(await page.$('#modalRoot #bDone')) && !!(await page.$('#modalRoot #bChGo'))
+  );
   await jsClick('#bChGo');
   const sol = await page.evaluate(() => window.LoveEngine.chSolve(window.LoveUI.App.S.queue[0]));
-  for (const k of sol) { await page.waitForSelector('#modalRoot [data-ans="' + k + '"]', { state: 'visible' }); await page.$eval('#modalRoot [data-ans="' + k + '"]', e => e.click()); await page.waitForTimeout(330); }
+  for (const k of sol) {
+    await page.waitForSelector('#modalRoot [data-ans="' + k + '"]', { state: 'visible' });
+    await page.$eval('#modalRoot [data-ans="' + k + '"]', e => e.click());
+    await page.waitForTimeout(330);
+  }
   await settle();
   st = await S();
-  ok('kuis: semua jawaban benar lewat klik → lulus + bukti tercatat', st.players[0].cash === 2650 && st.proofs.length === 1 && /4\/4 benar/.test(st.proofs[0].proof), JSON.stringify(st.proofs[0]));
+  ok(
+    'kuis: semua jawaban benar lewat klik → lulus + bukti tercatat',
+    st.players[0].cash === 2650 && st.proofs.length === 1 && /4\/4 benar/.test(st.proofs[0].proof),
+    JSON.stringify(st.proofs[0])
+  );
   await shot('15-challenge-proof');
   // jawaban salah → gagal, tanpa hadiah
   await chGame('em');
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
   await jsClick('#bChGo');
   const sol2 = await page.evaluate(() => window.LoveEngine.chSolve(window.LoveUI.App.S.queue[0]));
-  for (const k of sol2) { const w = (k + 1) % 4; await page.waitForSelector('#modalRoot [data-ans="' + w + '"]', { state: 'visible' }); await page.$eval('#modalRoot [data-ans="' + w + '"]', e => e.click()); await page.waitForTimeout(330); }
+  for (const k of sol2) {
+    const w = (k + 1) % 4;
+    await page.waitForSelector('#modalRoot [data-ans="' + w + '"]', { state: 'visible' });
+    await page.$eval('#modalRoot [data-ans="' + w + '"]', e => e.click());
+    await page.waitForTimeout(330);
+  }
   await settle();
   st = await S();
-  ok('tebak emoji: jawaban salah → gagal tanpa hadiah', st.players[0].cash === 2500 && st.proofs[0] && !st.proofs[0].ok, st.proofs[0] && st.proofs[0].proof);
+  ok(
+    'tebak emoji: jawaban salah → gagal tanpa hadiah',
+    st.players[0].cash === 2500 && st.proofs[0] && !st.proofs[0].ok,
+    st.proofs[0] && st.proofs[0].proof
+  );
   // Rindu Challenge: gagal = tetap di pulau
-  await newGame('S.players[0].pos = 8; S.players[0].island = true;', null, [HUMANS[0], { name: 'Bot', kind: 'ai', avatar: '🤖', color: '#7B61FF' }]);
+  await newGame('S.players[0].pos = 8; S.players[0].island = true;', null, [
+    HUMANS[0],
+    { name: 'Bot', kind: 'ai', avatar: '🤖', color: '#7B61FF' },
+  ]);
   await act({ type: 'ISLAND_CH', p: 0 });
-  const rinduType = await page.evaluate(() => { const it = window.LoveUI.App.S.queue[0]; return window.LoveEngine.CH[it.ch].type + (it.isle ? ' (pulau)' : ''); });
+  const rinduType = await page.evaluate(() => {
+    const it = window.LoveUI.App.S.queue[0];
+    return window.LoveEngine.CH[it.ch].type + (it.isle ? ' (pulau)' : '');
+  });
   await act({ type: 'CH_ANSWER', p: 0, answers: [], ms: 1000 });
   st = await S();
-  ok('Rindu Challenge: jawaban salah → tetap di Pulau Rindu', st.players[0].island && st.players[0].islandCh && !st.queue.length && st.proofs.length === 1 && !st.proofs[0].ok, rinduType + ' · ' + (st.proofs[0] && st.proofs[0].proof));
+  ok(
+    'Rindu Challenge: jawaban salah → tetap di Pulau Rindu',
+    st.players[0].island && st.players[0].islandCh && !st.queue.length && st.proofs.length === 1 && !st.proofs[0].ok,
+    rinduType + ' · ' + (st.proofs[0] && st.proofs[0].proof)
+  );
   // duel Tebak Isi Hati (dua pemain satu HP): layar serah-HP, jawaban rahasia, tebakan
   await chGame('hs');
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
   await jsClick('#bChStep');
   ok('tebak isi hati: layar "Serahkan ke Nadia" sebelum jawaban rahasia', /Serahkan ke Nadia/.test(await title()), await title());
   await jsClick('#bGate');
-  for (const q of [0, 1, 2]) { await page.$eval('#modalRoot [data-sa="' + q + ':1"]', e => e.click()); await page.waitForTimeout(60); }
+  for (const q of [0, 1, 2]) {
+    await page.$eval('#modalRoot [data-sa="' + q + ':1"]', e => e.click());
+    await page.waitForTimeout(60);
+  }
   await jsClick('#bChSend');
   await jsClick('#bGate');
-  for (const [q, o] of [[0, 1], [1, 1], [2, 3]]) { await page.$eval('#modalRoot [data-sa="' + q + ':' + o + '"]', e => e.click()); await page.waitForTimeout(60); }
+  for (const [q, o] of [
+    [0, 1],
+    [1, 1],
+    [2, 3],
+  ]) {
+    await page.$eval('#modalRoot [data-sa="' + q + ':' + o + '"]', e => e.click());
+    await page.waitForTimeout(60);
+  }
   await jsClick('#bChSend');
   st = await S();
-  ok('tebak isi hati: 2/3 cocok → keduanya dapat hadiah', st.players[0].cash > 2500 && st.players[1].love > st.players[0].love - 20 && /2\/3 cocok/.test(st.proofs[0].proof), st.proofs[0] && st.proofs[0].proof);
+  ok(
+    'tebak isi hati: 2/3 cocok → keduanya dapat hadiah',
+    st.players[0].cash > 2500 && st.players[1].love > st.players[0].love - 20 && /2\/3 cocok/.test(st.proofs[0].proof),
+    st.proofs[0] && st.proofs[0].proof
+  );
   // Dua Fakta Satu Bohong: pernyataan pendek bisa dikirim; tombol memberi tahu langkah yang kurang
   await chGame('bl');
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
-  for (const [i, t] of [[0, 'Anak 1'], [1, 'Jomblo'], [2, 'Suka 🍜']]) await page.fill('#bl' + i, t);
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
+  for (const [i, t] of [
+    [0, 'Anak 1'],
+    [1, 'Jomblo'],
+    [2, 'Suka 🍜'],
+  ])
+    await page.fill('#bl' + i, t);
   const blLabel = await page.$eval('#bChSend', b => b.disabled + ' ' + b.textContent);
-  await page.$eval('[data-lie="2"]', e => e.click()); await page.waitForTimeout(120);
+  await page.$eval('[data-lie="2"]', e => e.click());
+  await page.waitForTimeout(120);
   await jsClick('#bChSend');
   st = await S();
-  ok('dua fakta satu bohong: pernyataan pendek terkirim, tombol menjelaskan langkah kurang', /^true Ketuk Bohong dulu$/.test(blLabel) && st.queue[0] && st.queue[0].phase === 'guess', blLabel + ' → ' + (st.queue[0] && st.queue[0].phase));
+  ok(
+    'dua fakta satu bohong: pernyataan pendek terkirim, tombol menjelaskan langkah kurang',
+    /^true Ketuk Bohong dulu$/.test(blLabel) && st.queue[0] && st.queue[0].phase === 'guess',
+    blLabel + ' → ' + (st.queue[0] && st.queue[0].phase)
+  );
 
   // 3 pemain di satu HP: Aksi Berani dinilai semua lawan bergantian (layar serah-HP tiap penilai), mayoritas menentukan
   const P3 = [HUMANS[0], HUMANS[1], { name: 'Dimas', avatar: '🦊', color: '#12B5A6' }];
   await newGame('S.queue.push({ type: "CHALLENGE", p: 0, ch: "dr1", cat: "dare", source: "card", redraws: 0 }); E.migrate(S);', null, P3);
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
   await jsClick('#bChStep');
   const voters = [];
   for (let k = 0; k < 2; k++) {
@@ -264,34 +412,68 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
     await jsClick(k === 0 ? '#bJudgeOk' : '#bJudgeNo');
   }
   st = await S();
-  ok('3 pemain: Aksi Berani dinilai 2 lawan bergantian, seri = sah', /Serahkan ke Nadia/.test(voters[0]) && /Penilai 1 dari 2/.test(voters[1]) && /Serahkan ke Dimas/.test(voters[2]) && /Penilai 2 dari 2/.test(voters[3]) && st.proofs.slice(-1)[0].ok && /1 dari 2 penilai/.test(st.proofs.slice(-1)[0].proof), JSON.stringify(voters) + ' ' + st.proofs.slice(-1)[0].proof);
+  ok(
+    '3 pemain: Aksi Berani dinilai 2 lawan bergantian, seri = sah',
+    /Serahkan ke Nadia/.test(voters[0]) &&
+      /Penilai 1 dari 2/.test(voters[1]) &&
+      /Serahkan ke Dimas/.test(voters[2]) &&
+      /Penilai 2 dari 2/.test(voters[3]) &&
+      st.proofs.slice(-1)[0].ok &&
+      /1 dari 2 penilai/.test(st.proofs.slice(-1)[0].proof),
+    JSON.stringify(voters) + ' ' + st.proofs.slice(-1)[0].proof
+  );
   // 3 pemain: Peragakan! semua lawan menebak, pilih nama penebak, yang benar dapat hadiah
-  await newGame('S.queue.push({ type: "CHALLENGE", p: 0, ch: "cr", cat: "charades", source: "card", redraws: 0 }); E.migrate(S);', null, P3);
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
+  await newGame(
+    'S.queue.push({ type: "CHALLENGE", p: 0, ch: "cr", cat: "charades", source: "card", redraws: 0 }); E.migrate(S);',
+    null,
+    P3
+  );
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
   const word3 = await page.evaluate(() => window.LoveUI.App.S.queue[0].pz.word);
   await jsClick('#bChStep');
   ok('3 pemain: Peragakan! satu layar "Waktunya menebak!"', /Waktunya menebak/.test(await title()), await title());
   await jsClick('#bGate');
   const gs = await page.evaluate(() => [...document.querySelectorAll('#modalRoot [data-gsr]')].map(b => b.textContent));
-  await page.$eval('#modalRoot [data-gsr]:last-child', b => b.click()); await page.waitForTimeout(150);
+  await page.$eval('#modalRoot [data-gsr]:last-child', b => b.click());
+  await page.waitForTimeout(150);
   await page.fill('#chGuess', word3);
   await jsClick('#bChSend');
   st = await S();
-  ok('3 pemain: penebak yang dipilih (Dimas) benar → dia & pemilik dapat hadiah', gs.length === 2 && !st.queue.length && /Dimas menebak/.test(st.proofs.slice(-1)[0].proof), JSON.stringify(gs) + ' ' + (st.proofs.slice(-1)[0] || {}).proof);
+  ok(
+    '3 pemain: penebak yang dipilih (Dimas) benar → dia & pemilik dapat hadiah',
+    gs.length === 2 && !st.queue.length && /Dimas menebak/.test(st.proofs.slice(-1)[0].proof),
+    JSON.stringify(gs) + ' ' + (st.proofs.slice(-1)[0] || {}).proof
+  );
 
   // Foto Bukti lewat unggah foto → dinilai lawan → dipajang di papan
   await chGame('ph1');
-  await page.evaluate(() => window.LoveUI.syncModal(true)); await settle();
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAYAAAD+Bd/7AAAAGUlEQVR4nGP4z8Dwn4GBgYGJAQoYRgUAAPMSAv8Wfr4DAAAAAElFTkSuQmCC', 'base64');
+  await page.evaluate(() => window.LoveUI.syncModal(true));
+  await settle();
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAYAAAD+Bd/7AAAAGUlEQVR4nGP4z8Dwn4GBgYGJAQoYRgUAAPMSAv8Wfr4DAAAAAElFTkSuQmCC',
+    'base64'
+  );
   await page.setInputFiles('#camFile', { name: 'bukti.png', mimeType: 'image/png', buffer: png });
-  await page.waitForFunction(() => { const b = document.querySelector('#modalRoot #bChSend'); return b && !b.disabled; }, null, { timeout: 5000 });
+  await page.waitForFunction(
+    () => {
+      const b = document.querySelector('#modalRoot #bChSend');
+      return b && !b.disabled;
+    },
+    null,
+    { timeout: 5000 }
+  );
   await jsClick('#bChSend');
   await jsClick('#bGate');
   ok('foto bukti: penilai melihat fotonya', !!(await page.$('#modalRoot .proof-photo img')));
   await jsClick('#bJudgeOk');
   await page.waitForTimeout(400);
   st = await S();
-  ok('foto bukti: disahkan → hadiah + foto dipajang di papan', st.players[0].cash > 2500 && st.photos.length === 1 && !!(await page.$('#board #proofPin img')), 'photos=' + (st.photos || []).length);
+  ok(
+    'foto bukti: disahkan → hadiah + foto dipajang di papan',
+    st.players[0].cash > 2500 && st.photos.length === 1 && !!(await page.$('#board #proofPin img')),
+    'photos=' + (st.photos || []).length
+  );
   await shot('15b-photo-proof');
 
   // 16. Pajak Rindu
@@ -309,21 +491,34 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await click('#bPay');
   ok('utang: dialog cari dana', /Cari Dana/.test(await title()), await title());
   await click('[data-sell="1"]');
-  const payable = await page.evaluate(() => { const b = document.getElementById('bPayDebt'); return b && !b.disabled; });
+  const payable = await page.evaluate(() => {
+    const b = document.getElementById('bPayDebt');
+    return b && !b.disabled;
+  });
   ok('utang: setelah jual, tombol bayar aktif', payable);
   if (payable) await click('#bPayDebt');
   st = await S();
-  ok('utang: lunas, hanya kota yang dijual hilang', st.tiles[1].owner === -1 && st.tiles[2].owner === 0 && !st.queue.some(q => q.type === 'DEBT'));
+  ok(
+    'utang: lunas, hanya kota yang dijual hilang',
+    st.tiles[1].owner === -1 && st.tiles[2].owner === 0 && !st.queue.some(q => q.type === 'DEBT')
+  );
 
   // 18. Bangkrut -> permainan selesai
   await newGame('own(9, 1, 3); S.players[0].pos = 4; S.players[0].cash = 10;');
   await roll(0, [2, 3]);
   await click('#bPay');
   await click('#bBk');
-  ok('bangkrut: minta konfirmasi dulu', !(await S()).over && /Ya, Bangkrut/.test(await page.evaluate(() => document.getElementById('bBk').textContent)));
+  ok(
+    'bangkrut: minta konfirmasi dulu',
+    !(await S()).over && /Ya, Bangkrut/.test(await page.evaluate(() => document.getElementById('bBk').textContent))
+  );
   await click('#bBk');
   st = await S();
-  ok('bangkrut: Nadia menang', !!st.over && st.over.winner === 1 && st.over.reason === 'bankrupt', JSON.stringify(st.over && st.over.reason));
+  ok(
+    'bangkrut: Nadia menang',
+    !!st.over && st.over.winner === 1 && st.over.reason === 'bankrupt',
+    JSON.stringify(st.over && st.over.reason)
+  );
   await page.waitForTimeout(1200);
   ok('bangkrut: layar menang tampil', await page.evaluate(() => !!document.querySelector('.win') || !!document.querySelector('#wAgain')));
 
@@ -340,7 +535,11 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await roll(0, [1, 2]);
   if (/Beli/.test(await title())) await click('#bBuy');
   st = await S();
-  ok('instan: Trio Warna', !!st.over && st.over.reason === 'triple', JSON.stringify(st.over && st.over.reason) + ' pos=' + st.players[0].pos);
+  ok(
+    'instan: Trio Warna',
+    !!st.over && st.over.reason === 'triple',
+    JSON.stringify(st.over && st.over.reason) + ' pos=' + st.players[0].pos
+  );
 
   // 21. START: bangun gratis-lokasi (pilih kota sendiri)
   await newGame('own(1, 0, 1); S.players[0].pos = 30; S.players[0].laps = 1;');
@@ -348,7 +547,16 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   st = await S();
   const startPick = await page.evaluate(() => !!window.LoveUI.App.pick);
   ok('start: mendarat tepat di START membuka pilih kota', st.players[0].pos === 0 && startPick, 'pos=' + st.players[0].pos);
-  if (startPick) { await tapTile(1); await click('#pbOk'); await page.waitForTimeout(200); if (/Bangun/.test(await title())) { await click('#bUp'); } st = await S(); ok('start: Kota Tua bisa dibangun', st.tiles[1].level >= 2, 'lv=' + st.tiles[1].level); }
+  if (startPick) {
+    await tapTile(1);
+    await click('#pbOk');
+    await page.waitForTimeout(200);
+    if (/Bangun/.test(await title())) {
+      await click('#bUp');
+    }
+    st = await S();
+    ok('start: Kota Tua bisa dibangun', st.tiles[1].level >= 2, 'lv=' + st.tiles[1].level);
+  }
 
   // 22. Info petak saat bukan giliran memilih
   await newGame('own(9, 1, 3);');
@@ -357,14 +565,18 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   await click('[data-x]');
 
   // 23. Akhiri giliran otomatis
-  await page.evaluate(() => { window.LoveUI.App.prefs.autoEnd = true; });
+  await page.evaluate(() => {
+    window.LoveUI.App.prefs.autoEnd = true;
+  });
   await newGame('');
   await roll(0, [2, 4]);
   if (/Beli/.test(await title())) await click('#bSkip');
   await page.waitForTimeout(3600);
   st = await S();
   ok('auto-end: giliran pindah ke Nadia', st.turn.p === 1, 'turn=' + st.turn.p);
-  await page.evaluate(() => { window.LoveUI.App.prefs.autoEnd = false; });
+  await page.evaluate(() => {
+    window.LoveUI.App.prefs.autoEnd = false;
+  });
 
   // 24. Lawan AI menyelesaikan gilirannya sendiri
   await newGame('S.turn.p = 1;', null, [HUMANS[0], { name: 'Bot', avatar: '🐰', color: '#7B61FF', kind: 'ai', ai: 'hard' }]);
@@ -373,142 +585,372 @@ const URL = require('url').pathToFileURL(path.resolve(__dirname, '../dist/test.h
   ok('AI: menyelesaikan gilirannya', st.turn.p === 0, 'turn=' + st.turn.p);
 
   // 24a. Beranda: Online jadi kartu utama (paling atas & paling besar)
-  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.waitForTimeout(300);
   const home = await page.evaluate(() => {
     const ids = [...document.querySelectorAll('.home-actions .mode-card')].map(b => b.id);
-    const area = id => { const r = document.getElementById(id).getBoundingClientRect(); return r.width * r.height; };
+    const area = id => {
+      const r = document.getElementById(id).getBoundingClientRect();
+      return r.width * r.height;
+    };
     return { ids, on: area('hOnline'), ai: area('hAI'), local: area('hLocal') };
   });
-  ok('beranda: Online pertama & paling besar', home.ids[0] === 'hOnline' && home.on > home.ai * 1.5 && home.on > home.local * 1.5, JSON.stringify(home));
+  ok(
+    'beranda: Online pertama & paling besar',
+    home.ids[0] === 'hOnline' && home.on > home.ai * 1.5 && home.on > home.local * 1.5,
+    JSON.stringify(home)
+  );
   await shot('24a-home');
   await page.waitForTimeout(3500);
-  const bg = await page.evaluate(() => ({ three: !!window.THREE, canvas: document.querySelectorAll('.page-sky canvas').length, blobs: document.querySelectorAll('.page-sky i').length, anim: document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length }));
+  const bg = await page.evaluate(() => ({
+    three: !!window.THREE,
+    canvas: document.querySelectorAll('.page-sky canvas').length,
+    blobs: document.querySelectorAll('.page-sky i').length,
+    anim: document
+      .getAnimations()
+      .filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length,
+  }));
   ok('latar: diam & ringan (tanpa Three.js, kanvas, atau animasi)', !bg.three && !bg.canvas && !bg.blobs && !bg.anim, JSON.stringify(bg));
   // suasana Kabar Merpi: lapisan latar bergerak (hanya transform/opacity), kembali diam saat kabar selesai
   await newGame("S.round = 4; S.news = { id: 'love', side: null, from: 4, to: 5 };");
   await page.waitForTimeout(1600);
-  const sky = await page.evaluate(() => { const an = document.getAnimations().filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')); const props = new Set(); an.forEach(a => a.effect.getKeyframes().forEach(k => Object.keys(k).forEach(x => { if (!['offset', 'easing', 'composite', 'computedOffset'].includes(x)) props.add(x); }))); return { n: an.length, props: [...props] }; });
-  ok('latar suasana: bergerak ringan (transform/opacity saja)', sky.n >= 2 && sky.props.every(x => x === 'transform' || x === 'opacity'), JSON.stringify(sky));
+  const sky = await page.evaluate(() => {
+    const an = document
+      .getAnimations()
+      .filter(a => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky'));
+    const props = new Set();
+    an.forEach(a =>
+      a.effect.getKeyframes().forEach(k =>
+        Object.keys(k).forEach(x => {
+          if (!['offset', 'easing', 'composite', 'computedOffset'].includes(x)) props.add(x);
+        })
+      )
+    );
+    return { n: an.length, props: [...props] };
+  });
+  ok(
+    'latar suasana: bergerak ringan (transform/opacity saja)',
+    sky.n >= 2 && sky.props.every(x => x === 'transform' || x === 'opacity'),
+    JSON.stringify(sky)
+  );
   // kabar selesai: suasana memudar (tidak hilang seketika), lalu dilepas
-  await page.evaluate(() => { const S = window.LoveUI.App.S; S.news = null; window.LoveUI.renderAmbience(S); });
+  await page.evaluate(() => {
+    const S = window.LoveUI.App.S;
+    S.news = null;
+    window.LoveUI.renderAmbience(S);
+  });
   await page.waitForTimeout(500);
-  const mid = await page.evaluate(() => ({ amb: document.body.dataset.amb || '', leave: document.body.classList.contains('amb-leave'), op: +getComputedStyle(document.querySelector('.sky-a')).opacity }));
+  const mid = await page.evaluate(() => ({
+    amb: document.body.dataset.amb || '',
+    leave: document.body.classList.contains('amb-leave'),
+    op: +getComputedStyle(document.querySelector('.sky-a')).opacity,
+  }));
   await page.waitForTimeout(1300);
-  const end = await page.evaluate(() => ({ amb: document.body.dataset.amb || '', op: +getComputedStyle(document.querySelector('.sky-a')).opacity }));
-  ok('latar suasana: hilang memudar halus, bukan seketika', mid.amb === 'love' && mid.leave && mid.op > 0.05 && mid.op < 0.95 && end.amb === '' && end.op === 0, JSON.stringify([mid, end]));
-  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(1800);   // tunggu pudar-keluar (1,2 dtk)
-  const skyOff = await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')).length);
+  const end = await page.evaluate(() => ({
+    amb: document.body.dataset.amb || '',
+    op: +getComputedStyle(document.querySelector('.sky-a')).opacity,
+  }));
+  ok(
+    'latar suasana: hilang memudar halus, bukan seketika',
+    mid.amb === 'love' && mid.leave && mid.op > 0.05 && mid.op < 0.95 && end.amb === '' && end.op === 0,
+    JSON.stringify([mid, end])
+  );
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.waitForTimeout(1800); // tunggu pudar-keluar (1,2 dtk)
+  const skyOff = await page.evaluate(
+    () =>
+      document
+        .getAnimations()
+        .filter(
+          a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.page-sky')
+        ).length
+  );
   ok('latar suasana: diam lagi di beranda', skyOff === 0, 'anim=' + skyOff);
   await newGame('');
-  const gl = await page.evaluate(() => { const g = document.querySelector('#board .center #mascot .ms-body'); const r = g && g.getBoundingClientRect(); return { has: !!g, w: r ? Math.round(r.width) : 0, three: !!window.THREE, globe: !!document.querySelector('.globe-2d') }; });
+  const gl = await page.evaluate(() => {
+    const g = document.querySelector('#board .center #mascot .ms-body');
+    const r = g && g.getBoundingClientRect();
+    return { has: !!g, w: r ? Math.round(r.width) : 0, three: !!window.THREE, globe: !!document.querySelector('.globe-2d') };
+  });
   ok('tengah papan: Merpi besar tampil (tanpa Three.js)', gl.has && gl.w > 40 && !gl.three && !gl.globe, JSON.stringify(gl));
   // diketuk: Merpi bereaksi (gelembung kata di panel + gerak), menoleh ke pion yang jalan
-  await page.$eval('#mascot .ms-body', e => e.click());   // Merpi bergoyang terus (msIdle): klik langsung
-  const tap = await page.evaluate(() => ({ bub: document.getElementById('bubble').classList.contains('show'), inVP: document.getElementById('bubble').parentNode.id, small: getComputedStyle(document.querySelector('#stage .st-merpi')).display, act: [...document.getElementById('mascot').classList].filter(c => c.startsWith('act-')).join(' ') }));
-  ok('Merpi besar: diketuk menjawab & bergerak (gelembung di papan, Merpi kecil disembunyikan)', tap.bub && tap.inVP === 'boardVP' && tap.small === 'none' && /act-spin/.test(tap.act), JSON.stringify(tap));
-  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
+  await page.$eval('#mascot .ms-body', e => e.click()); // Merpi bergoyang terus (msIdle): klik langsung
+  const tap = await page.evaluate(() => ({
+    bub: document.getElementById('bubble').classList.contains('show'),
+    inVP: document.getElementById('bubble').parentNode.id,
+    small: getComputedStyle(document.querySelector('#stage .st-merpi')).display,
+    act: [...document.getElementById('mascot').classList].filter(c => c.startsWith('act-')).join(' '),
+  }));
+  ok(
+    'Merpi besar: diketuk menjawab & bergerak (gelembung di papan, Merpi kecil disembunyikan)',
+    tap.bub && tap.inVP === 'boardVP' && tap.small === 'none' && /act-spin/.test(tap.act),
+    JSON.stringify(tap)
+  );
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.waitForTimeout(300);
 
   // 24b. Mode online: layanan tidak bisa dihubungi → petunjuk + Coba lagi
-  await page.evaluate(() => { window.LoveUI.exitToHome(true); window.LoveBackend = { use: () => Promise.reject({ code: 'sdk-load', message: 'x' }), _reset() {}, _normErr: e => e }; });
+  await page.evaluate(() => {
+    window.LoveUI.exitToHome(true);
+    window.LoveBackend = { use: () => Promise.reject({ code: 'sdk-load', message: 'x' }), _reset() {}, _normErr: e => e };
+  });
   await page.waitForTimeout(300);
   await page.click('#hOnline');
   await page.waitForSelector('#oRetry', { timeout: 8000 }).catch(() => {});
   const offTxt = await page.evaluate(() => (document.querySelector('#scrOnline') || {}).textContent || '');
-  ok('online gagal: pesan koneksi + tombol Coba lagi', offTxt.includes('Layanan online tidak bisa dihubungi') && !!(await page.$('#oRetry')), offTxt.slice(0, 120));
+  ok(
+    'online gagal: pesan koneksi + tombol Coba lagi',
+    offTxt.includes('Layanan online tidak bisa dihubungi') && !!(await page.$('#oRetry')),
+    offTxt.slice(0, 120)
+  );
   await shot('24b-online-off');
-  await page.click('#oBack'); await page.waitForTimeout(300);
+  await page.click('#oBack');
+  await page.waitForTimeout(300);
 
   // 25. Buku Panduan & tur
-  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(300);
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.waitForTimeout(300);
   await page.click('#hHow');
   await page.waitForSelector('#guideOv');
   const pages = await page.evaluate(() => window.LoveUI.GUIDE_PAGES.length);
-  for (let k = 1; k < pages; k++) { await page.click('#gNext'); await page.waitForTimeout(80); }
+  for (let k = 1; k < pages; k++) {
+    await page.click('#gNext');
+    await page.waitForTimeout(80);
+  }
   const lastStep = await page.evaluate(() => document.querySelector('#guideOv .g-step').textContent);
   ok('panduan: semua halaman bisa dibuka', lastStep.includes(pages + ' / ' + pages) || lastStep.includes(pages + '/' + pages), lastStep);
-  const cardBox = await page.evaluate(() => { const r = document.querySelector('#guideOv .g-card').getBoundingClientRect(); return { w: r.width, h: r.height }; });
+  const cardBox = await page.evaluate(() => {
+    const r = document.querySelector('#guideOv .g-card').getBoundingClientRect();
+    return { w: r.width, h: r.height };
+  });
   ok('panduan: kartu panduan berukuran wajar', cardBox.w > 600 && cardBox.h > 300, JSON.stringify(cardBox));
   await page.click('#gNext');
   await page.waitForTimeout(400);
   ok('panduan: tombol terakhir menutup', !(await page.$('#guideOv')));
 
-  await page.evaluate(() => { sessionStorage.setItem('tourTest', '1'); localStorage.removeItem('loveopoly.v2.tour'); });
+  await page.evaluate(() => {
+    sessionStorage.setItem('tourTest', '1');
+    localStorage.removeItem('loveopoly.v2.tour');
+  });
   await newGame('');
   await page.waitForSelector('.tour-card', { timeout: 6000 }).catch(() => {});
   ok('tur: kartu tur muncul di game pertama', !!(await page.$('.tour-card')));
   await shot('25-tour');
   await page.evaluate(() => window.LoveUI.endTour(true));
   // tur saat bot jalan duluan: bot menunggu sampai tur selesai, kartu menyorot panel giliran
-  await page.evaluate(() => { localStorage.removeItem('loveopoly.v2.tour'); const E = window.LoveEngine; const S = E.create({ players: [{ name: 'Arfi', avatar: '🐻' }, { name: 'Bot', avatar: '🐰', kind: 'ai' }], settings: { debug: true }, seed: 3, first: 1 }); window.LoveUI.enterGame('local', -1, S); });
+  await page.evaluate(() => {
+    localStorage.removeItem('loveopoly.v2.tour');
+    const E = window.LoveEngine;
+    const S = E.create({
+      players: [
+        { name: 'Arfi', avatar: '🐻' },
+        { name: 'Bot', avatar: '🐰', kind: 'ai' },
+      ],
+      settings: { debug: true },
+      seed: 3,
+      first: 1,
+    });
+    window.LoveUI.enterGame('local', -1, S);
+  });
   await page.waitForSelector('.tour-card', { timeout: 6000 }).catch(() => {});
   await page.waitForTimeout(2200);
-  const tb = await page.evaluate(() => ({ seq: window.LoveUI.App.S.seq, near: (() => { const c = document.querySelector('.tour-card'), st = document.getElementById('stage'); if (!c || !st) return false; const a = c.getBoundingClientRect(), b = st.getBoundingClientRect(); return Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) < innerHeight * 0.6 && a.top > 8; })() }));
+  const tb = await page.evaluate(() => ({
+    seq: window.LoveUI.App.S.seq,
+    near: (() => {
+      const c = document.querySelector('.tour-card'),
+        st = document.getElementById('stage');
+      if (!c || !st) return false;
+      const a = c.getBoundingClientRect(),
+        b = st.getBoundingClientRect();
+      return Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2) < innerHeight * 0.6 && a.top > 8;
+    })(),
+  }));
   ok('tur: bot tidak jalan sebelum tur selesai & kartu dekat panel giliran', tb.seq === 0 && tb.near, JSON.stringify(tb));
   await page.evaluate(() => window.LoveUI.endTour(true));
   await page.waitForFunction(() => window.LoveUI.App.S.seq > 0, null, { timeout: 8000 }).catch(() => {});
   ok('tur: bot jalan setelah tur ditutup', await page.evaluate(() => window.LoveUI.App.S.seq > 0));
   // undian giliran: animasi mengungkap pemenang yang sama dengan engine; bot menunggu undian + tur
-  await page.evaluate(() => { localStorage.removeItem('loveopoly.v2.tour'); const E = window.LoveEngine; let S, sd = 1; do { S = E.create({ players: [{ name: 'Arfi', avatar: '🐻' }, { name: 'Bot', avatar: '🐰', kind: 'ai' }], settings: { debug: true }, seed: sd++, first: 'random' }); } while (S.turn.p !== 1); window.LoveUI.enterGame('local', -1, S); });
+  await page.evaluate(() => {
+    localStorage.removeItem('loveopoly.v2.tour');
+    const E = window.LoveEngine;
+    let S,
+      sd = 1;
+    do {
+      S = E.create({
+        players: [
+          { name: 'Arfi', avatar: '🐻' },
+          { name: 'Bot', avatar: '🐰', kind: 'ai' },
+        ],
+        settings: { debug: true },
+        seed: sd++,
+        first: 'random',
+      });
+    } while (S.turn.p !== 1);
+    window.LoveUI.enterGame('local', -1, S);
+  });
   await page.waitForSelector('#drawOv', { timeout: 4000 });
   const dr0 = await page.evaluate(() => ({ tour: !!document.getElementById('tourOv'), seq: window.LoveUI.App.S.seq }));
   await page.waitForSelector('#drawOv.dw-done', { timeout: 8000 });
-  const dr1 = await page.evaluate(() => ({ chip: document.querySelector('.draw-p.dp-win b').textContent, title: document.getElementById('drawT').textContent }));
-  ok('undian: animasi tampil sebelum tur & berhenti di pemain yang jalan duluan', !dr0.tour && dr0.seq === 0 && dr1.chip === 'Bot' && /Bot jalan duluan/.test(dr1.title), JSON.stringify([dr0, dr1]));
+  const dr1 = await page.evaluate(() => ({
+    chip: document.querySelector('.draw-p.dp-win b').textContent,
+    title: document.getElementById('drawT').textContent,
+  }));
+  ok(
+    'undian: animasi tampil sebelum tur & berhenti di pemain yang jalan duluan',
+    !dr0.tour && dr0.seq === 0 && dr1.chip === 'Bot' && /Bot jalan duluan/.test(dr1.title),
+    JSON.stringify([dr0, dr1])
+  );
   await page.$eval('#drawGo', e => e.click());
   await page.waitForSelector('#tourOv', { timeout: 5000 }).catch(() => {});
-  ok('undian → tur: tur muncul setelah undian, bot masih menunggu', !!(await page.$('#tourOv')) && await page.evaluate(() => window.LoveUI.App.S.seq === 0));
+  ok(
+    'undian → tur: tur muncul setelah undian, bot masih menunggu',
+    !!(await page.$('#tourOv')) && (await page.evaluate(() => window.LoveUI.App.S.seq === 0))
+  );
   await page.evaluate(() => window.LoveUI.endTour(true));
   await page.waitForFunction(() => window.LoveUI.App.S.seq > 0, null, { timeout: 8000 }).catch(() => {});
   ok('undian → tur → bot jalan', await page.evaluate(() => window.LoveUI.App.S.seq > 0));
   // pemain lain beraksi selama undian (mis. tamu online): bot tetap jalan setelah undian selesai
-  await page.evaluate(() => { const E = window.LoveEngine; let S, sd = 1; do { S = E.create({ players: [{ name: 'Arfi', avatar: '🐻' }, { name: 'Bot', avatar: '🐰', kind: 'ai' }], settings: { debug: true }, seed: sd++, first: 'random' }); } while (S.turn.p !== 0); window.LoveUI.enterGame('local', -1, S); });
+  await page.evaluate(() => {
+    const E = window.LoveEngine;
+    let S,
+      sd = 1;
+    do {
+      S = E.create({
+        players: [
+          { name: 'Arfi', avatar: '🐻' },
+          { name: 'Bot', avatar: '🐰', kind: 'ai' },
+        ],
+        settings: { debug: true },
+        seed: sd++,
+        first: 'random',
+      });
+    } while (S.turn.p !== 0);
+    window.LoveUI.enterGame('local', -1, S);
+  });
   await page.waitForSelector('#drawOv', { timeout: 4000 });
   await page.evaluate(() => window.LoveUI.act({ type: 'ROLL', p: 0, dice: [1, 2] }));
   await settle();
-  await page.evaluate(() => { const S = window.LoveUI.App.S; if (S.queue.length) window.LoveUI.act(window.LoveUI.fallbackAction(S, 0)); });
+  await page.evaluate(() => {
+    const S = window.LoveUI.App.S;
+    if (S.queue.length) window.LoveUI.act(window.LoveUI.fallbackAction(S, 0));
+  });
   await settle();
-  await page.evaluate(() => { const S = window.LoveUI.App.S; if (!S.queue.length && S.turn.p === 0) window.LoveUI.act({ type: 'END_TURN', p: 0 }); });
+  await page.evaluate(() => {
+    const S = window.LoveUI.App.S;
+    if (!S.queue.length && S.turn.p === 0) window.LoveUI.act({ type: 'END_TURN', p: 0 });
+  });
   await page.waitForSelector('#drawOv', { state: 'detached', timeout: 8000 }).catch(() => page.$eval('#drawGo', e => e.click()));
-  await page.waitForFunction(() => window.LoveUI.App.S.turn.p === 0 && window.LoveUI.App.S.round >= 2, null, { timeout: 15000 }).catch(() => {});
-  ok('undian: aksi pemain selama undian tidak membuat bot macet', await page.evaluate(() => window.LoveUI.App.S.round >= 2 && !window.LoveUI.App.revealing), await page.evaluate(() => JSON.stringify({ r: window.LoveUI.App.S.round, t: window.LoveUI.App.S.turn.p, rev: window.LoveUI.App.revealing })));
+  await page
+    .waitForFunction(() => window.LoveUI.App.S.turn.p === 0 && window.LoveUI.App.S.round >= 2, null, { timeout: 15000 })
+    .catch(() => {});
+  ok(
+    'undian: aksi pemain selama undian tidak membuat bot macet',
+    await page.evaluate(() => window.LoveUI.App.S.round >= 2 && !window.LoveUI.App.revealing),
+    await page.evaluate(() =>
+      JSON.stringify({ r: window.LoveUI.App.S.round, t: window.LoveUI.App.S.turn.p, rev: window.LoveUI.App.revealing })
+    )
+  );
 
   // 26. Paspor Cinta: muncul saat pertama kali, terbit, mengisi Pemain 1, mencatat hasil game
-  await page.evaluate(() => { sessionStorage.setItem('passTest', '1'); localStorage.removeItem('loveopoly.v1.profile'); localStorage.removeItem('loveopoly.v2.save'); });
+  await page.evaluate(() => {
+    sessionStorage.setItem('passTest', '1');
+    localStorage.removeItem('loveopoly.v1.profile');
+    localStorage.removeItem('loveopoly.v2.save');
+  });
   await page.reload();
   await page.waitForSelector('#passOv #ppOpen', { timeout: 6000 });
   ok('paspor: muncul saat pertama kali membuka game', true);
   await page.click('#ppOpen');
   await page.waitForSelector('#ppName', { state: 'visible' });
   ok('paspor: tombol terbit nonaktif sebelum nama diisi', await page.$eval('#ppGo', b => b.disabled));
-  await page.fill('#ppName', 'Arfi'); await page.click('[data-ppav="🦊"]');
+  await page.fill('#ppName', 'Arfi');
+  await page.click('[data-ppav="🦊"]');
   await page.click('#ppGo');
   await page.waitForSelector('#passOv', { state: 'detached', timeout: 5000 });
   const pp = await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')));
-  ok('paspor: tersimpan & kartu paspor tampil di beranda', pp.name === 'Arfi' && pp.avatar === '🦊' && /Halo, Arfi/.test(await page.textContent('#hPass')), JSON.stringify(pp));
-  await page.click('#hAI'); await page.waitForSelector('#pn0');
+  ok(
+    'paspor: tersimpan & kartu paspor tampil di beranda',
+    pp.name === 'Arfi' && pp.avatar === '🦊' && /Halo, Arfi/.test(await page.textContent('#hPass')),
+    JSON.stringify(pp)
+  );
+  await page.click('#hAI');
+  await page.waitForSelector('#pn0');
   ok('paspor: Pemain 1 di setup terisi dari paspor', (await page.inputValue('#pn0')) === 'Arfi');
-  await page.evaluate(() => { const E = window.LoveEngine; const S = E.create({ players: [{ name: 'Arfi', avatar: '🦊' }, { name: 'Bot', kind: 'ai' }], settings: { debug: true }, seed: 77 }); S.tiles[1].owner = 0; S.tiles[2].owner = 0; window.LoveUI.enterGame('local', -1, S); window.LoveUI.act({ type: 'FINISH_NOW', p: 0 }); });
-  await page.waitForFunction(() => (JSON.parse(localStorage.getItem('loveopoly.v1.profile')) || {}).games === 1, null, { timeout: 10000 }).catch(() => {});
+  await page.evaluate(() => {
+    const E = window.LoveEngine;
+    const S = E.create({
+      players: [
+        { name: 'Arfi', avatar: '🦊' },
+        { name: 'Bot', kind: 'ai' },
+      ],
+      settings: { debug: true },
+      seed: 77,
+    });
+    S.tiles[1].owner = 0;
+    S.tiles[2].owner = 0;
+    window.LoveUI.enterGame('local', -1, S);
+    window.LoveUI.act({ type: 'FINISH_NOW', p: 0 });
+  });
+  await page
+    .waitForFunction(() => (JSON.parse(localStorage.getItem('loveopoly.v1.profile')) || {}).games === 1, null, { timeout: 10000 })
+    .catch(() => {});
   const pp2 = await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')));
-  ok('paspor: hasil game tercatat (main, menang, cap kota)', pp2.games === 1 && pp2.wins === 1 && pp2.stamps.length === 2, JSON.stringify({ g: pp2.games, w: pp2.wins, st: pp2.stamps }));
+  ok(
+    'paspor: hasil game tercatat (main, menang, cap kota)',
+    pp2.games === 1 && pp2.wins === 1 && pp2.stamps.length === 2,
+    JSON.stringify({ g: pp2.games, w: pp2.wins, st: pp2.stamps })
+  );
   // pesan romantis: diisi sekali di paspor, tidak ada lagi di setup, tampil di layar menang dengan nama penulis
-  await page.evaluate(() => window.LoveUI.exitToHome(true)); await page.waitForTimeout(200);
-  await page.click('#hPass'); await page.waitForSelector('#ppMsg', { state: 'visible', timeout: 6000 });
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.waitForTimeout(200);
+  await page.click('#hPass');
+  await page.waitForSelector('#ppMsg', { state: 'visible', timeout: 6000 });
   await page.fill('#ppMsg', 'Sampai ketemu di Kyoto, sayang!');
-  await page.click('#ppGo'); await page.waitForSelector('#passOv', { state: 'detached', timeout: 5000 });
-  ok('pesan romantis: tersimpan di paspor', (await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')).msg)) === 'Sampai ketemu di Kyoto, sayang!');
-  await page.click('#hLocal'); await page.waitForSelector('#sStart');
+  await page.click('#ppGo');
+  await page.waitForSelector('#passOv', { state: 'detached', timeout: 5000 });
+  ok(
+    'pesan romantis: tersimpan di paspor',
+    (await page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')).msg)) === 'Sampai ketemu di Kyoto, sayang!'
+  );
+  await page.click('#hLocal');
+  await page.waitForSelector('#sStart');
   ok('pesan romantis: field lama di setup sudah dihapus', !(await page.$('#sMsg')));
   await page.$eval('#sStart', b => b.click());
-  await page.waitForFunction(() => window.LoveUI.App.S && window.LoveUI.App.S.players.some(p => p.msg), null, { timeout: 5000 }).catch(() => {});
-  await page.evaluate(() => { const UI = window.LoveUI, S = UI.App.S; const me = S.players.findIndex(p => p.msg); const other = me === 0 ? 1 : 0; S.queue = []; S.turn.p = other; S.turn.rolled = false; S.players[other].cash = 99999; UI.act({ type: 'FINISH_NOW', p: other }); });
+  await page
+    .waitForFunction(() => window.LoveUI.App.S && window.LoveUI.App.S.players.some(p => p.msg), null, { timeout: 5000 })
+    .catch(() => {});
+  await page.evaluate(() => {
+    const UI = window.LoveUI,
+      S = UI.App.S;
+    const me = S.players.findIndex(p => p.msg);
+    const other = me === 0 ? 1 : 0;
+    S.queue = [];
+    S.turn.p = other;
+    S.turn.rolled = false;
+    S.players[other].cash = 99999;
+    UI.act({ type: 'FINISH_NOW', p: other });
+  });
   await page.waitForSelector('#winOv', { timeout: 8000 }).catch(() => {});
-  const wm = await page.evaluate(() => ({ msg: (document.getElementById('winMsg') || {}).textContent || '', edit: !!document.getElementById('winMsgIn') }));
-  ok('pesan romantis: tampil di layar menang (walau pasangan yang menang) + nama penulis, tanpa editor', /Sampai ketemu di Kyoto, sayang!/.test(wm.msg) && /Arfi/.test(wm.msg) && !wm.edit, JSON.stringify(wm));
+  const wm = await page.evaluate(() => ({
+    msg: (document.getElementById('winMsg') || {}).textContent || '',
+    edit: !!document.getElementById('winMsgIn'),
+  }));
+  ok(
+    'pesan romantis: tampil di layar menang (walau pasangan yang menang) + nama penulis, tanpa editor',
+    /Sampai ketemu di Kyoto, sayang!/.test(wm.msg) && /Arfi/.test(wm.msg) && !wm.edit,
+    JSON.stringify(wm)
+  );
 
   console.log(results.join('\n'));
   const fails = results.filter(r => r.startsWith('FAIL')).length;
-  console.log('\n' + (results.length - fails) + '/' + results.length + ' lulus' + (errors.length ? '\nERRORS:\n' + errors.join('\n') : '\nTanpa error konsol.'));
+  console.log(
+    '\n' +
+      (results.length - fails) +
+      '/' +
+      results.length +
+      ' lulus' +
+      (errors.length ? '\nERRORS:\n' + errors.join('\n') : '\nTanpa error konsol.')
+  );
   await browser.close();
   process.exit(fails || errors.length ? 1 : 0);
 })();

@@ -1,0 +1,9 @@
+dist/
+node_modules/
+test/out/
+legacy/
+docs/
+.firebase/
+package-lock.json
+*.md
+*.log

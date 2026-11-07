@@ -1,0 +1,100 @@
+/* ---------- privasi ---------- */
+.pv-list {
+  display: grid;
+  gap: 12px;
+}
+.pv-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.pv-row > .ic {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  color: var(--brand);
+}
+.pv-row b {
+  font: 600 15px var(--fd);
+  color: var(--ink);
+}
+.pv-row p {
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.pv-del {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 2px dashed var(--line);
+}
+.cam-note {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+.cam-note .ic {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  color: var(--mint-d);
+}
+.cam-note .link-btn {
+  font-size: inherit;
+  padding: 0;
+}
+.pp-priv {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  font-size: 12px;
+  color: #6e5a4a;
+}
+.pp-priv .ic {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: #1f7a4a;
+}
+.modal-body:focus-visible {
+  outline-offset: -3px;
+}
+.stats-wrap:focus-visible {
+  outline-offset: 2px;
+}
+/* HP: kartu "Lanjutkan" — teks satu baris penuh, tombol di baris sendiri (tidak saling himpit) */
+@media (max-width: 480px) {
+  .resume-card {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    padding: 14px;
+  }
+  .resume-card .grow {
+    flex: 1 1 calc(100% - 58px);
+  }
+  .resume-card .btn.primary {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+  .resume-card .icon-btn {
+    flex: none;
+  }
+  .resume-card .rc-ic + .grow + .btn {
+    margin-left: 54px;
+  }
+}
+/* sakelar Suara di menu */
+.btn.tile-btn[aria-pressed='false'] .ic {
+  color: var(--ink-3);
+}

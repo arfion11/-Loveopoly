@@ -1,0 +1,770 @@
+/* ---------- tata letak permainan ---------- */
+.game {
+  position: relative;
+  height: calc(100dvh - var(--hdr) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 14px;
+  padding: 12px max(14px, env(safe-area-inset-right, 0px)) 12px max(14px, env(safe-area-inset-left, 0px));
+}
+.game.layout-wide {
+  grid-template-columns: clamp(168px, 19vw, 290px) minmax(0, 1fr) clamp(168px, 19vw, 290px);
+}
+.seat-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 0;
+  min-width: 0;
+}
+.seat {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+}
+.seat-col .seat:last-child {
+  justify-content: flex-end;
+}
+.board-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+.board-vp {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.board-vp.cam {
+  overflow: hidden;
+  overflow: clip;
+  border-radius: 26px;
+  background: var(--board);
+  box-shadow: inset 0 0 0 3px var(--frame);
+  touch-action: none;
+}
+.strip {
+  display: none;
+}
+.hud {
+  display: none;
+}
+.game:not(.layout-wide) .seat-col {
+  display: none;
+}
+.game:not(.layout-wide) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.game:not(.layout-wide) .strip {
+  display: grid;
+  gap: 10px;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.game.layout-compact {
+  padding: 8px max(8px, env(safe-area-inset-right, 0px)) 8px max(8px, env(safe-area-inset-left, 0px));
+  gap: 8px;
+}
+.game.layout-compact .board-col {
+  display: block;
+}
+.game.layout-compact .board-vp {
+  position: absolute;
+  inset: 0;
+  border-radius: 26px;
+}
+.game.layout-compact .strip {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 6px;
+  z-index: 26;
+}
+.game.layout-compact .hud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 26;
+}
+.game.layout-compact .peek {
+  bottom: calc(var(--hudH, 0px) + 4px);
+}
+.game.layout-compact .strip,
+.game.layout-land .strip {
+  gap: 6px;
+}
+.game.layout-compact .hud,
+.game.layout-land .hud {
+  display: block;
+  flex: none;
+}
+.game.layout-land {
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) 6px max(8px, env(safe-area-inset-left, 0px));
+}
+.game.layout-land .board-col {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) minmax(250px, 34%);
+  gap: 8px;
+}
+.game.layout-land .strip {
+  grid-auto-flow: row;
+  grid-auto-rows: min-content;
+  align-content: start;
+  overflow: auto;
+}
+.game.layout-land .hud {
+  min-height: 0;
+  overflow: auto;
+}
+
+/* kartu pemain */
+.pcard {
+  --c: var(--brand);
+  position: relative;
+  display: grid;
+  gap: 9px;
+  width: 100%;
+  padding: 16px 14px 14px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--surface);
+  text-align: left;
+  color: var(--ink);
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    0 5px 0 var(--line-2),
+    var(--shadow);
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s;
+  overflow: hidden;
+}
+.pcard::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6px;
+  background: var(--c);
+}
+.pcard.active {
+  box-shadow:
+    inset 0 0 0 3px var(--c),
+    0 5px 0 color-mix(in srgb, var(--c) 75%, #000),
+    0 0 0 6px color-mix(in srgb, var(--c) 22%, transparent),
+    var(--shadow);
+  transform: translateY(-2px);
+}
+.pcard.bankrupt {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+}
+.turn-pill {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--c);
+  color: #fff;
+  font: 600 12px var(--fd);
+  animation: pillBob 1.4s ease-in-out infinite;
+}
+@keyframes pillBob {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+.pc-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding-right: 64px;
+}
+.pc-id {
+  display: grid;
+  min-width: 0;
+}
+.pc-name {
+  font: 600 17px/1.15 var(--fd);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pc-kind {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.pc-cash {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 700 26px/1 var(--fd);
+}
+.pc-cash .coin-ic {
+  width: 22px;
+  height: 22px;
+}
+.pc-cash b {
+  font-weight: 700;
+  transition: color 0.2s;
+}
+.pc-cash b.up {
+  color: var(--mint-ink);
+}
+.pc-cash b.down {
+  color: var(--danger-d);
+}
+.pc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font: 600 13px var(--fd);
+  color: var(--ink-2);
+}
+.pc-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pc-meta .ic {
+  width: 15px;
+  height: 15px;
+  color: var(--ink-3);
+}
+.pc-love {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 12.5px var(--fd);
+  color: var(--brand-ink);
+}
+.pc-love > .ic {
+  color: var(--brand);
+  width: 17px;
+  height: 17px;
+  fill: var(--brand);
+}
+.pc-love .meter {
+  height: 8px;
+}
+.pc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.pcard.mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 9px 7px;
+  border-radius: 18px;
+}
+.pcard.mini::before {
+  inset: auto 0 0;
+  height: 4px;
+}
+.pcard.mini .pc-txt {
+  display: grid;
+  min-width: 0;
+}
+.pcard.mini .pc-name {
+  font-size: 14px;
+}
+.pcard.mini .pc-cash {
+  font-size: 16px;
+  gap: 4px;
+}
+.pcard.mini .pc-cash .coin-ic {
+  width: 14px;
+  height: 14px;
+}
+.pcard.mini .pc-flag {
+  margin-left: auto;
+  color: var(--sky-d);
+}
+.pcard.mini.active {
+  transform: none;
+}
+.strip[data-n='4'] .pcard.mini .pc-name,
+.strip[data-n='3'] .pcard.mini .pc-name {
+  display: none;
+}
+.strip[data-n='4'] .pcard.mini,
+.strip[data-n='3'] .pcard.mini {
+  justify-content: center;
+  padding-right: 8px;
+}
+.game.layout-compact .strip[data-n='4'] .pcard.mini,
+.game.layout-compact .strip[data-n='3'] .pcard.mini {
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 4px 9px;
+}
+.game.layout-compact .strip[data-n='4'] .pcard.mini .av.sm,
+.game.layout-compact .strip[data-n='3'] .pcard.mini .av.sm {
+  --s: 30px;
+}
+.game.layout-compact .strip[data-n='4'] .pcard.mini .pc-txt,
+.game.layout-compact .strip[data-n='3'] .pcard.mini .pc-txt {
+  justify-items: center;
+}
+.game.layout-compact .strip[data-n='4'] .pcard.mini .pc-cash,
+.game.layout-compact .strip[data-n='3'] .pcard.mini .pc-cash {
+  font-size: 15px;
+}
+.game.layout-compact .strip .pcard.mini .pc-flag {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  margin: 0;
+}
+.game.layout-land .strip .pcard.mini .pc-name {
+  display: block;
+}
+.strip[data-n='4'] .pcard:not(.mini) {
+  padding: 14px 12px 12px;
+  gap: 7px;
+}
+.strip[data-n='4'] .pcard:not(.mini) .pc-top {
+  padding-right: 0;
+}
+.strip[data-n='4'] .pcard:not(.mini) .turn-pill {
+  display: none;
+}
+.strip[data-n='4'] .pcard:not(.mini) .pc-cash {
+  font-size: 22px;
+}
+.info-card,
+.log-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 2px var(--line);
+}
+.ic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ic-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+  font: 600 14.5px var(--fd);
+  color: var(--ink-2);
+}
+.ic-title .ic {
+  color: var(--brand);
+}
+.ic-wins {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ic-wins b {
+  font: 600 13px var(--fd);
+  color: var(--ink);
+}
+/* Kabar Merpi & Musim Puncak: blok di kartu info, pil di samping chip ronde (ketuk = detail) */
+.news-card {
+  display: grid;
+  gap: 6px;
+}
+.nc-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--violet-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.nc-row > .ic {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--violet-d);
+  margin-top: 1px;
+}
+.nc-row b {
+  display: block;
+  font: 600 13px var(--fd);
+}
+.nc-row small {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.nc-row.peak {
+  background: var(--gold-soft);
+}
+.nc-row.peak > .ic {
+  color: var(--gold-d);
+}
+.news-slot:empty {
+  display: none;
+}
+.st-top {
+  gap: 6px;
+  align-items: center;
+}
+.news-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--violet-soft);
+  color: var(--violet-d);
+  font: 600 12.5px/1 var(--fd);
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--violet) 35%, transparent);
+  animation: pillBob 2.4s ease-in-out infinite;
+}
+.news-pill .ic {
+  width: 15px;
+  height: 15px;
+}
+.news-pill {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.news-pill .np-t {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.news-pill .ic {
+  flex: none;
+}
+/* panel aksi samping (desktop 3D): detail kabar sudah ada di kartu info kiri, pil cukup ikon */
+.game.v3d.layout-wide .news-pill .np-t {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.game.v3d.layout-wide .news-pill {
+  padding: 4px 8px;
+}
+.news-pill.peak {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.news-pill .np-t + .sr-only + .ic,
+.news-pill .np-t + .ic {
+  margin-left: 4px;
+}
+/* layar sempit: pil hanya ikon (ketuk = detail) supaya header & panel tidak meluap */
+@media (max-width: 700px), (max-height: 500px) {
+  .news-pill .np-t {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .news-pill {
+    padding: 4px 7px;
+    min-height: 30px;
+  }
+  .news-pill .ic + .np-t + .ic {
+    margin-left: 0;
+  }
+}
+/* reaksi emoji: tombol melayang di pojok papan, palet 6 emoji, emoji besar di atas pion pengirim */
+.emote {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 17;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.game.layout-compact .emote {
+  bottom: calc(var(--hudH, 0px) + 10px);
+}
+.game.v3d.layout-mid .emote {
+  top: 56px;
+  bottom: auto;
+  flex-direction: column-reverse;
+}
+.game.layout-compact .emote {
+  top: auto;
+}
+.game.layout-land > .emote {
+  left: max(12px, env(safe-area-inset-left, 0px));
+  bottom: 10px;
+}
+.game.layout-land > .emote .emote-fab {
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+}
+.emote-fab {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 24px;
+  line-height: 1;
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    0 4px 0 var(--line-2),
+    var(--shadow);
+  transition: transform 0.15s;
+}
+.emote-fab:active {
+  transform: translateY(2px) scale(0.96);
+}
+.emote-fab[aria-expanded='true'] {
+  box-shadow:
+    inset 0 0 0 2.5px var(--brand),
+    0 4px 0 var(--brand-d),
+    var(--shadow);
+}
+.emote-pal {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  gap: 6px;
+  padding: 8px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    var(--shadow-lg);
+  transform-origin: 24px 100%;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.18s ease-out;
+}
+.emote-pal.on {
+  opacity: 1;
+  transform: none;
+}
+.game.v3d.layout-mid .emote-pal {
+  transform-origin: 24px 0;
+  transform: translateY(-6px) scale(0.96);
+}
+.game.v3d.layout-mid .emote-pal.on {
+  transform: none;
+}
+.emote-pal[hidden] {
+  display: none;
+}
+.emote-pal button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-2);
+  font-size: 24px;
+  line-height: 1;
+}
+.emote-pal button:hover {
+  background: var(--brand-soft);
+}
+.emote-pal button:active {
+  transform: scale(0.9);
+}
+.emote-pop {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+.emote-pop span {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  translate: -50% 0;
+  font-size: max(28px, 4.2cqi);
+  line-height: 1;
+  filter: drop-shadow(0 4px 6px rgba(42, 24, 56, 0.3));
+  animation: emoUp 1.9s ease-out forwards;
+}
+.board.b3d .emote-pop {
+  rotate: x calc(var(--tilt, 0deg) * -1);
+}
+.board.b3d .emote-pop.lift {
+  translate: 0 calc(var(--lift) * -1 * cos(var(--tilt, 0deg))) calc(var(--lift) * sin(var(--tilt, 0deg)));
+}
+@keyframes emoUp {
+  0% {
+    transform: translateY(20%) scale(0.7);
+    opacity: 0;
+  }
+  14% {
+    transform: none;
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-60%);
+    opacity: 0;
+  }
+}
+.pcard.emoted {
+  animation: emoted 0.6s ease-out;
+}
+@keyframes emoted {
+  40% {
+    transform: translateY(-3px);
+  }
+}
+
+.ic-wins span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ic-wins .ic {
+  color: var(--gold-d);
+  width: 16px;
+  height: 16px;
+}
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.log li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+.log li.new {
+  animation: logIn 0.5s cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+@keyframes logIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+.log .bub {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--c) 18%, var(--surface));
+  color: var(--c);
+}
+.log .bub .ic {
+  width: 14px;
+  height: 14px;
+}
+.log.full li {
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.log.full small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11.5px;
+}
+.log-card .log {
+  max-height: 260px;
+  overflow: auto;
+}
+@container (max-width: 236px) {
+  .pcard {
+    padding: 14px 12px 12px;
+    gap: 7px;
+    border-radius: 20px;
+  }
+  .pc-top {
+    padding-right: 0;
+    gap: 8px;
+  }
+  .pc-top .av {
+    --s: 38px;
+  }
+  .turn-pill {
+    display: none;
+  }
+  .pc-name {
+    font-size: 15.5px;
+  }
+  .pc-kind {
+    font-size: 11.5px;
+  }
+  .pc-cash {
+    font-size: 22px;
+  }
+  .pc-cash .coin-ic {
+    width: 19px;
+    height: 19px;
+  }
+  .pc-meta {
+    gap: 4px 9px;
+    font-size: 12px;
+  }
+  .pc-meta .ic {
+    width: 13px;
+    height: 13px;
+  }
+  .info-card,
+  .log-card {
+    padding: 12px;
+    gap: 8px;
+    border-radius: 20px;
+  }
+  .ic-title {
+    font-size: 13.5px;
+  }
+  .ic-wins {
+    font-size: 12px;
+    gap: 6px;
+  }
+  .log li {
+    font-size: 12px;
+  }
+}

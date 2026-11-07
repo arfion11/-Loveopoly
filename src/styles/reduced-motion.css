@@ -1,0 +1,48 @@
+/* ---------- gerak dikurangi ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .sc *,
+  .hero-scene * {
+    animation: none !important;
+  }
+  .sc .gb-b.b1,
+  .sc .gb-b.b2,
+  .sc-landmark .gb-b.b3,
+  .sc .g-stamp,
+  .sc .g-mult .m3,
+  .sc .g-spark,
+  .sc .g-coin,
+  .sc .g-lc:not(:first-child) {
+    opacity: 0 !important;
+  }
+  .sc .gp-card,
+  .sc .gp-stamp,
+  .sc .gph-pola {
+    opacity: 1 !important;
+  }
+  .sc .gph-cd i,
+  .sc .gph-flash {
+    opacity: 0 !important;
+  }
+  .sc-buy .gb-b.b3,
+  .sc-landmark .gb-b.b4,
+  .sc-fest .gb-b.b3,
+  .sc .g-lc:first-child,
+  .sc .g-trophy,
+  .sc .g-shield,
+  .sc .g-cost,
+  .sc .g-spot {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+  .sc .gc-back {
+    display: none !important;
+  }
+}

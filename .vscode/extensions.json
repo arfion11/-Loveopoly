@@ -1,7 +1,3 @@
 {
-  "recommendations": [
-    "anthropic.claude-code",
-    "ms-playwright.playwright",
-    "editorconfig.editorconfig"
-  ]
+  "recommendations": ["anthropic.claude-code", "ms-playwright.playwright", "editorconfig.editorconfig"]
 }

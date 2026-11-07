@@ -1,0 +1,314 @@
+/* ---------- undian giliran (mendebarkan) ---------- */
+.draw-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--bg) 55%, rgba(20, 8, 30, 0.55));
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: drawIn 0.3s ease-out;
+}
+.draw-ov.dw-out {
+  animation: drawOut 0.3s ease-in forwards;
+}
+@keyframes drawIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes drawOut {
+  to {
+    opacity: 0;
+  }
+}
+.draw-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(520px, 100%);
+  padding: 22px 20px 20px;
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    0 6px 0 var(--line-2),
+    var(--shadow-lg);
+  text-align: center;
+  animation: drawPop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+@keyframes drawPop {
+  from {
+    transform: translateY(24px) scale(0.94);
+  }
+}
+.draw-merpi {
+  display: block;
+  width: 84px;
+  height: 84px;
+  margin-top: -60px;
+  filter: drop-shadow(0 6px 8px rgba(42, 24, 56, 0.2));
+}
+.draw-ov:not(.dw-done) .draw-merpi {
+  animation: drawThink 1s ease-in-out infinite;
+}
+@keyframes drawThink {
+  50% {
+    transform: rotate(-6deg) translateY(-3px);
+  }
+}
+.draw-k {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 12px var(--fd);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+}
+.draw-k .ic {
+  width: 16px;
+  height: 16px;
+}
+.draw-t {
+  font: 700 24px/1.15 var(--fd);
+  color: var(--ink);
+  text-wrap: balance;
+}
+.draw-ov.dw-done .draw-t {
+  animation: drawWinT 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes drawWinT {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+}
+.draw-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0 10px;
+}
+.draw-p {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 96px;
+  padding: 12px 6px 10px;
+  border-radius: 20px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 2px var(--line);
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out,
+    background 0.12s,
+    opacity 0.3s;
+}
+.draw-p .dp-av {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 30px;
+  line-height: 1;
+  box-shadow: inset 0 0 0 3px var(--c);
+}
+.draw-p b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 13.5px var(--fd);
+  color: var(--ink);
+}
+.draw-p.dp-on {
+  transform: translateY(-6px) scale(1.06);
+  background: color-mix(in srgb, var(--c) 18%, var(--surface-2));
+  box-shadow:
+    inset 0 0 0 3px var(--c),
+    0 6px 0 color-mix(in srgb, var(--c) 60%, #000),
+    0 0 0 6px color-mix(in srgb, var(--c) 22%, transparent);
+}
+.draw-ov.dw-done .draw-p:not(.dp-win) {
+  transform: scale(0.94);
+  box-shadow: inset 0 0 0 2px var(--line);
+}
+.draw-ov.dw-done .draw-p:not(.dp-win) .dp-av {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+.draw-ov.dw-done .draw-p:not(.dp-win) b {
+  color: var(--ink-2);
+}
+.draw-p.dp-win {
+  animation: drawWin 0.6s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes drawWin {
+  0% {
+    transform: translateY(-6px) scale(1.06);
+  }
+  45% {
+    transform: translateY(-12px) scale(1.18);
+  }
+  100% {
+    transform: translateY(-6px) scale(1.1);
+  }
+}
+.dp-tag {
+  position: absolute;
+  left: 50%;
+  top: -12px;
+  translate: -50% 0;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--gold);
+  color: #4a2a00;
+  font: 700 11px var(--fd);
+  white-space: nowrap;
+  box-shadow: 0 2px 0 var(--gold-d);
+}
+.dp-tag .ic {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+.draw-p.dp-win .dp-tag {
+  display: inline-flex;
+  animation: pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.dp-spark {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+  background: var(--c);
+  pointer-events: none;
+  animation: dpSpark 0.8s ease-out forwards;
+  animation-delay: calc(var(--k) * 15ms);
+}
+.dp-spark:nth-child(odd) {
+  background: var(--gold);
+}
+@keyframes dpSpark {
+  from {
+    transform: rotate(var(--a)) translateY(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(var(--a)) translateY(-70px) scale(0.3);
+    opacity: 0;
+  }
+}
+.draw-res {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.draw-order {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+.draw-order .do-k {
+  font: 700 11px var(--fd);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.draw-order ol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.draw-order li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 2px var(--line);
+  font: 600 13px var(--fd);
+  color: var(--ink);
+  animation: drawIn 0.3s ease-out backwards;
+}
+.draw-order li b {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  color: #3a2b4a;
+  font-size: 12px;
+  box-shadow: inset 0 0 0 2.5px var(--c);
+}
+.draw-order li:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.draw-order li:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.draw-order li:nth-child(4) {
+  animation-delay: 0.24s;
+}
+#drawGo {
+  min-width: 160px;
+}
+@media (max-width: 420px) {
+  .draw-p {
+    width: 76px;
+    padding: 10px 4px 8px;
+  }
+  .draw-p .dp-av {
+    width: 44px;
+    height: 44px;
+    font-size: 26px;
+  }
+  .draw-t {
+    font-size: 21px;
+  }
+}
+@media (max-height: 460px) {
+  .draw-merpi {
+    width: 60px;
+    height: 60px;
+    margin-top: -40px;
+  }
+  .draw-card {
+    gap: 8px;
+    padding: 14px 16px;
+  }
+  .draw-row {
+    padding: 4px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .draw-ov,
+  .draw-ov *,
+  .draw-ov.dw-done .draw-t {
+    animation: none !important;
+    transition: none !important;
+  }
+}

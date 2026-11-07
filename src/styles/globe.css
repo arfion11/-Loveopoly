@@ -1,0 +1,44 @@
+/* ---------- globe & Merpi hidup (ringan: transform/opacity saja) ---------- */
+.ms-land,
+.ms-clouds,
+.ms-ring,
+.ms-orbit,
+.fx-rays {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+.fx-rays {
+  transform-box: fill-box;
+}
+.ms-land {
+  animation: msGlobe 90s linear infinite;
+}
+.ms-clouds {
+  animation: msGlobe 150s linear infinite reverse;
+}
+.ms-ring {
+  animation: msGlobe 70s linear infinite reverse;
+}
+@keyframes msGlobe {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ms-body {
+  animation: msIdle 4.4s ease-in-out infinite;
+}
+@keyframes msIdle {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateY(-1.6%) rotate(-1.6deg);
+  }
+  70% {
+    transform: translateY(-0.6%) rotate(1.6deg);
+  }
+}
+.mascot.sleep .ms-body {
+  animation: none;
+}

@@ -1,0 +1,172 @@
+/* nama pemegang di sampul (paspor yang sudah terbit) */
+.pp-cv-name {
+  font: 700 15px var(--fd);
+  letter-spacing: 0.22em;
+  padding: 6px 14px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1.5px rgba(247, 217, 139, 0.55);
+}
+/* bagian dalam sampul: kertas krem bermotif guilloche, halaman pemilik + cap kota + segel */
+.pp-cv-back {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  overflow: hidden;
+  transform: rotateY(180deg);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  color: #3a2148;
+  background:
+    repeating-radial-gradient(circle at 0% 100%, rgba(122, 23, 74, 0.05) 0 1px, transparent 1px 10px),
+    repeating-radial-gradient(circle at 100% 0%, rgba(201, 150, 60, 0.07) 0 1px, transparent 1px 12px),
+    linear-gradient(160deg, #fbf1de, #efdfc2);
+  box-shadow:
+    inset -10px 0 18px -10px rgba(91, 18, 54, 0.35),
+    inset 0 0 0 1px #e6cfa8;
+}
+.pp-cb-in {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 26px 22px;
+  text-align: center;
+}
+.pp-cb-in::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 1.5px solid rgba(201, 150, 60, 0.55);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 0 0 4px rgba(255, 255, 255, 0.5),
+    inset 0 0 0 5.5px rgba(201, 150, 60, 0.35);
+  pointer-events: none;
+}
+.pp-cb-k {
+  font: 700 10.5px var(--fd);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8a5a1e;
+}
+.pp-cb-merpi {
+  width: 92px;
+  height: 92px;
+  padding: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 55%, rgba(255, 255, 255, 0) 70%);
+  box-shadow:
+    0 0 0 2px rgba(201, 150, 60, 0.5),
+    0 0 0 7px rgba(255, 255, 255, 0.5),
+    0 0 0 8.5px rgba(201, 150, 60, 0.35);
+}
+.pp-cb-merpi .merpi {
+  width: 100%;
+  height: 100%;
+}
+.pp-cb-name {
+  font: 700 24px/1.15 var(--fd);
+  color: #5b1236;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.pp-cb-sub {
+  font: 600 12.5px var(--fd);
+  color: #7a5468;
+}
+.pp-cb-stamps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 10px;
+  margin: 6px 0 2px;
+  max-width: 320px;
+}
+.pp-cb-st {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 74px;
+  padding: 7px 4px 6px;
+  border: 2px dashed color-mix(in srgb, var(--g, #c0264f) 75%, #3a2148);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  align-content: center;
+  color: color-mix(in srgb, var(--g, #c0264f) 70%, #3a2148);
+  rotate: calc((var(--k) * 37 % 24 - 12) * 1deg);
+  mix-blend-mode: multiply;
+  opacity: 0.92;
+}
+.pp-cb-st .cbs-art {
+  width: 34px;
+  height: 34px;
+}
+.pp-cb-st b {
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 9.5px var(--fd);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pp-cb-st.empty {
+  --g: #b79a80;
+  opacity: 0.55;
+}
+.pp-cb-st.empty .cbs-art {
+  display: grid;
+  place-items: center;
+}
+.pp-cb-st.empty .cbs-art .ic {
+  width: 22px;
+  height: 22px;
+}
+.pp-cb-note {
+  font: 600 12px var(--fd);
+  color: #7a5468;
+  max-width: 280px;
+}
+.pp-cb-seal {
+  position: absolute;
+  right: 26px;
+  bottom: 26px;
+  width: 74px;
+  height: 74px;
+  color: rgba(192, 38, 79, 0.55);
+  rotate: -14deg;
+  mix-blend-mode: multiply;
+}
+.pp-cb-seal svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pp-book.open .pp-cb-st {
+  animation: ppStampIn 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) backwards;
+  animation-delay: calc(0.95s + var(--k) * 0.12s);
+}
+.pp-book.open .pp-cb-seal {
+  animation: ppStampIn 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) 1.5s backwards;
+}
+@keyframes ppStampIn {
+  from {
+    scale: 1.8;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-book.open .pp-cb-st,
+  .pp-book.open .pp-cb-seal {
+    animation: none !important;
+  }
+  .pp-book {
+    transition: none !important;
+  }
+}
+.pp-cover::after {
+  display: none;
+}

@@ -1,0 +1,984 @@
+/* ---------- papan ---------- */
+.board {
+  position: absolute;
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: 1.5fr repeat(7, 1fr) 1.5fr;
+  grid-template-rows: 1.5fr repeat(7, 1fr) 1.5fr;
+  gap: 0.55cqi;
+  padding: 1.1cqi;
+  border-radius: 3.6cqi;
+  background: radial-gradient(circle at 50% 50%, var(--board) 0 60%, var(--board-2));
+  box-shadow:
+    inset 0 0 0 0.6cqi var(--frame),
+    0 1.1cqi 0 var(--frame-d),
+    var(--shadow-lg);
+  transform-origin: 0 0;
+}
+.board-vp.cam .board {
+  box-shadow: inset 0 0 0 0.6cqi var(--frame);
+  will-change: transform;
+}
+@property --tilt {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+/* ---------- kamera 3D (POV ala Get Rich) ----------
+   papan dimiringkan (rotateX) dengan perspektif; pion, bangunan, lencana pemilik & efek dibuat berdiri
+   (diputar balik sebesar kemiringan) supaya tampak tegak seperti bidak di meja */
+.board-vp.cam3d {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+.board-vp.cam3d .board {
+  box-shadow:
+    inset 0 0 0 0.6cqi var(--frame),
+    0 1.4cqi 0 var(--frame-d),
+    0 3cqi 5cqi color-mix(in srgb, var(--frame-d) 55%, transparent);
+}
+.board.b3d,
+.board.b3d .tokens,
+.board.b3d .token,
+.board.b3d .tile {
+  transform-style: preserve-3d;
+}
+.board.b3d .token .tk {
+  rotate: x calc(var(--tilt, 0deg) * -1);
+}
+/* 3D: kotak pion dipanjangkan ke atas supaya ikon pesawat (World Tour) tetap di dalam kotak elemen 3D
+   (bagian yang menjulur keluar bisa terpotong kompositor); kaki pion tetap di tempat */
+.board.b3d .token .tk {
+  top: calc(var(--ts) * -1.5);
+  height: calc(var(--ts) * 1.58);
+}
+.board.b3d .token .tk-pin {
+  top: calc(var(--ts) * 0.38);
+}
+.board.b3d .token .tk-av {
+  top: calc(var(--ts) * 0.88);
+}
+.board.b3d .token .tk-plane {
+  top: 0;
+}
+.board.b3d .t-bld,
+.board.b3d .t-own,
+.board.b3d .t-fb {
+  rotate: x calc(var(--tilt, 0deg) * -1);
+  transform-origin: 50% 100%;
+}
+.board.b3d .bfloat,
+.board.b3d .flag-drop,
+.board.b3d .stamp-drop,
+.board.b3d .storm-cloud {
+  rotate: x calc(var(--tilt, 0deg) * -1);
+}
+/* efek yang diangkat "ke atas layar" dari titik kakinya di papan (tanpa transform supaya animasinya tidak bentrok) */
+.board.b3d .bfloat.lift,
+.board.b3d .flag-drop.lift {
+  translate: 0 calc(var(--lift) * -1 * cos(var(--tilt, 0deg))) calc(var(--lift) * sin(var(--tilt, 0deg)));
+  transform-origin: 50% 100%;
+}
+.board.b3d .flag-drop.lift {
+  margin: calc(var(--sz) * -1) 0 0 calc(var(--sz) * -0.3);
+}
+.board.b3d .tile {
+  z-index: var(--row, 1);
+}
+.board.b3d .tile:hover .t-face {
+  transform: none;
+}
+.board.b3d .center {
+  overflow: visible;
+  transform-style: preserve-3d;
+}
+.board.b3d .center-deco {
+  transform-style: preserve-3d;
+}
+/* maskot: alas & bayangan rebah di bidang papan, Merpi berdiri tegak (diputar balik sebesar kemiringan papan) */
+.board.b3d .mascot,
+.board.b3d .ms-stand,
+.board.b3d .ms-look {
+  transform-style: preserve-3d;
+}
+.board.b3d .mascot {
+  --mw: 36cqmin;
+  top: 52%;
+}
+.board.b3d .ms-shadow {
+  translate: -50% -50% 2px;
+}
+.board.b3d .ms-stand {
+  rotate: x calc(var(--tilt, 0deg) * -1);
+  translate: 0 0 3px;
+}
+/* tablet tegak saat 3D: panel aksi menjadi dok di bawah papan */
+.game.v3d.layout-mid .board-col {
+  position: relative;
+}
+.game.v3d.layout-mid .hud {
+  display: block;
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 26;
+  width: min(640px, calc(100% - 24px));
+  translate: -50% 0;
+}
+.game.v3d.layout-mid .hud .ticker {
+  display: flex;
+}
+.game.v3d.layout-mid .hud .st-merpi {
+  position: static;
+}
+.game.v3d.layout-mid .hud .bubble {
+  left: 14px;
+  bottom: calc(100% + 8px);
+  max-width: min(360px, calc(100% - 28px));
+}
+/* desktop & tablet mendatar saat 3D: panel aksi pindah ke kolom kanan (seperti HP mendatar), papan memakai
+   seluruh tinggi layar; kolom kanan sedikit lebih lebar supaya tombol tetap lega */
+.game.v3d.layout-wide {
+  grid-template-columns: clamp(168px, 16vw, 260px) minmax(0, 1fr) clamp(236px, 21vw, 310px);
+}
+.game.v3d.layout-wide .seat-col.right {
+  justify-content: flex-start;
+}
+.game.v3d.layout-wide .seat-col.right .hud {
+  display: block;
+  flex: none;
+  position: relative;
+  margin: auto 0;
+  padding: 10px 12px 12px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    0 4px 0 var(--line-2),
+    var(--shadow);
+}
+.game.v3d.layout-wide .hud .stage {
+  position: relative;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: 'merpi turn' 'dice dice' 'acts acts';
+  gap: 6px 10px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.game.v3d.layout-wide .hud .st-merpi {
+  display: contents;
+}
+.game.v3d.layout-wide .hud .merpi-btn {
+  grid-area: merpi;
+  justify-self: center;
+  width: 48px;
+}
+.game.v3d.layout-wide .hud .bubble {
+  grid-area: turn;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  height: max-content;
+  margin: auto 0;
+  max-width: 100%;
+  padding: 6px 11px;
+  font-size: 13px;
+  transform-origin: left center;
+  border-radius: 6px 16px 16px 16px;
+}
+.game.v3d.layout-wide .hud .dice-tray {
+  justify-self: center;
+  justify-content: center;
+}
+.game.v3d.layout-wide .hud .center-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+.game.v3d.layout-wide .hud .aim {
+  flex: none;
+}
+.game.v3d.layout-wide .hud .btn.go {
+  flex: none;
+}
+.game.v3d.layout-wide .hud .cam-ctl {
+  margin: 0 0 8px;
+}
+.game.v3d.layout-wide .hud .pickbar {
+  border-radius: 24px;
+}
+/* log di bawah panel aksi mengalah: menyusut & bisa digulir, panel aksi tidak pernah terdorong keluar.
+   Kartu pemain tidak menyusut; bila tetap tidak muat (layar sangat pendek, 4 pemain) kolom bisa digulir */
+.game.v3d.layout-wide .seat-col.right {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.game.v3d.layout-wide .seat-col.right::-webkit-scrollbar {
+  display: none;
+}
+.game.v3d.layout-wide .seat-col.right > .seat {
+  flex: none;
+}
+.game.v3d.layout-wide .seat-col.right > #slotBR:has(.log-card) {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+.game.v3d.layout-wide .seat-col.right #slotBR .log-card {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.game.v3d.layout-wide .seat-col.right #slotBR .log {
+  max-height: 210px;
+  min-height: 0;
+}
+/* laptop dengan tinggi terbatas: kartu pemain di kolom samping diringkas supaya panel aksi tetap muat */
+@media (max-height: 740px) {
+  .game.v3d.layout-wide .seat-col .pcard .pc-meta,
+  .game.v3d.layout-wide .seat-col .pcard .pc-kind {
+    display: none;
+  }
+}
+@media (max-height: 720px) {
+  .game.v3d.layout-wide .hud .merpi-btn {
+    width: 42px;
+  }
+  .game.v3d.layout-wide .hud .die-slot {
+    --s: 36px;
+  }
+  .game.v3d.layout-wide .hud .aim button {
+    min-height: 40px;
+    padding: 3px 2px;
+  }
+  .game.v3d.layout-wide .hud .btn.go {
+    min-height: 50px;
+    font-size: 18px;
+  }
+  .game.v3d.layout-wide .hud .isle-opts .btn {
+    min-height: 36px;
+    font-size: 13px;
+    padding: 0 10px;
+  }
+}
+@media (max-height: 700px) {
+  .game.v3d.layout-wide .seat-col .pcard .pc-love {
+    display: none;
+  }
+}
+@media (max-height: 640px) {
+  .game.v3d.layout-wide .seat-col.right .hud {
+    padding: 8px 10px 10px;
+  }
+  .game.v3d.layout-wide .hud .cam-ctl {
+    margin-bottom: 4px;
+  }
+  .game.v3d.layout-wide .hud .merpi-btn {
+    width: 40px;
+  }
+  .game.v3d.layout-wide .hud .die-slot {
+    --s: 34px;
+  }
+  .game.v3d.layout-wide .hud .dice-tray {
+    padding-bottom: 20px;
+  }
+  .game.v3d.layout-wide .hud .aim button {
+    min-height: 38px;
+    padding: 2px;
+  }
+  .game.v3d.layout-wide .hud .btn.go {
+    min-height: 46px;
+    font-size: 17px;
+  }
+  .game.v3d.layout-wide .seat-col .log-card li:nth-child(n + 2) {
+    display: none;
+  }
+}
+/* mode dekat: tepi jendela kamera memudar ke latar, bukan terpotong tajam di tengah layar */
+.game.v3d.layout-wide .board-vp.cam3d.zoom::after,
+.game.v3d.layout-mid .board-vp.cam3d.zoom::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--bg), transparent 34px, transparent calc(100% - 34px), var(--bg)),
+    linear-gradient(180deg, var(--bg), transparent 46px);
+}
+.game.v3d.layout-wide .peek,
+.game.v3d.layout-mid .peek {
+  bottom: calc(var(--hudH, 0px) + 4px);
+}
+.tile {
+  --g: #c9b8e8;
+  --gi: #6b3fc4;
+  --oc: transparent;
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  min-width: 0;
+  min-height: 0;
+  color: var(--tile-ink);
+  font-family: var(--fd);
+  text-align: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.board.enter .tile {
+  animation: tileIn 0.55s cubic-bezier(0.3, 1.4, 0.5, 1) backwards;
+  animation-delay: var(--d);
+}
+@keyframes tileIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5) translateY(14px);
+  }
+}
+.t-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 1.3cqi;
+  background: var(--tile);
+  box-shadow:
+    0 0.5cqi 0 var(--tile-edge),
+    inset 0 0 0 0.22cqi color-mix(in srgb, var(--tile-edge) 50%, transparent);
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s,
+    background 0.3s;
+}
+.tile:hover .t-face {
+  transform: translateY(-0.3cqi);
+}
+.tile.owned .t-face {
+  background: color-mix(in srgb, var(--oc) 20%, var(--tile));
+  box-shadow:
+    0 0.5cqi 0 color-mix(in srgb, var(--oc) 55%, var(--tile-edge)),
+    inset 0 0 0 0.28cqi var(--oc);
+}
+.t-band {
+  position: absolute;
+  background: var(--g);
+  z-index: 1;
+}
+.t-art {
+  position: relative;
+  display: block;
+  flex: none;
+  border-radius: 1cqi;
+  background: color-mix(in srgb, var(--g) 22%, var(--plate));
+  padding: 0.35cqi;
+}
+.t-txt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25cqi;
+  min-width: 0;
+  width: 100%;
+}
+.t-name {
+  display: block;
+  font-weight: 600;
+  font-size: clamp(9px, 1.62cqi, 16px);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+  color: var(--tile-ink);
+}
+.t-kind {
+  display: block;
+  font-size: clamp(7px, 1.02cqi, 11px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--violet-d);
+  line-height: 1;
+}
+:root[data-theme='dark'] .t-kind {
+  color: var(--violet-2);
+}
+.t-price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: max(3px, 0.45cqi);
+  padding: 0.15cqi 0.8cqi;
+  border-radius: 99px;
+  font-size: clamp(8.5px, 1.42cqi, 14.5px);
+  line-height: 1.25;
+  font-weight: 600;
+  background: var(--surface-3);
+  color: var(--tile-ink);
+  white-space: nowrap;
+}
+.t-price .coin-ic {
+  width: 1.2cqi;
+  height: 1.2cqi;
+  min-width: 8px;
+  min-height: 8px;
+}
+.t-price.toll {
+  background: var(--oc);
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0.25cqi 0 color-mix(in srgb, var(--oc) 60%, #000);
+}
+.t-price.muted {
+  background: transparent;
+  color: var(--ink-3);
+}
+.tile.s-bottom .t-face,
+.tile.s-top .t-face {
+  padding: 1.25cqi 0.45cqi 0.6cqi;
+  gap: 0.4cqi;
+  justify-content: flex-start;
+}
+.tile.s-bottom .t-band {
+  inset: 0 0 auto;
+  height: 0.9cqi;
+}
+.tile.s-top .t-band {
+  inset: auto 0 0;
+  height: 0.9cqi;
+}
+.tile.s-top .t-face {
+  padding: 0.6cqi 0.45cqi 1.25cqi;
+}
+.tile.s-bottom .t-art,
+.tile.s-top .t-art {
+  width: 5.9cqi;
+  height: 5.9cqi;
+}
+.tile.s-bottom .t-name,
+.tile.s-top .t-name {
+  line-height: 1.02;
+}
+/* label WISATA jadi pita di atas ilustrasi (baris atas/bawah) supaya nama 2 baris tetap muat */
+.tile.tt-spot.s-bottom .t-kind,
+.tile.tt-spot.s-top .t-kind {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.22cqi 0.6cqi;
+  border-radius: 99px;
+  background: var(--violet);
+  color: #fff;
+  box-shadow: 0 0.2cqi 0 var(--violet-d);
+  letter-spacing: 0.04em;
+}
+.tile.tt-spot.s-bottom .t-kind {
+  top: 6.1cqi;
+}
+.tile.tt-spot.s-top .t-kind {
+  top: 5.45cqi;
+}
+.tile.s-bottom .t-txt,
+.tile.s-top .t-txt {
+  flex: 1;
+  justify-content: space-between;
+}
+.tile.s-left .t-face,
+.tile.s-right .t-face {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6cqi;
+  padding: 0.5cqi 1.35cqi 0.5cqi 0.6cqi;
+}
+.tile.s-right .t-face {
+  padding: 0.5cqi 0.6cqi 0.5cqi 1.35cqi;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.tile.s-left .t-band {
+  inset: 0 0 0 auto;
+  width: 0.9cqi;
+}
+.tile.s-right .t-band {
+  inset: 0 auto 0 0;
+  width: 0.9cqi;
+}
+.tile.s-left .t-art,
+.tile.s-right .t-art {
+  height: 5.3cqi;
+  width: 5.3cqi;
+}
+.tile.s-left .t-name,
+.tile.s-right .t-name {
+  font-size: clamp(9px, 1.5cqi, 15px);
+}
+.tile.s-right .t-art {
+  order: 2;
+}
+.tile.s-left .t-txt,
+.tile.s-right .t-txt {
+  gap: 0.45cqi;
+}
+.tile.corner .t-face {
+  padding: 0.9cqi 0.6cqi;
+  justify-content: center;
+  gap: 0.3cqi;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cg) 26%, var(--tile)), var(--tile));
+}
+.tile.corner .t-art {
+  width: 62%;
+  aspect-ratio: 1;
+  background: transparent;
+  padding: 0;
+}
+.tile.corner .t-name {
+  font-size: clamp(10px, 1.75cqi, 18px);
+  font-weight: 700;
+}
+.t-sub {
+  font: 700 clamp(8px, 1.15cqi, 12.5px)/1.1 var(--fd);
+  color: var(--ink-2);
+}
+.tile.tt-start {
+  --cg: #ff4f8b;
+}
+.tile.tt-island {
+  --cg: #47aeff;
+}
+.tile.tt-fest {
+  --cg: #ffc93c;
+}
+.tile.tt-travel {
+  --cg: #7b61ff;
+}
+.tile.tt-start .t-name {
+  color: var(--brand-ink);
+}
+.tile.tt-card .t-art,
+.tile.tt-tax .t-art {
+  background: color-mix(in srgb, #ff9ec4 18%, var(--plate));
+}
+.tile.tt-spot .t-art {
+  background: color-mix(in srgb, #b79cff 24%, var(--plate));
+}
+.tile.tt-spot .t-band {
+  background: repeating-linear-gradient(45deg, #b79cff 0 4px, #ffc93c 4px 8px);
+}
+.t-bld {
+  position: absolute;
+  z-index: 3;
+  width: 44%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 0.3cqi 0 rgba(0, 0, 0, 0.15));
+}
+.tile.s-bottom .t-bld {
+  right: -6%;
+  top: 26%;
+}
+.tile.s-top .t-bld {
+  right: -6%;
+  top: 16%;
+}
+.tile.s-left .t-bld {
+  width: 3.9cqi;
+  left: 3.1cqi;
+  top: auto;
+  bottom: 0.1cqi;
+}
+.tile.s-right .t-bld {
+  width: 3.9cqi;
+  right: 3.1cqi;
+  top: auto;
+  bottom: 0.1cqi;
+}
+.t-bld:empty {
+  display: none;
+}
+.t-bld .lv-dots {
+  position: absolute;
+  left: 50%;
+  bottom: -10%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.2cqi;
+}
+.t-bld .lv-dots i {
+  width: 0.7cqi;
+  height: 0.7cqi;
+  min-width: 4px;
+  min-height: 4px;
+  border-radius: 50%;
+  background: var(--oc);
+  box-shadow: 0 0 0 0.15cqi #fff;
+}
+.t-bld.rise {
+  animation: rise 0.9s cubic-bezier(0.25, 1.6, 0.45, 1);
+}
+@keyframes rise {
+  0% {
+    transform: scale(0.1) translateY(40%);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.25) translateY(-8%);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+.t-bld.shrink {
+  animation: shrinkB 0.7s ease;
+}
+@keyframes shrinkB {
+  25% {
+    transform: rotate(-12deg) scale(0.9);
+  }
+  50% {
+    transform: rotate(10deg) scale(0.85);
+  }
+}
+.t-own {
+  position: absolute;
+  z-index: 4;
+  top: -0.7cqi;
+  right: -0.5cqi;
+  pointer-events: none;
+}
+.t-own:empty {
+  display: none;
+}
+.t-own span {
+  display: grid;
+  place-items: center;
+  width: 3.2cqi;
+  height: 3.2cqi;
+  min-width: 16px;
+  min-height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  font-size: clamp(9px, 1.9cqi, 20px);
+  line-height: 1;
+  box-shadow:
+    inset 0 0 0 0.32cqi var(--c),
+    0 0.3cqi 0 color-mix(in srgb, var(--c) 70%, #000);
+}
+.t-own .crown {
+  position: absolute;
+  left: 50%;
+  top: -1.6cqi;
+  transform: translateX(-50%);
+  width: 2.4cqi;
+  height: 2.4cqi;
+  min-width: 12px;
+  min-height: 12px;
+}
+.t-own .crown .ic {
+  width: 100%;
+  height: 100%;
+  fill: #ffd54a;
+  stroke: #a86f00;
+}
+.t-own.pop {
+  animation: pop 0.7s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+@keyframes pop {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.tile.s-left .t-own {
+  left: -0.5cqi;
+  right: auto;
+}
+.t-fb {
+  position: absolute;
+  z-index: 5;
+  left: -0.6cqi;
+  top: -0.8cqi;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2cqi;
+  padding: 0.2cqi 0.7cqi 0.2cqi 0.5cqi;
+  border-radius: 99px;
+  background: linear-gradient(180deg, #ffe27a, #ffc93c);
+  color: #6a4200;
+  font: 700 clamp(8px, 1.3cqi, 14px)/1.2 var(--fd);
+  box-shadow: 0 0.3cqi 0 #d08a00;
+  animation: festBob 1.6s ease-in-out infinite;
+}
+.t-fb:empty {
+  display: none;
+}
+.t-fb .ic {
+  width: 1.4cqi;
+  height: 1.4cqi;
+  min-width: 9px;
+  min-height: 9px;
+}
+@keyframes festBob {
+  50% {
+    transform: translateY(-0.4cqi) rotate(-4deg);
+  }
+}
+.tile.fest .t-face {
+  box-shadow:
+    0 0.5cqi 0 var(--tile-edge),
+    inset 0 0 0 0.32cqi #ffc93c;
+}
+.tile.fest.owned .t-face {
+  box-shadow:
+    0 0.5cqi 0 color-mix(in srgb, var(--oc) 55%, var(--tile-edge)),
+    inset 0 0 0 0.32cqi #ffc93c;
+}
+.tile.landmark .t-face {
+  background: linear-gradient(160deg, #fff6cf, color-mix(in srgb, var(--oc) 20%, #ffe7a0));
+  box-shadow:
+    0 0.5cqi 0 #d9a21a,
+    inset 0 0 0 0.32cqi #ffc93c;
+}
+:root[data-theme='dark'] .tile.landmark .t-face {
+  background: linear-gradient(160deg, #5a4a2a, color-mix(in srgb, var(--oc) 25%, #4a3a1c));
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .chip.lilac,
+  :root:not([data-theme='light']) .t-kind,
+  :root:not([data-theme='light']) .pb-txt b {
+    color: var(--violet-2);
+  }
+  :root:not([data-theme='light']) .aim button[aria-pressed='true'] {
+    color: #fff;
+  }
+  :root:not([data-theme='light']) .ch-kind {
+    color: color-mix(in srgb, var(--g) 70%, #fff);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .tile.landmark .t-face {
+    background: linear-gradient(160deg, #5a4a2a, color-mix(in srgb, var(--oc) 25%, #4a3a1c));
+  }
+}
+.tile.threat::after {
+  content: '!';
+  position: absolute;
+  z-index: 6;
+  right: 6%;
+  bottom: 8%;
+  width: 2.6cqi;
+  height: 2.6cqi;
+  min-width: 14px;
+  min-height: 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font: 700 clamp(9px, 1.6cqi, 16px)/1 var(--fd);
+  box-shadow: 0 0 0 0.3cqi #fff;
+  animation: pop 0.5s;
+}
+.tile.threat .t-face {
+  animation: threat 1.2s ease-in-out infinite;
+}
+@keyframes threat {
+  50% {
+    box-shadow:
+      0 0.5cqi 0 var(--tile-edge),
+      inset 0 0 0 0.5cqi var(--tc),
+      0 0 0 0.6cqi color-mix(in srgb, var(--tc) 40%, transparent);
+  }
+}
+.tile.flash .t-face {
+  animation: flash 1.1s ease;
+}
+@keyframes flash {
+  30% {
+    filter: brightness(1.2) saturate(1.2);
+    transform: translateY(-0.6cqi) scale(1.05);
+  }
+}
+.tile.stepped .t-face {
+  animation: stepped 0.5s ease;
+}
+@keyframes stepped {
+  40% {
+    transform: translateY(0.35cqi);
+  }
+}
+.tile.nope .t-face {
+  animation: nope 0.4s;
+}
+@keyframes nope {
+  25% {
+    transform: translateX(-0.5cqi);
+  }
+  75% {
+    transform: translateX(0.5cqi);
+  }
+}
+.board.picking .tile:not(.pickable) .t-face {
+  filter: grayscale(0.75) brightness(0.92);
+  opacity: 0.42;
+}
+.board.picking .tile.pickable .t-face {
+  box-shadow:
+    0 0.5cqi 0 var(--tile-edge),
+    inset 0 0 0 0.4cqi var(--violet),
+    0 0 0 0.5cqi color-mix(in srgb, var(--violet) 30%, transparent);
+  animation: pickPulse 1.3s ease-in-out infinite;
+}
+.board.picking .tile.picked .t-face {
+  box-shadow:
+    0 0.5cqi 0 var(--brand-d),
+    inset 0 0 0 0.55cqi var(--brand),
+    0 0 0 0.8cqi color-mix(in srgb, var(--brand) 35%, transparent);
+  transform: translateY(-0.6cqi) scale(1.04);
+  animation: none;
+}
+.board.picking .tile.picked::before {
+  content: '✓';
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4.2cqi;
+  height: 4.2cqi;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font: 700 2.4cqi/1 var(--fd);
+  box-shadow: 0 0.3cqi 0 var(--brand-d);
+  animation: pop 0.4s;
+}
+@keyframes pickPulse {
+  50% {
+    transform: translateY(-0.35cqi);
+  }
+}
+/* kamera jauh (ponsel): papan utuh, petak menonjolkan ilustrasi & tol */
+.board.far .tile:not(.corner) .t-name,
+.board.far .tile:not(.corner) .t-kind {
+  display: none;
+}
+.board.far .tile.s-bottom .t-art,
+.board.far .tile.s-top .t-art {
+  width: 7.9cqi;
+  height: 7.9cqi;
+}
+.board.far .tile.s-left .t-art,
+.board.far .tile.s-right .t-art {
+  width: 6.6cqi;
+  height: 6.6cqi;
+}
+.board.far .t-price {
+  font-size: 2.75cqi;
+  padding: 0.12cqi 0.7cqi;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.board.far .t-price .coin-ic {
+  display: none;
+}
+/* petak samping: ilustrasi di tengah, label harga menempel di bawahnya seperti label harga */
+.board.far .tile.s-left .t-face,
+.board.far .tile.s-right .t-face {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.45cqi 1.2cqi 0;
+  gap: 0;
+}
+.board.far .tile.s-right .t-art {
+  order: 0;
+}
+.board.far .tile.s-left .t-txt,
+.board.far .tile.s-right .t-txt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.45cqi;
+  z-index: 2;
+}
+.board.far .tile.s-left .t-txt {
+  right: 1cqi;
+}
+.board.far .tile.s-right .t-txt {
+  left: 1cqi;
+}
+.board.far .t-face .t-price:not(.toll) {
+  box-shadow: 0 0 0 0.3cqi var(--tile);
+}
+.board.far .cd-tag,
+.board.mini .cd-tag {
+  display: none;
+}
+.board.far .t-price.muted {
+  display: none;
+}
+.board.far .tile.corner .t-name {
+  font-size: 2.7cqi;
+}
+.board.far .tile.corner .t-sub {
+  display: none;
+}
+.board.far .t-own span {
+  width: 4.6cqi;
+  height: 4.6cqi;
+  font-size: 2.8cqi;
+}
+.board.far .t-bld {
+  width: 52%;
+}
+.board.far .tile.s-left .t-bld {
+  width: 3.6cqi;
+  right: 0.9cqi;
+  left: auto;
+  top: 0.3cqi;
+  bottom: auto;
+}
+.board.far .tile.s-right .t-bld {
+  width: 3.6cqi;
+  left: 0.9cqi;
+  right: auto;
+  top: 0.3cqi;
+  bottom: auto;
+}
+.board.far .t-fb {
+  font-size: 2.2cqi;
+}
+.board.far .tile.threat::after {
+  width: 4cqi;
+  height: 4cqi;
+  font-size: 2.6cqi;
+}
+.board.mini .t-name,
+.board.mini .t-kind {
+  display: none;
+}
+.board.mini .tile.corner .t-name {
+  display: block;
+}
+.board.mini .t-price {
+  font-size: 8px;
+  padding: 0 3px;
+}
+.board.mini .tile.corner .t-sub {
+  display: none;
+}

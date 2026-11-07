@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <!-- mesin pencari & pratinjau tautan (Google, WhatsApp, X, Facebook) -->
+    <title>Loveopoly · Board game keliling dunia bareng pasangan &amp; teman</title>
+    <meta
+      name="description"
+      content="Main board game keliling dunia bareng pasangan atau teman, gratis tanpa install. Beli kota romantis, jalani tantangan seru, main online, di satu HP, atau lawan AI."
+    />
+    <link rel="canonical" href="https://loveopoly.web.app/" />
+    <meta name="google-site-verification" content="qkstZsCormFtTkSLJLMsvsfO2dHYHdbEz9VMxEo4uCc" />
+    <meta name="google-site-verification" content="sA9oXKQPlpvqr2dVvHfpcuAQlJPam0NeA8ruUvs8tZo" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Loveopoly" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:url" content="https://loveopoly.web.app/" />
+    <meta property="og:title" content="Loveopoly · Board game keliling dunia bareng pasangan &amp; teman" />
+    <meta
+      property="og:description"
+      content="Main board game keliling dunia bareng pasangan atau teman, gratis tanpa install. Beli kota romantis, jalani tantangan seru, main online, di satu HP, atau lawan AI."
+    />
+    <meta property="og:image" content="https://loveopoly.web.app/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Merpi, maskot Loveopoly, dikelilingi kota-kota romantis" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Loveopoly · Board game keliling dunia bareng pasangan &amp; teman" />
+    <meta
+      name="twitter:description"
+      content="Main board game keliling dunia bareng pasangan atau teman, gratis tanpa install. Beli kota romantis, jalani tantangan seru, main online, di satu HP, atau lawan AI."
+    />
+    <meta name="twitter:image" content="https://loveopoly.web.app/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Merpi, maskot Loveopoly, dikelilingi kota-kota romantis" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "Loveopoly",
+            "url": "https://loveopoly.web.app/",
+            "inLanguage": "id"
+          },
+          {
+            "@type": "VideoGame",
+            "name": "Loveopoly",
+            "url": "https://loveopoly.web.app/",
+            "description": "Main board game keliling dunia bareng pasangan atau teman, gratis tanpa install. Beli kota romantis, jalani tantangan seru, main online, di satu HP, atau lawan AI.",
+            "image": "https://loveopoly.web.app/og-image.jpg",
+            "inLanguage": "id",
+            "genre": "Board game",
+            "gamePlatform": "Web browser",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Any",
+            "playMode": ["MultiPlayer", "SinglePlayer"],
+            "numberOfPlayers": {
+              "@type": "QuantitativeValue",
+              "minValue": 2,
+              "maxValue": 4
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "IDR"
+            }
+          }
+        ]
+      }
+    </script>
+    <!-- ikon tab & layar utama (sumber: public/icon.svg; PNG dibuat ulang bila SVG berubah) -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Loveopoly" />
+    <meta name="theme-color" content="#FFF0F6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#170F25" media="(prefers-color-scheme: dark)" />
+    <style>
+      :root {
+        color-scheme: light;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      body {
+        margin: 0;
+        font: 14px system-ui;
+      }
+      img {
+        max-width: 100%;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <div class="page-sky" aria-hidden="true"><span class="sky-fx sky-a"></span><span class="sky-fx sky-b"></span></div>
+    <header class="hdr">
+      <a class="brand" href="#" id="brandHome" aria-label="Loveopoly, ke menu utama"
+        ><span class="brand-mark"></span><span class="brand-name">Loveopoly</span></a
+      >
+      <div class="hdr-mid" id="hdrMid"></div>
+      <div class="hdr-right">
+        <button class="icon-btn accent" id="hMenu" type="button" aria-label="Menu" aria-haspopup="dialog"></button>
+      </div>
+    </header>
+    <main>
+      <section class="screen" id="scrHome" aria-label="Menu utama">
+        <div class="empty big">
+          <div class="spinner"></div>
+          Memuat Loveopoly…
+        </div>
+        <noscript
+          ><p class="empty">
+            Loveopoly adalah board game keliling dunia untuk pasangan &amp; teman. Nyalakan JavaScript di browser untuk mulai main.
+          </p></noscript
+        >
+      </section>
+      <section class="screen" id="scrSetup" aria-label="Pengaturan pemain" hidden></section>
+      <section class="screen" id="scrOnline" aria-label="Main online" hidden></section>
+      <section class="screen" id="scrGame" aria-label="Papan permainan" hidden>
+        <div class="game" id="game">
+          <aside class="seat-col left" aria-label="Pemain">
+            <div class="seat" id="slotTL"></div>
+            <div class="seat" id="slotBL"></div>
+          </aside>
+          <div class="board-col">
+            <div class="strip" id="strip" aria-label="Pemain"></div>
+            <div class="board-vp" id="boardVP">
+              <div class="board" id="board"></div>
+              <div class="cam-ctl" id="camCtl" hidden></div>
+              <div class="pickbar" id="pickbar" hidden></div>
+              <div class="emote" id="emote">
+                <div class="emote-pal" id="emotePal" role="group" aria-label="Pilih reaksi" hidden></div>
+                <button
+                  type="button"
+                  class="emote-fab"
+                  id="emoteBtn"
+                  aria-label="Kirim reaksi"
+                  aria-expanded="false"
+                  aria-controls="emotePal"
+                >
+                  <span aria-hidden="true">😊</span>
+                </button>
+              </div>
+            </div>
+            <div class="hud" id="hud"></div>
+          </div>
+          <aside class="seat-col right" aria-label="Pemain">
+            <div class="seat" id="slotTR"></div>
+            <div class="seat" id="slotBR"></div>
+          </aside>
+        </div>
+      </section>
+      <div id="fatal" class="note warn page" hidden></div>
+    </main>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <div class="modal-root" id="modalRoot" hidden></div>
+    <div id="overlayRoot"></div>
+  </body>
+</html>

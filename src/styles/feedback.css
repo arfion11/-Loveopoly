@@ -1,0 +1,424 @@
+/* ---------- toast ---------- */
+.toasts {
+  position: fixed;
+  left: 50%;
+  top: calc(var(--hdr) + env(safe-area-inset-top, 0px) + 10px);
+  z-index: 90;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  width: min(calc(100% - 32px), 420px);
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.35;
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    0 4px 0 var(--line-2),
+    var(--shadow);
+  animation: toastIn 0.45s cubic-bezier(0.3, 1.5, 0.5, 1);
+  pointer-events: auto;
+}
+.toast.out {
+  animation: toastOut 0.3s ease forwards;
+}
+.toast b {
+  display: block;
+  font: 600 14.5px var(--fd);
+}
+.toast .t-ic {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.toast.err .t-ic {
+  background: var(--danger-soft);
+  color: var(--danger-d);
+}
+.toast.good .t-ic {
+  background: var(--mint-soft);
+  color: var(--mint-d);
+}
+.toast.love .t-ic {
+  background: var(--brand);
+  color: #fff;
+}
+@keyframes toastIn {
+  from {
+    transform: translateY(-16px) scale(0.9);
+    opacity: 0;
+  }
+}
+@keyframes toastOut {
+  to {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+.toast.gold .t-ic {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+
+/* ---------- achievement: kartu medali ---------- */
+.medal-art {
+  --mw: 64px;
+  position: relative;
+  display: block;
+  width: var(--mw);
+  aspect-ratio: 80 / 92;
+}
+.ma-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 3px 0 rgba(160, 95, 0, 0.35));
+}
+.ma-ic {
+  position: absolute;
+  left: 50%;
+  top: 41.3%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  color: #8a5200;
+}
+.ma-ic .ic {
+  width: calc(var(--mw) * 0.36);
+  height: calc(var(--mw) * 0.36);
+  stroke-width: 2.3;
+}
+.ach-pop {
+  --bw: 64px;
+  position: relative;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: apIn 0.6s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.ach-pop.out {
+  animation: apOut 0.46s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+.ap-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--bw) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px 14px 14px;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at calc(14px + var(--bw) / 2) 50%, color-mix(in srgb, var(--gold) 30%, transparent), transparent 120px),
+    var(--surface);
+  box-shadow:
+    inset 0 0 0 3px var(--gold),
+    inset 0 0 0 5px color-mix(in srgb, var(--gold-2) 45%, transparent),
+    0 5px 0 var(--gold-d),
+    var(--shadow-lg);
+}
+.ap-badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--bw);
+  perspective: 320px;
+}
+.ap-badge .medal-art {
+  --mw: var(--bw);
+}
+.ap-rays {
+  position: absolute;
+  left: 50%;
+  top: 41%;
+  width: calc(var(--bw) * 2.4);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--gold) 55%, transparent) 0deg 9deg, transparent 9deg 24deg);
+  -webkit-mask: radial-gradient(closest-side, #000 30%, transparent);
+  mask: radial-gradient(closest-side, #000 30%, transparent);
+  animation:
+    apRaysIn 0.7s ease-out backwards,
+    apSpin 9s linear infinite;
+}
+.ap-medal {
+  position: relative;
+  display: block;
+  animation: apMedal 1s cubic-bezier(0.3, 1.3, 0.5, 1) 0.06s backwards;
+}
+.ap-tw {
+  position: absolute;
+  display: grid;
+  color: var(--gold-d);
+  opacity: 0;
+  animation: apTw 1.5s ease-in-out infinite;
+}
+.ap-tw .ic {
+  width: 15px;
+  height: 15px;
+  stroke-width: 2.4;
+}
+.ap-tw.t1 {
+  right: -9px;
+  top: -3px;
+  animation-delay: 0.7s;
+}
+.ap-tw.t2 {
+  left: -9px;
+  bottom: 22%;
+  animation-delay: 1.15s;
+}
+.ap-txt {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ap-kick {
+  font: 700 11.5px/1.2 var(--fd);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+}
+.ap-name {
+  font: 700 21px/1.15 var(--fd);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.ap-desc {
+  font: 600 13.5px/1.35 var(--fb);
+  color: var(--ink-2);
+}
+.ap-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  min-width: 0;
+}
+.ap-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font: 600 12.5px/1.2 var(--fd);
+  color: var(--ink-2);
+}
+.ap-who > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ap-prog {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex: none;
+  font: 700 12px/1 var(--fd);
+  color: var(--gold-ink);
+}
+.ap-prog .meter {
+  width: 60px;
+  height: 8px;
+  flex: none;
+}
+.ap-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 32%, rgba(255, 248, 222, 0.75) 48%, transparent 64%);
+  translate: -115% 0;
+  animation: apShine 1.2s 0.62s ease-in-out forwards;
+}
+.ap-fx {
+  position: absolute;
+  left: calc(14px + var(--bw) / 2);
+  top: calc(50% - 4px);
+  width: 0;
+  height: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.ap-fx i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--w);
+  height: var(--h);
+  margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
+  border-radius: var(--br);
+  background: var(--c);
+  opacity: 0;
+  animation: apConf 1.5s cubic-bezier(0.2, 0.6, 0.35, 1) var(--d) forwards;
+}
+.ap-fly {
+  position: fixed;
+  z-index: 94;
+  pointer-events: none;
+  transform-origin: 50% 45%;
+}
+@keyframes apIn {
+  0% {
+    transform: translateY(-28px) scale(0.86);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(4px) scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes apOut {
+  to {
+    transform: translateY(-16px) scale(0.92);
+    opacity: 0;
+  }
+}
+@keyframes apMedal {
+  0% {
+    transform: scale(0.25) rotateY(-540deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  72% {
+    transform: scale(1.14) rotateY(12deg);
+  }
+  100% {
+    transform: scale(1) rotateY(0deg);
+  }
+}
+@keyframes apRaysIn {
+  from {
+    opacity: 0;
+    scale: 0.3;
+  }
+}
+@keyframes apSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes apTw {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(0deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1) rotate(40deg);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(0.4) rotate(70deg);
+  }
+}
+@keyframes apShine {
+  to {
+    translate: 115% 0;
+  }
+}
+@keyframes apConf {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(0.4);
+  }
+  35% {
+    opacity: 1;
+    transform: translate(calc(var(--dx) * 0.75), var(--dy)) rotate(calc(var(--r) * 0.5)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), calc(var(--dy) + 120px)) rotate(var(--r)) scale(0.9);
+  }
+}
+/* kartu pemain menerima medali */
+.pcard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 3px var(--gold),
+    inset 0 0 26px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.pcard.ach-got::after {
+  animation: achGot 1.1s ease-out;
+}
+.pcard.ach-got .av {
+  animation: achAv 0.75s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes achGot {
+  0% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes achAv {
+  40% {
+    transform: scale(1.22) rotate(-8deg);
+  }
+}
+@media (max-width: 480px) {
+  .ach-pop {
+    --bw: 54px;
+  }
+  .ap-card {
+    gap: 12px;
+    padding: 12px 14px 12px 12px;
+    border-radius: 22px;
+  }
+  .ap-name {
+    font-size: 18.5px;
+  }
+  .ap-desc {
+    font-size: 12.5px;
+  }
+  .ap-prog .meter {
+    width: 44px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .ach-pop {
+    --bw: 50px;
+  }
+  .ap-card {
+    padding: 10px 14px 10px 12px;
+    gap: 12px;
+  }
+  .ap-name {
+    font-size: 18px;
+  }
+  .ap-foot {
+    margin-top: 3px;
+  }
+}

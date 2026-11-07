@@ -1,0 +1,356 @@
+/* ---------- responsif ---------- */
+@media (max-width: 1080px) {
+  .home {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: 0;
+  }
+  .home-art {
+    order: 0;
+  }
+  .hero-scene {
+    max-width: 360px;
+  }
+}
+@media (max-width: 860px) {
+  .setup-grid,
+  .online {
+    grid-template-columns: 1fr;
+  }
+  .g-body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .g-scene {
+    min-height: 270px;
+  }
+  .pf-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  :root {
+    --hdr: 54px;
+  }
+  .brand-name {
+    display: none;
+  }
+  .hdr {
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .home-title {
+    font-size: 58px;
+  }
+  .home-sub {
+    font-size: 15.5px;
+  }
+  .hero-scene {
+    max-width: 280px;
+  }
+  .mode-card .mc-art {
+    width: 56px;
+    height: 56px;
+  }
+  .mode-card b {
+    font-size: 18px;
+  }
+  .mode-card.mc-hero {
+    gap: 14px;
+    padding: 20px 14px 18px 14px;
+  }
+  .mode-card.mc-hero .mc-art {
+    width: 72px;
+    height: 72px;
+  }
+  .mode-card.mc-hero b {
+    font-size: 22px;
+  }
+  .mode-card.mc-hero .mc-txt > span {
+    font-size: 13.5px;
+  }
+  .mc-go {
+    padding: 10px;
+  }
+  .mc-go-t {
+    display: none;
+  }
+  .mode-card.mc-sm {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px;
+  }
+  .mode-card.mc-sm .mc-art {
+    width: 44px;
+    height: 44px;
+  }
+  .mode-card.mc-sm > .ic {
+    display: none;
+  }
+  .modal-root {
+    place-items: end center;
+    padding: 0;
+  }
+  .modal {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 28px 28px 0 0;
+    animation: sheetIn 0.4s cubic-bezier(0.3, 1.2, 0.5, 1);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .modal-root.leaving .modal {
+    animation: sheetOut 0.26s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+  }
+  .modal.wide {
+    width: 100%;
+  }
+  .modal-head {
+    padding: 18px 18px 10px;
+  }
+  .modal-body {
+    padding: 2px 18px 14px;
+  }
+  .modal-foot {
+    padding: 12px 18px 16px;
+  }
+  .modal-foot .btn {
+    flex: 1 1 auto;
+  }
+  .modal-foot .grow {
+    display: none;
+  }
+  .ch-art {
+    width: 76px;
+    height: 76px;
+  }
+  .ch-name {
+    font-size: 22px;
+  }
+  .lv-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .spot-table {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .menu-grid > .btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    min-height: 64px;
+    flex-direction: row;
+  }
+  .g-card {
+    border-radius: 26px;
+  }
+  .g-top {
+    padding: 12px 12px 4px 16px;
+  }
+  .g-body {
+    padding: 6px 14px 4px;
+  }
+  .g-scene {
+    min-height: 240px;
+  }
+  .g-nav {
+    padding: 10px 14px 14px;
+  }
+  .g-nav #gPrev span {
+    display: none;
+  }
+  .g-nav #gPrev {
+    padding: 0 12px;
+  }
+  .g-dots {
+    gap: 3px;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+  .g-dots button {
+    width: 6px;
+    height: 6px;
+    flex: none;
+  }
+  .g-dots button[aria-current='true'] {
+    width: 14px;
+  }
+  .sc-win .g-merpi {
+    display: none;
+  }
+  .g-wrow {
+    right: 6%;
+  }
+  .g-text h2 {
+    font-size: 24px;
+  }
+  .g-pts li {
+    font-size: 14.5px;
+  }
+  .g-merpi-say .gm {
+    width: 52px;
+    height: 52px;
+  }
+  .g-tile.lg {
+    width: 110px;
+    height: 140px;
+  }
+  .g-tile.lg .gt-art {
+    width: 78px;
+    height: 78px;
+  }
+  .sc-spots .g-row {
+    gap: 6px;
+  }
+  .g-spot {
+    width: 50px;
+    height: 50px;
+    padding: 6px;
+  }
+  .tour-card {
+    padding-left: 80px;
+  }
+  .tour-merpi {
+    width: 70px;
+    height: 70px;
+  }
+  .win-stage {
+    width: 200px;
+  }
+  .banner {
+    top: 34%;
+  }
+  .bn-art {
+    width: 50px;
+    height: 50px;
+  }
+}
+@keyframes sheetIn {
+  from {
+    transform: translateY(60%);
+  }
+}
+@media (pointer: coarse) {
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .hdr-mid .cam-btn {
+    min-height: 44px;
+  }
+  .brand-mark {
+    width: 44px;
+    height: 44px;
+  }
+}
+/* layar penyiapan: tombol Mulai selalu terlihat */
+.setup-foot.sticky-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 14px 0 calc(18px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+.setup-foot.sticky-cta > * {
+  pointer-events: auto;
+}
+@media (max-width: 860px) {
+  .setup-foot.sticky-cta {
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
+    background: linear-gradient(180deg, transparent, var(--bg) 34%);
+    pointer-events: auto;
+  }
+  .setup-foot.sticky-cta .btn.go {
+    width: 100%;
+    max-width: 420px;
+  }
+}
+@media (max-width: 374px) {
+  .g-dots button {
+    width: 6px;
+    height: 6px;
+  }
+  .g-dots button[aria-current='true'] {
+    width: 15px;
+  }
+}
+/* HP mendatar yang pendek (iPhone SE/8): panel aksi harus muat tanpa scroll */
+@media (max-height: 420px) and (orientation: landscape) {
+  .game.layout-land .hud .stage {
+    padding: 8px 10px 10px;
+    gap: 4px 8px;
+  }
+  .game.layout-land .hud .merpi-btn {
+    width: 44px;
+  }
+  .game.layout-land .hud .die-slot {
+    --s: 34px;
+  }
+  .game.layout-land .hud .dice-tray {
+    padding: 3px 0;
+    gap: 10px;
+  }
+  .game.layout-land .hud .btn.go {
+    min-height: 46px;
+    font-size: 17px;
+  }
+  .game.layout-land .hud .aim button {
+    min-height: 38px;
+    padding: 2px;
+  }
+  .game.layout-land .hud .isle-opts {
+    gap: 6px;
+  }
+  .game.layout-land .hud .isle-opts .btn {
+    min-height: 36px;
+    font-size: 13px;
+    padding: 0 10px;
+  }
+  .game.layout-land .hud .cam-ctl {
+    margin-bottom: 6px;
+  }
+  .game.layout-land .hud .turn-line {
+    font-size: 13px;
+  }
+  .game.layout-land .hud .sum-badge {
+    font-size: 12px;
+  }
+}
+@media (max-height: 340px) and (orientation: landscape) {
+  .game.layout-land .hud .cam-ctl {
+    display: none;
+  }
+  .game.layout-land .hud .merpi-btn {
+    width: 38px;
+  }
+}
+@media (max-height: 600px) and (orientation: landscape) {
+  :root {
+    --hdr: 46px;
+  }
+  .hdr {
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+  }
+  .icon-btn .ic {
+    width: 19px;
+    height: 19px;
+  }
+  .brand-mark,
+  .brand-mark .merpi {
+    width: 34px;
+    height: 34px;
+  }
+  .brand-name {
+    font-size: 19px;
+  }
+}

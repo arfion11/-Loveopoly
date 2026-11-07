@@ -1,60 +1,69 @@
 # Loveopoly 💕
 
-Board game keliling dunia untuk pasangan LDR. Beli kota romantis, bangun sampai landmark, adakan festival, lalu menangkan lewat monopoli warna, jalur penuh, atau tempat wisata. Bisa main berdua di satu perangkat, lawan AI, atau online dengan kode room.
+Board game keliling dunia untuk pasangan & teman. Beli kota romantis, bangun sampai landmark, adakan festival, lalu menangkan lewat Trio Warna, Raja Jalur, atau Kolektor Wisata. Bisa main bareng di satu perangkat, lawan AI, atau online dengan kode room. Main di **https://loveopoly.web.app**.
 
-Seluruh game dibangun menjadi **satu file HTML** (`dist/index.html`) yang dihosting gratis di **Firebase Hosting**. Mode online memakai Firestore + login anonim + Realtime Database (paket Spark, tanpa kartu kredit). Tidak ada framework atau bundler; pustaka luar hanya SDK Firebase (dimuat saat menu online dibuka).
+JS biasa (ES modules, tanpa framework UI) yang dibangun **Vite** dan dihosting gratis di **Firebase Hosting**. Mode online memakai Firestore + login anonim + Realtime Database (paket Spark). Pustaka luar di browser hanya SDK Firebase (dimuat saat menu online dibuka).
 
 ## Mulai cepat
 
-Butuh **Node.js 20+**. Python tidak diperlukan.
+Butuh **Node.js 22+** (Java 11+ hanya untuk uji emulator Firebase).
 
 ```bash
-npm install          # Playwright, firebase-tools & alat uji
+npm install          # Vite, ESLint, Prettier, TypeScript, Playwright, firebase-tools
 npm run setup        # unduh Chromium untuk Playwright (sekali saja)
-npm run dev          # build + pratinjau di http://localhost:5173 (rebuild & reload otomatis)
+npm run dev          # pratinjau di http://localhost:5173 (muat ulang otomatis)
 ```
-
-Tanpa server: jalankan `npm run build`, lalu buka `dist/index.html` di browser (mode online butuh `src/firebase-config.js` terisi).
 
 ## Perintah
 
 | Perintah | Fungsi |
 | --- | --- |
-| `npm run build` | Gabungkan `src/` → `dist/index.html` (di-deploy) + `dist/test.html` (salinan untuk uji) |
-| `npm run dev` | Pratinjau lokal, build ulang & reload otomatis saat `src/` berubah |
+| `npm run dev` | Server pengembangan Vite (muat ulang otomatis) |
+| `npm run build` | Build produksi ke `dist/` (JS, CSS & font bernama hash, source map) |
+| `npm run preview` | Sajikan hasil build secara lokal |
+| `npm run check` | Lint (ESLint) + cek format (Prettier) + cek tipe engine (TypeScript `checkJs`) |
+| `npm run lint:fix` / `npm run format` | Perbaiki temuan lint / rapikan format otomatis |
 | `npm test` | Build + semua uji (berhenti di uji pertama yang gagal) |
-| `npm run test:sim` | 200 game AI vs AI + cek invariant engine (tanpa browser, ±15 detik) |
-| `npm run test:flows` | 49 skenario alur di browser (beli, bangun, tol, festival, World Tour, pulau, kartu, panduan) |
-| `npm run test:online` | Host & tamu di dua tab dengan mock database (room, aksi, keamanan, reconnect) |
+| `npm run test:sim` | 200 game AI vs AI + cek invariant & aturan engine (tanpa browser) |
+| `npm run test:flows` | 81 skenario alur di browser (beli, bangun, tol, festival, World Tour, pulau, kartu, tantangan, panduan) |
+| `npm run test:online` | Online 2 & 3 tab dengan mock database (room, aksi, keamanan, reconnect, voting, tebak serentak) |
 | `npm run test:ui` | Monkey test desktop, HP tegak & HP mendatar (klik acak, harus 0 error) |
-| `npm run test:rules` | Aturan keamanan Firestore & RTDB di Firebase Emulator (butuh Java 11+) |
-| `npm run test:backend` | Adapter `src/backend.js` sungguhan terhadap emulator (auth, dokumen, lease host, presence) |
+| `npm run test:a11y` | axe-core WCAG 2.1 AA di layar & dialog utama, terang/gelap, desktop/HP |
+| `npm run test:migrate` | Pindah data dari alamat lama ke alamat baru |
+| `npm run test:rules` | Aturan keamanan Firestore & RTDB di Firebase Emulator |
+| `npm run test:backend` | Adapter `src/net/backend.js` terhadap emulator (auth, dokumen, lease host, presence) |
+| `npm run og-image` | Buat ulang gambar pratinjau tautan `public/og-image.jpg` (setelah build) |
+| `npm run deploy:preview` | Build + kanal pratinjau Firebase (alamat sementara 7 hari) |
 | `npm run deploy` | Build + deploy hosting & aturan ke project Firebase |
 
-Screenshot hasil uji tersimpan di `test/out/` (diabaikan git).
+Screenshot hasil uji tersimpan di `test/out/` (diabaikan git). CI GitHub Actions (`.github/workflows/ci.yml`) menjalankan `check`, build, dan semua uji di setiap push ke `main` & pull request.
 
 ## Struktur
 
 ```
+index.html               halaman (tag SEO & ikon di <head>), memuat src/main.js
 src/
-  index.html     templat halaman (penanda /*FONTS*/, /*STYLE*/, //SCRIPTS)
-  style.css      semua gaya (token tema terang/gelap, papan 3D, HUD, modal)
-  data.js        papan 32 petak, grup warna, kartu cinta, tantangan, teks Merpi
-  engine.js      aturan murni: create(), dispatch(state, action) -> { ok, state }
-  ai.js          AI easy / normal / hard
-  icons.js art.js audio.js   ikon, ilustrasi SVG orisinal, suara (Web Audio)
-  ui-core.js     tata letak, papan & kamera 3D, pion, dadu, animasi, alur giliran
-  ui-modals.js   dialog beli/bangun/tol, portofolio, pengaturan
-  firebase-config.js  config web Firebase (publik; keamanan di aturan)
-  backend.js     adapter Firebase: LoveBackend.use('db' | 'user' | 'room')
-  net.js         mode online (host-authoritative di atas Firestore)
-  guide.js       Buku Panduan bergambar
-  ui-screens.js  beranda, setup pemain, lobby online, tur pertama
-fonts/           Fredoka & Nunito (SIL OFL), disematkan saat build
-test/            sim.js, flows.js, online.js, ui.js, rules.js, backend.js, smoke.js
+  main.js                titik masuk: gaya, modul, kait uji window.Love*, start()
+  engine/                aturan murni & deterministik (jalan di browser & Node)
+    data.js              papan 32 petak, grup warna, kartu cinta, tantangan, teks Merpi
+    engine.js            API E: create(), dispatch(state, action) -> { ok, state | error }
+    rules/*.js           bagian engine: tol, gerak, tantangan, giliran, handler aksi, dispatch
+    ai.js                AI easy / normal / hard
+    types.js             tipe JSDoc (GameState, Action, DispatchResult)
+  assets/                icons.js, art.js (ilustrasi SVG orisinal), audio.js (Web Audio), fonts/
+  ui/
+    ns.js                registri UI untuk panggilan antarlapisan
+    core.js + core/      state aplikasi, tata letak, papan & kamera 3D, pion, Merpi, alur giliran
+    modals.js + modals/  dialog keputusan, tantangan, info, menu & pengaturan
+    screens.js + screens/  beranda, paspor, setup, lobi online, game, layar menang, tur
+    guide.js             Buku Panduan bergambar
+  net/                   firebase-config.js, backend.js (adapter Firebase), net.js (online host-authoritative)
+  styles/                index.css + bagian-bagian (token tema, papan, modal, …; urutan = kaskade)
+public/                  disalin apa adanya: ikon, og-image.jpg, robots.txt, sitemap.xml
+test/                    uji (sim, flows, online, ui, a11y, migrate, rules, backend, smoke) + helpers/
+tools/og-image.mjs       pembuat gambar pratinjau tautan
+legacy/                  halaman pengalih alamat lama
 firestore.rules database.rules.json firebase.json   aturan & konfigurasi Firebase
-tools/serve.mjs  server pratinjau lokal
-build.mjs        skrip build
 ```
 
 ## Mode online
@@ -75,7 +84,7 @@ Host memvalidasi setiap aksi dengan engine. Dokumen disimpan sebagai JSON di fie
 2. **Build → Authentication → Get started → Sign-in method → Anonymous → Enable**.
 3. **Build → Firestore Database → Create database** → lokasi `asia-southeast2` (Jakarta) → mode produksi.
 4. **Build → Realtime Database → Create database** → lokasi `asia-southeast1` (Singapura) → mode terkunci.
-5. **Project settings → Your apps → Web (`</>`)** → daftarkan app → salin `firebaseConfig` ke `src/firebase-config.js`
+5. **Project settings → Your apps → Web (`</>`)** → daftarkan app → salin `firebaseConfig` ke `src/net/firebase-config.js`
    (termasuk `databaseURL`).
 6. Di terminal: `npx firebase login`, lalu tambahkan project ke `.firebaserc` sebagai alias `prod`.
 

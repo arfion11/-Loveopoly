@@ -1,0 +1,24 @@
+/* Gaya Loveopoly. Urutan impor = urutan kaskade (jangan diubah sembarangan). */
+@import './fonts.css';
+@import './tokens.css'; /* token warna & tema terang/gelap */
+@import './base.css'; /* dasar, header, tombol 3D, chip, avatar, form */
+@import './screens.css'; /* layar beranda, setup & online */
+@import './game-layout.css'; /* tata letak permainan, kartu pemain, kabar, reaksi emoji */
+@import './board.css'; /* papan, kamera 3D, petak */
+@import './board-cards.css'; /* papan 3D: kartu pop-up berdiri, tengah papan, tumpukan kartu */
+@import './mascot.css'; /* Merpi besar, panggung, dadu */
+@import './pieces-hud.css'; /* pion, efek papan, banner/peek/pickbar, HUD ponsel */
+@import './feedback.css'; /* toast & kartu medali achievement */
+@import './modal.css'; /* dialog, animasi tutup, kartu 3D */
+@import './challenges.css'; /* tantangan terbukti, foto bukti, kartu ingat */
+@import './overlays.css'; /* jeda, layar menang, tur */
+@import './guide.css'; /* Buku Panduan */
+@import './responsive.css'; /* penyesuaian ukuran layar */
+@import './reduced-motion.css'; /* gerak dikurangi */
+@import './mascot-panel.css'; /* Merpi besar menggantikan Merpi kecil di panel */
+@import './passport.css'; /* Paspor Cinta & kartu paspor di beranda */
+@import './privacy-menu.css'; /* privasi, kartu Lanjutkan di HP, sakelar suara */
+@import './draw.css'; /* undian giliran */
+@import './passport-cover.css'; /* sampul & bagian dalam paspor */
+@import './globe.css'; /* globe & Merpi hidup */
+@import './ambience.css'; /* suasana Kabar Merpi & Musim Puncak */

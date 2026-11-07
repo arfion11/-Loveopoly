@@ -1,0 +1,64 @@
+# CI Loveopoly: jalan di setiap push ke main & pull request.
+# Gagal bila lint/format/tipe salah, build gagal, atau ada uji yang tidak lulus.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Lint, tipe, build & uji browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint, format & cek tipe
+        run: npm run check
+      - run: npm run build
+      - name: Pasang Chromium untuk Playwright
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:sim
+      - run: npm run test:flows
+      - run: npm run test:online
+      - run: npm run test:migrate
+      - run: npm run test:a11y
+      - run: npm run test:ui
+      - name: Simpan screenshot uji bila gagal
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-uji
+          path: test/out/
+          retention-days: 7
+
+  firebase:
+    name: Aturan keamanan & backend (Firebase Emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build
+      - name: Pasang Chromium untuk Playwright
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:rules
+      - run: npm run test:backend

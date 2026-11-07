@@ -1,0 +1,46 @@
+/* ---------- Merpi besar menggantikan Merpi kecil di panel (kamera 3D & ponsel) ----------
+   panel tanpa kolom Merpi; gelembung kata pindah ke #boardVP dan mengikuti kepala Merpi besar */
+.game.v3d .hud .st-merpi,
+.game.v3d.layout-wide .hud .st-merpi,
+.game.layout-compact .hud .st-merpi,
+.game.layout-land .hud .st-merpi {
+  display: none;
+}
+.game.v3d .hud .stage,
+.game.layout-compact .hud .stage {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'tick tick' 'turn dice' 'acts acts';
+}
+.game.layout-land .hud .stage,
+.game.v3d.layout-land .hud .stage,
+.game.v3d.layout-wide .hud .stage {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'turn' 'dice' 'acts';
+}
+.game.layout-land .hud .turn-line,
+.game.v3d.layout-wide .hud .turn-line {
+  justify-self: center;
+}
+#boardVP > .bubble.ms-say {
+  position: absolute;
+  z-index: 16;
+  left: 0;
+  top: 0;
+  translate: 0 -100%;
+  width: max-content;
+  max-width: min(260px, calc(100% - 16px));
+  padding: 8px 13px;
+  font-size: 14px;
+  box-shadow:
+    inset 0 0 0 2px var(--line),
+    0 4px 0 var(--line),
+    var(--shadow);
+}
+.game.layout-compact #boardVP > .bubble.ms-say,
+.game.layout-land #boardVP > .bubble.ms-say {
+  max-width: min(220px, calc(100% - 16px));
+  font-size: 12.5px;
+  line-height: 1.25;
+  padding: 6px 10px;
+  border-radius: 14px 14px 14px 5px;
+}

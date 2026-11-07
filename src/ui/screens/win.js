@@ -1,0 +1,339 @@
+/* LOVEOPOLY — layar › layar menang (dikumpulkan lewat src/ui/screens.js) */
+import { Icons } from '../../assets/icons.js';
+import { Net } from '../../net/net.js';
+import { App, D, E, SND, ART, fmt, esc, ic, $, coin, avatarHTML } from '../core.js';
+import { UI } from '../ns.js';
+import { recordPassport } from './passport.js';
+import { enterGame, exitToHome } from './game.js';
+
+// ---------- layar menang ----------
+let confettiStop = null;
+function confetti(canvas) {
+  if (UI.reduceMotion()) return () => {};
+  const ctx = canvas.getContext('2d');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const resize = () => {
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+  };
+  resize();
+  const cols = ['#FF4F8B', '#FFD93D', '#3DDBD9', '#B79CFF', '#FF9F43', '#7BCF5D'];
+  const parts = Array.from({ length: 180 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -Math.random() * canvas.height * 0.8,
+    vx: (Math.random() - 0.5) * 2 * dpr,
+    vy: (2 + Math.random() * 3) * dpr,
+    r: (5 + Math.random() * 7) * dpr,
+    a: Math.random() * 6.28,
+    va: (Math.random() - 0.5) * 0.2,
+    c: cols[Math.floor(Math.random() * cols.length)],
+    heart: Math.random() < 0.35,
+  }));
+  let raf = 0;
+  const t0 = performance.now();
+  const heart = (x, y, s) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y + s * 0.3);
+    ctx.bezierCurveTo(x, y, x - s * 0.5, y, x - s * 0.5, y + s * 0.3);
+    ctx.bezierCurveTo(x - s * 0.5, y + s * 0.6, x, y + s * 0.8, x, y + s);
+    ctx.bezierCurveTo(x, y + s * 0.8, x + s * 0.5, y + s * 0.6, x + s * 0.5, y + s * 0.3);
+    ctx.bezierCurveTo(x + s * 0.5, y, x, y, x, y + s * 0.3);
+    ctx.fill();
+  };
+  const tick = now => {
+    const el = (now - t0) / 1000;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    parts.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.a += p.va;
+      if (p.y > canvas.height + 20 && el < 4.5) {
+        p.y = -20;
+        p.x = Math.random() * canvas.width;
+      }
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.a);
+      ctx.fillStyle = p.c;
+      if (p.heart) heart(0, -p.r / 2, p.r * 1.4);
+      else ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2);
+      ctx.restore();
+    });
+    if (el < 9) raf = requestAnimationFrame(tick);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+  raf = requestAnimationFrame(tick);
+  addEventListener('resize', resize);
+  return () => {
+    cancelAnimationFrame(raf);
+    removeEventListener('resize', resize);
+  };
+}
+function showWin() {
+  try {
+    recordPassport(App.S);
+  } catch (e) {
+    /* abaikan */
+  }
+  const S = App.S;
+  if (!S || !S.over) return;
+  UI.closeModal(true);
+  UI.endPick(true);
+  const root = $('#overlayRoot');
+  if ($('#winOv')) return;
+  const tw = $('#toasts');
+  if (tw) tw.innerHTML = '';
+  const bn = $('#boardVP .banner');
+  if (bn) bn.remove();
+  const o = S.over,
+    w = S.players[o.winner];
+  const instant = o.reason === 'triple' || o.reason === 'line' || o.reason === 'spots';
+  const reason =
+    {
+      bankrupt: 'Semua lawan bangkrut',
+      rounds: 'Aset terbesar saat batas ronde',
+      manual: 'Aset terbesar saat permainan diakhiri',
+      resign: 'Lawan menyerah',
+      triple: 'Trio Warna: menguasai 3 grup warna',
+      line: 'Raja Jalur: menguasai seluruh ' + (o.detail ? E.sideName(o.detail.side) : 'jalur'),
+      spots: 'Kolektor Wisata: menguasai 5 tempat wisata',
+    }[o.reason] || '';
+  // pesan romantis dari Paspor Cinta: milik pemenang, atau pemain lain yang menulisnya; game lama: settings.winMessage
+  const author = w.msg ? w : S.players.find(p => p.msg && !p.bankrupt) || S.players.find(p => p.msg);
+  const msg = author ? author.msg : S.settings.winMessage || D.WIN_MESSAGES[S.seed % D.WIN_MESSAGES.length];
+  const rows = o.ranking
+    .map((i, k) => {
+      const p = S.players[i];
+      return (
+        '<div class="rank-row' +
+        (k === 0 ? ' first' : '') +
+        '" style="--c:' +
+        p.color +
+        '"><span class="rk">' +
+        (k + 1) +
+        '</span>' +
+        avatarHTML(p, 'sm') +
+        '<span class="rk-name"><b>' +
+        esc(p.name) +
+        '</b><small>' +
+        esc(o.titles[i] || '') +
+        (p.bankrupt ? ' · bangkrut ronde ' + p.stats.bankruptRound : '') +
+        '</small></span><span class="rk-worth">' +
+        coin +
+        fmt(o.worth ? o.worth[i] : E.netWorth(S, i)) +
+        '</span></div>'
+      );
+    })
+    .join('');
+  const statRows = S.players
+    .map(
+      p =>
+        '<tr><td>' +
+        esc(p.avatar + ' ' + p.name) +
+        '</td><td>' +
+        E.ownedBy(S, p.i).length +
+        '</td><td>' +
+        p.stats.landmarks +
+        '</td><td>' +
+        fmt(p.stats.tollIn) +
+        '</td><td>' +
+        p.stats.takeovers +
+        '</td><td>' +
+        p.stats.challenges +
+        '</td><td>' +
+        p.love +
+        '</td></tr>'
+    )
+    .join('');
+  const ach = S.players
+    .map(
+      p =>
+        '<div><b>' +
+        esc(p.avatar + ' ' + p.name) +
+        '</b><div class="ach-list">' +
+        (p.achievements.length
+          ? p.achievements
+              .map(
+                id => '<span class="ach">' + ic(E.ACH[id].icon in Icons.paths ? E.ACH[id].icon : 'trophy') + esc(E.ACH[id].name) + '</span>'
+              )
+              .join('')
+          : '<span class="tiny muted">Belum ada achievement.</span>') +
+        '</div></div>'
+    )
+    .join('');
+  const letters = S.letters.length
+    ? '<div class="letters">' +
+      S.letters
+        .slice()
+        .reverse()
+        .map(
+          l =>
+            '<div class="letter"><span class="from">' +
+            ic('letter') +
+            ' Dari ' +
+            esc(S.players[l.p].name) +
+            ' · ronde ' +
+            l.r +
+            '</span>' +
+            esc(l.text) +
+            '</div>'
+        )
+        .join('') +
+      '</div>'
+    : '<div class="empty">' + ic('letter') + 'Belum ada surat cinta di permainan ini.</div>';
+  const proofsPanel = S => {
+    const ph = S.photos || [],
+      pr = S.proofs || [];
+    if (!ph.length && !pr.length) return '';
+    return (
+      '<div class="panel stack"><h3>' +
+      ic('polaroid') +
+      'Bukti tantangan</h3>' +
+      (ph.length
+        ? '<div class="proof-grid">' +
+          ph
+            .slice()
+            .reverse()
+            .map(
+              x =>
+                '<figure class="proof-photo' +
+                (x.ok ? '' : ' no') +
+                '"><img src="' +
+                UI.safeImg(x.img) +
+                '" alt="Foto bukti ' +
+                esc(S.players[x.p].name) +
+                '"><figcaption><span class="pc-who"><b>' +
+                esc(S.players[x.p].name) +
+                '</b> · ronde ' +
+                x.r +
+                '</span><span class="' +
+                (x.ok ? 'ok' : 'bad') +
+                '">' +
+                (x.ok ? 'Disahkan' : 'Ditolak') +
+                '</span></figcaption></figure>'
+            )
+            .join('') +
+          '</div>'
+        : '') +
+      (pr.length
+        ? '<ul class="proof-list">' +
+          pr
+            .slice()
+            .reverse()
+            .slice(0, 10)
+            .map(
+              x =>
+                '<li class="' +
+                (x.ok ? 'ok' : 'bad') +
+                '">' +
+                ic(x.ok ? 'check' : 'x') +
+                '<span><b>' +
+                esc(S.players[x.p].name) +
+                '</b> · ' +
+                esc(x.label) +
+                '<small>' +
+                esc(x.proof) +
+                '</small></span></li>'
+            )
+            .join('') +
+          '</ul>'
+        : '') +
+      '</div>'
+    );
+  };
+  const el = document.createElement('div');
+  el.className = 'win';
+  el.id = 'winOv';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-labelledby', 'winName');
+  el.innerHTML =
+    '<canvas id="confetti" aria-hidden="true"></canvas><div class="win-card">' +
+    '<div class="win-hero"><div class="eyebrow">' +
+    (instant ? 'Menang instan' : 'Pemenang') +
+    ' · ronde ' +
+    o.round +
+    '</div>' +
+    '<div class="win-stage"><span class="rays" aria-hidden="true"></span><span class="win-merpi">' +
+    ART.merpi('is-love') +
+    '</span><div class="win-av">' +
+    avatarHTML(w, 'xl') +
+    '<span class="win-crown">' +
+    ic('crown') +
+    '</span></div></div>' +
+    '<div class="win-name" id="winName">' +
+    esc(w.name) +
+    '</div><div class="win-title">' +
+    esc(o.titles[o.winner] || 'Juragan Cinta') +
+    '</div><div class="win-reason">' +
+    esc(reason) +
+    '</div>' +
+    '<p class="win-msg" id="winMsg">“' +
+    esc(msg) +
+    '”' +
+    (author ? '<span class="win-msg-by">' + esc(author.name) + '</span>' : '') +
+    '</p></div>' +
+    '<div class="panel"><h3>' +
+    ic('trophy') +
+    'Peringkat</h3><div class="rank-list">' +
+    rows +
+    '</div></div>' +
+    '<div class="panel"><h3>' +
+    ic('level') +
+    'Statistik</h3><div class="stats-wrap" tabindex="0" role="region" aria-label="Tabel statistik (bisa digulir)"><table class="stats"><thead><tr><th>Pemain</th><th>Kota</th><th>Landmark</th><th>Tol masuk</th><th>Ambil alih</th><th>Tantangan</th><th>Love</th></tr></thead><tbody>' +
+    statRows +
+    '</tbody></table></div></div>' +
+    '<div class="panel stack"><h3>' +
+    ic('sparkle') +
+    'Achievement</h3>' +
+    ach +
+    '</div>' +
+    '<div class="panel stack"><h3>' +
+    ic('letter') +
+    'Surat cinta selama permainan</h3>' +
+    letters +
+    '</div>' +
+    proofsPanel(S) +
+    '<div class="setup-foot"><button type="button" class="btn ghost" id="wBoard">' +
+    ic('map') +
+    '<span>Lihat Papan</span></button>' +
+    (App.mode === 'online' && !Net.isHost()
+      ? ''
+      : '<button type="button" class="btn soft" id="wAgain">' + ic('refresh') + '<span>Main Lagi</span></button>') +
+    '<button type="button" class="btn primary" id="wHome">' +
+    ic('home') +
+    '<span>Menu Utama</span></button></div>' +
+    '</div>';
+  root.appendChild(el);
+  SND.play('win');
+  confettiStop = confetti($('#confetti'));
+  $('#wBoard').onclick = () => {
+    if (confettiStop) confettiStop();
+    UI.leave(el, 320);
+  };
+  $('#wHome').onclick = () => {
+    if (confettiStop) confettiStop();
+    exitToHome();
+  };
+  const again = $('#wAgain');
+  if (again)
+    again.onclick = () => {
+      if (confettiStop) confettiStop();
+      if (App.mode === 'online') {
+        Net.startGame();
+        return;
+      }
+      const ns = E.create({
+        players: S.players.map(p => ({ name: p.name, avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai, msg: p.msg })),
+        settings: S.settings,
+        first: 'random',
+      });
+      enterGame('local', -1, ns);
+    };
+  setTimeout(() => {
+    const b = $('#wHome');
+    if (b) b.focus({ preventScroll: true });
+  }, 60);
+}
+
+export { showWin };

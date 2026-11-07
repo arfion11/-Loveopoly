@@ -3,27 +3,81 @@
     {
       "target": "main",
       "public": "dist",
-      "ignore": ["test.html", "**/.*"],
+      "ignore": ["**/.*"],
       "headers": [
-        { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-        { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+        {
+          "source": "/assets/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        },
+        {
+          "source": "/",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        },
+        {
+          "source": "/index.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
       ]
     },
     {
       "target": "legacy",
       "public": "legacy",
       "ignore": ["**/.*"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
-      "headers": [{ "source": "**", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }]
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ]
     }
   ],
-  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json", "location": "asia-southeast2" },
-  "database": { "rules": "database.rules.json" },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json",
+    "location": "asia-southeast2"
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
   "emulators": {
-    "auth": { "port": 9099 },
-    "firestore": { "port": 8080 },
-    "database": { "port": 9000 },
-    "ui": { "enabled": false },
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "database": {
+      "port": 9000
+    },
+    "ui": {
+      "enabled": false
+    },
     "singleProjectMode": true
   }
 }

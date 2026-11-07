@@ -1,13 +1,14 @@
-// Gambar pratinjau tautan (Open Graph, 1200×630) -> assets/og-image.jpg
-// Memakai seni & font asli game dari dist/test.html (jalankan npm run build dulu).
-//   node tools/og-image.mjs
+// Gambar pratinjau tautan (Open Graph, 1200×630) -> public/og-image.jpg
+// Memakai seni & font asli game dari hasil build (jalankan npm run build dulu).
+//   npm run og-image
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { serveDist } from '../test/helpers/serve.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const icon = readFileSync(join(root, 'assets', 'icon.svg'), 'utf8');
+const icon = readFileSync(join(root, 'public', 'icon.svg'), 'utf8');
 
 const CSS = `
 html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
@@ -28,33 +29,64 @@ p { margin: 0; font: 600 25px/1.4 Nunito, sans-serif; color: #6B4A78; }
 .og-t svg { width: 100%; height: 100%; }
 `;
 const TILES = [
-  ['paris', '#FF9EC4', 44, 64, '-8deg'], ['kyoto', '#FFB27A', 300, 44, '7deg'], ['santorini', '#8FC3FF', 352, 250, '-5deg'],
-  ['bali', '#7FD9B8', 296, 448, '8deg'], ['swiss', '#B79CFF', 58, 456, '-7deg'], ['seoul', '#FFD36E', 0, 262, '6deg'],
+  ['paris', '#FF9EC4', 44, 64, '-8deg'],
+  ['kyoto', '#FFB27A', 300, 44, '7deg'],
+  ['santorini', '#8FC3FF', 352, 250, '-5deg'],
+  ['bali', '#7FD9B8', 296, 448, '8deg'],
+  ['swiss', '#B79CFF', 58, 456, '-7deg'],
+  ['seoul', '#FFD36E', 0, 262, '6deg'],
 ];
 
 const browser = await chromium.launch();
-const page = await (await browser.newContext({ viewport: { width: 1200, height: 630 }, colorScheme: 'light', reducedMotion: 'reduce' })).newPage();
-await page.addInitScript(() => { localStorage.setItem('loveopoly.v1.profile', '{"skipped":true}'); localStorage.setItem('loveopoly.v1.prefs', '{"sound":false}'); });
-await page.goto(pathToFileURL(join(root, 'dist', 'test.html')).href);
+const page = await (
+  await browser.newContext({ viewport: { width: 1200, height: 630 }, colorScheme: 'light', reducedMotion: 'reduce' })
+).newPage();
+await page.addInitScript(() => {
+  localStorage.setItem('loveopoly.v1.profile', '{"skipped":true}');
+  localStorage.setItem('loveopoly.v1.prefs', '{"sound":false}');
+});
+const srv = await serveDist();
+await page.goto(srv.url + '/');
 await page.waitForFunction(() => window.LoveArt && document.fonts.status === 'loaded');
-await page.evaluate(([css, icon, tiles]) => {
-  const A = window.LoveArt;
-  // CSS & font game ada di <style> dalam <body> (templat build): pindahkan ke <head> sebelum body diganti
-  document.querySelectorAll('body style').forEach(s => document.head.appendChild(s));
-  document.head.insertAdjacentHTML('beforeend', '<style>' + css + '</style>');
-  document.body.className = '';
-  document.body.innerHTML = '<div id="og"><div class="og-l">' +
-    '<div class="og-brand">' + icon + 'Loveopoly</div>' +
-    '<h1>Keliling dunia bareng pasangan &amp; teman</h1>' +
-    '<p>Board game online gratis: beli kota romantis, jalani tantangan seru, dan menangkan hatinya.</p>' +
-    '<div class="og-chips"><span>Gratis</span><span>Tanpa install</span><span>Online · Satu HP · Lawan AI</span></div></div>' +
-    '<div class="og-r">' + tiles.map(([a, c, x, y, r]) => '<span class="og-t" style="--c:' + c + ';--r:' + r + ';left:' + x + 'px;top:' + y + 'px">' + A.art(a) + '</span>').join('') +
-    '<span class="og-merpi">' + A.merpi('is-happy') + '</span></div>' +
-    '<div class="og-url">loveopoly.web.app</div></div>';
-}, [CSS, icon, TILES]);
-await page.evaluate(async () => { await Promise.all(['700 56px Fredoka', '600 50px Fredoka', '600 25px Nunito', '700 21px Nunito'].map(f => document.fonts.load(f))); await document.fonts.ready; });
-if (!(await page.evaluate(() => ['Fredoka', 'Nunito'].every(n => [...document.fonts].some(f => f.family.replace(/["']/g, '') === n && f.status === 'loaded'))))) throw new Error('font game belum termuat');
+await page.evaluate(
+  ([css, icon, tiles]) => {
+    const A = window.LoveArt;
+    document.head.insertAdjacentHTML('beforeend', '<style>' + css + '</style>');
+    document.body.className = '';
+    document.body.innerHTML =
+      '<div id="og"><div class="og-l">' +
+      '<div class="og-brand">' +
+      icon +
+      'Loveopoly</div>' +
+      '<h1>Keliling dunia bareng pasangan &amp; teman</h1>' +
+      '<p>Board game online gratis: beli kota romantis, jalani tantangan seru, dan menangkan hatinya.</p>' +
+      '<div class="og-chips"><span>Gratis</span><span>Tanpa install</span><span>Online · Satu HP · Lawan AI</span></div></div>' +
+      '<div class="og-r">' +
+      tiles
+        .map(
+          ([a, c, x, y, r]) =>
+            '<span class="og-t" style="--c:' + c + ';--r:' + r + ';left:' + x + 'px;top:' + y + 'px">' + A.art(a) + '</span>'
+        )
+        .join('') +
+      '<span class="og-merpi">' +
+      A.merpi('is-happy') +
+      '</span></div>' +
+      '<div class="og-url">loveopoly.web.app</div></div>';
+  },
+  [CSS, icon, TILES]
+);
+await page.evaluate(async () => {
+  await Promise.all(['700 56px Fredoka', '600 50px Fredoka', '600 25px Nunito', '700 21px Nunito'].map(f => document.fonts.load(f)));
+  await document.fonts.ready;
+});
+if (
+  !(await page.evaluate(() =>
+    ['Fredoka', 'Nunito'].every(n => [...document.fonts].some(f => f.family.replace(/["']/g, '') === n && f.status === 'loaded'))
+  ))
+)
+  throw new Error('font game belum termuat');
 await page.waitForTimeout(300);
-await page.screenshot({ path: join(root, 'assets', 'og-image.jpg'), type: 'jpeg', quality: 90 });
+await page.screenshot({ path: join(root, 'public', 'og-image.jpg'), type: 'jpeg', quality: 90 });
 await browser.close();
-console.log('assets/og-image.jpg (1200×630)');
+srv.close();
+console.log('public/og-image.jpg (1200×630)');

@@ -227,7 +227,8 @@
         this.roomUnsubs.push(this.named.onConnection(c => { this.connected = c; UI.renderHeader(); }, () => {}));
       } catch (e) { this.named = null; }
     },
-    isOnline(uid) { if (!this.named) return null; return this.onlineUids.has(uid); },
+    // presence RTDB opsional: belum/tidak tersambung (mis. batas koneksi paket gratis penuh) = tidak diketahui, bukan offline
+    isOnline(uid) { if (!this.named || !this.connected) return null; return this.onlineUids.has(uid); },
     presenceChip(i) {
       const s = this.doc && this.doc.seats[i];
       if (!s) return '';
@@ -246,7 +247,7 @@
       return '<span class="online-dot' + (on ? ' on' : '') + '" title="' + (on ? 'Online' : 'Offline') + '"></span>';
     },
     chipHTML() {
-      const live = this.named ? this.connected : (Date.now() - this.lastSync < 20000);
+      const live = (this.named && this.connected) || (Date.now() - this.lastSync < 20000);
       return '<span class="chip ' + (live ? 'mint' : 'plain') + ' net-chip" title="Room online">' + ic('globe') + '<span class="mono">' + esc(this.code) + '</span>' + (this.isHost() ? '<span class="host-tag"> · host</span>' : '') + (this.sending ? ' · mengirim…' : '') + '</span>';
     },
 

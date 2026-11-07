@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://loveopoly.web.app/sitemap.xml

@@ -12,13 +12,16 @@ body {
   background: var(--bg);
   color: var(--ink);
   font: 500 15px/1.5 var(--fb);
-  min-height: 100dvh;
+  /* <html> sudah diberi padding jarak aman atas/bawah (index.html); tanpa dikurangi, dokumen jadi lebih tinggi
+     dari layar di aplikasi terpasang (iPhone: ±93 px) dan bisa tergulir */
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
 }
+/* layar game pas satu layar & tidak pernah tergulir: kalau tergulir, kartu pemain masuk ke bawah header yang menempel */
 body.in-game {
   overflow: hidden;
-  height: 100dvh;
+  height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
 }
 button {
   font: inherit;

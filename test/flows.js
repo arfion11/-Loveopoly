@@ -1068,6 +1068,58 @@ const URL = (await serveDist()).url + '/';
     JSON.stringify(inst).slice(0, 160)
   );
 
+  // Aplikasi terpasang di iPhone (jarak aman atas/bawah): layar game pas satu layar, tidak tergulir, kartu pemain
+  // tidak masuk ke bawah header (pernah: dokumen 93 px lebih tinggi dari layar → bisa tergulir)
+  {
+    const sctx = await browser.newContext({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+    const sp = await sctx.newPage();
+    sp.on('pageerror', e => errors.push('iphone pageerror: ' + e.message));
+    await sp.addInitScript(() => {
+      localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast', autoEnd: false }));
+      localStorage.setItem('loveopoly.v2.tour', '"done"');
+      localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true }));
+    });
+    const scdp = await sctx.newCDPSession(sp);
+    const insetOk = await scdp
+      .send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 59, bottom: 34, left: 0, right: 0 } })
+      .then(() => true)
+      .catch(() => false);
+    await sp.goto(URL);
+    await sp.evaluate(() => {
+      const E = window.LoveEngine;
+      const S = E.create({
+        players: [
+          { name: 'Arfi', avatar: '🐻', color: '#FF4F8B' },
+          { name: 'Bot Rindu', avatar: '🐰', color: '#7B61FF', kind: 'ai' },
+          { name: 'Bot Manis', avatar: '🦊', color: '#FF8A3D', kind: 'ai' },
+          { name: 'Bot Ceria', avatar: '🐱', color: '#FFC93C', kind: 'ai' },
+        ],
+        settings: { debug: true, roundLimit: 15 },
+        seed: 21,
+      });
+      window.LoveUI.enterGame('local', -1, S);
+    });
+    await sp.waitForTimeout(1500);
+    await sp.evaluate(() => window.scrollTo(0, 80));
+    await sp.waitForTimeout(150);
+    const lay = await sp.evaluate(() => {
+      const card = document.querySelector('#strip .pcard, #strip > *');
+      return {
+        inset: getComputedStyle(document.documentElement).paddingTop,
+        extra: document.documentElement.scrollHeight - innerHeight,
+        scrollY: Math.round(scrollY),
+        hdr: Math.round(document.querySelector('.hdr').getBoundingClientRect().bottom),
+        card: card ? Math.round(card.getBoundingClientRect().top) : null,
+      };
+    });
+    ok(
+      'iPhone terpasang: layar game tidak tergulir, kartu pemain di bawah header',
+      insetOk && lay.inset === '59px' && lay.extra <= 0 && lay.scrollY === 0 && lay.card !== null && lay.card >= lay.hdr,
+      JSON.stringify(lay)
+    );
+    await sctx.close();
+  }
+
   console.log(results.join('\n'));
   const fails = results.filter(r => r.startsWith('FAIL')).length;
   console.log(

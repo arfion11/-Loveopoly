@@ -15,6 +15,21 @@ function show(id) {
   }
   window.scrollTo(0, 0);
 }
+// Layar game tidak pernah digulir. iOS (aplikasi terpasang) tetap bisa menggeser dokumen, mis. saat keyboard muncul
+// atau sapuan jari, lalu membiarkannya tergeser: kartu pemain tertutup header. Kembalikan ke atas begitu tidak ada
+// kolom yang sedang diketik (saat mengetik, biarkan iOS menggeser supaya kolomnya terlihat).
+function keepGameTop() {
+  const typing = () => {
+    const a = document.activeElement;
+    return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable);
+  };
+  const fix = () => {
+    if (document.body.classList.contains('in-game') && (window.scrollY || window.scrollX) && !typing()) window.scrollTo(0, 0);
+  };
+  window.addEventListener('scroll', fix, { passive: true });
+  document.addEventListener('focusout', () => setTimeout(fix, 300));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(fix, 300));
+}
 function savePrefs() {
   store.set(KEYS.prefs, App.prefs);
 }
@@ -44,4 +59,4 @@ const seg = (name, opts, val) =>
   '</div>';
 const validSave = s => s && s.S && s.S.v === 2 && !s.S.over && Array.isArray(s.S.tiles) && s.S.tiles.length === TILES.length;
 
-export { applyTheme, savePrefs, seg, show, syncSoundBtn, toggleSound, validSave };
+export { applyTheme, keepGameTop, savePrefs, seg, show, syncSoundBtn, toggleSound, validSave };

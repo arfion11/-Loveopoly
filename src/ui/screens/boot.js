@@ -3,7 +3,7 @@ import { Icons } from '../../assets/icons.js';
 import { reportError } from '../../analytics.js';
 import { App, SND, ART, ic, $, toast } from '../core.js';
 import { UI } from '../ns.js';
-import { applyTheme, show, syncSoundBtn } from './base.js';
+import { applyTheme, keepGameTop, show, syncSoundBtn } from './base.js';
 import { openPassport, passport } from './passport.js';
 import { renderHome } from './home.js';
 
@@ -23,6 +23,7 @@ function bindHeader() {
 }
 function boot() {
   document.documentElement.lang = 'id';
+  keepGameTop();
   // tata letak papan memakai container query (iOS 16+, Chrome/Edge 105+, Firefox 110+)
   const modern = !!(window.CSS && CSS.supports && CSS.supports('container-type: inline-size'));
   if (!modern)

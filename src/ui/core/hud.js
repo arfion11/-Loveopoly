@@ -53,7 +53,8 @@ function playerCardHTML(S, p, compact) {
   const cities = E.citiesOf(S, p.i).length,
     spots = E.spotsOf(S, p.i).length;
   const nw = E.netWorth(S, p.i);
-  const active = p.i === S.turn.p && !S.over;
+  // selama papan muncul & undian giliran (App.revealing), siapa yang jalan duluan dirahasiakan
+  const active = p.i === S.turn.p && !S.over && !App.revealing;
   const tags = [];
   if (p.bankrupt) tags.push('<span class="tag warn">' + ic('alert') + 'Bangkrut</span>');
   if (p.island) tags.push('<span class="tag sea">' + ic('island') + 'Pulau Rindu</span>');
@@ -295,7 +296,7 @@ document.addEventListener('click', e => {
   if (e.target.closest && e.target.closest('[data-news]')) showNewsToast();
 });
 function logCardHTML(S) {
-  const items = S.log
+  const items = visibleLog(S)
     .slice(-6)
     .reverse()
     .map(
@@ -334,7 +335,9 @@ function renderStage(S) {
     tl,
     S.over
       ? '<span class="tl-txt">' + ic('trophy') + ' Permainan selesai</span>'
-      : avatarHTML(cur, 'xs') +
+      : App.revealing
+        ? '<span class="tl-txt">' + ic('dice') + ' Mengundi giliran…</span>'
+        : avatarHTML(cur, 'xs') +
           '<span class="tl-txt"><span class="tl-w">Giliran </span><b>' +
           esc(cur.name) +
           '</b></span>' +
@@ -354,9 +357,9 @@ function renderStage(S) {
               '</span>'
             : '')
   );
-  tl.classList.toggle('has-tag', !S.over && !!cur.island);
+  tl.classList.toggle('has-tag', !S.over && !App.revealing && !!cur.island);
   const tkey = S.over ? 'over' : S.turn.p + ':' + S.round;
-  if (App.turnKey !== tkey) {
+  if (App.turnKey !== tkey && !App.revealing) {
     const fresh = !!App.turnKey;
     App.turnKey = tkey;
     App.aim = null;
@@ -399,6 +402,8 @@ function renderStage(S) {
     nh = 'Permainan dijeda.';
     ah = btn('cResume', 'primary big', 'play', 'Lanjutkan');
     binds.push(['cResume', () => UI.togglePause()]);
+  } else if (App.revealing) {
+    nh = 'Papan disiapkan, sebentar lagi undian siapa yang jalan duluan…';
   } else if (App.animating) {
     nh = dots;
   } else {
@@ -525,10 +530,15 @@ function renderStage(S) {
   }
   renderTicker(S);
 }
+// selama undian giliran belum terungkap (App.revealing), entri "Undian giliran: … jalan duluan" disembunyikan
+function visibleLog(S) {
+  return App.revealing ? S.log.filter(l => !/^Undian giliran:/.test(l.text)) : S.log;
+}
 function renderTicker(S) {
   const el = $('#ticker');
   if (!el || !S) return;
-  const l = S.log[S.log.length - 1];
+  const log = visibleLog(S);
+  const l = log[log.length - 1];
   if (!l) {
     setHTML(el, '');
     return;

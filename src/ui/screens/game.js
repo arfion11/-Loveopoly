@@ -22,6 +22,43 @@ function closeDraw() {
     f();
   }
 }
+// jalankan cb saat papan sudah (hampir) selesai muncul: undian/tur tidak menutupi papan yang sedang berdiri, tapi juga
+// tidak membuat menunggu. Undian mulai saat sebagian besar kartu berdiri (INTRO_MS) atau begitu kelas .enter dilepas.
+// Ketukan di area game / Enter / Spasi / Esc melewati sisa animasi (ketukan itu tidak diteruskan ke petak).
+const INTRO_MS = 1150;
+function afterBoardIntro(cb) {
+  const b = $('#board'),
+    game = $('#game');
+  if (!b || !b.classList.contains('enter')) return void setTimeout(cb, 50);
+  let done = false;
+  const skipTap = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    go();
+  };
+  const skipKey = e => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+      e.preventDefault();
+      go();
+    }
+  };
+  const go = () => {
+    if (done) return;
+    done = true;
+    mo.disconnect();
+    clearTimeout(t);
+    if (game) game.removeEventListener('click', skipTap, true);
+    document.removeEventListener('keydown', skipKey, true);
+    cb();
+  };
+  const mo = new MutationObserver(() => {
+    if (!b.classList.contains('enter')) go();
+  });
+  mo.observe(b, { attributes: true, attributeFilter: ['class'] });
+  const t = setTimeout(go, INTRO_MS);
+  if (game) game.addEventListener('click', skipTap, true);
+  document.addEventListener('keydown', skipKey, true);
+}
 function drawReveal(S) {
   return new Promise(resolve => {
     closeDraw();
@@ -94,7 +131,7 @@ function drawReveal(S) {
           ).join('')
         );
       SND.play('fanfare');
-      closing = setTimeout(close, rm ? 2600 : 2400);
+      closing = setTimeout(close, rm ? 1800 : 1600);
     };
     const close = () => {
       clearTimeout(timer);
@@ -113,9 +150,13 @@ function drawReveal(S) {
       );
     };
     drawEnd = resolve;
+    // "Lewati" cukup sekali: hasil sempat terlihat sebentar, lalu langsung main (Merpi juga mengumumkan siapa duluan)
     go.onclick = () => {
-      if (!done) finish();
-      else close();
+      if (!done) {
+        finish();
+        clearTimeout(closing);
+        closing = setTimeout(close, rm ? 300 : 650);
+      } else close();
     };
     setTimeout(() => {
       try {
@@ -165,6 +206,8 @@ function enterGame(mode, seat, S) {
   UI.clearFx();
   App.S = S;
   App.shown = S;
+  // game baru dengan undian: rahasiakan siapa jalan duluan sejak gambar pertama (sampai undian selesai)
+  App.revealing = !S.over && S.seq === 0 && S.log.some(l => /^Undian giliran:/.test(l.text));
   App.pending = [];
   App.animating = false;
   App.focus = -1;
@@ -208,24 +251,27 @@ function enterGame(mode, seat, S) {
   const gid = (App.gameId = (App.gameId || 0) + 1);
   afterSettle();
   if (drawn) {
-    setTimeout(
-      () => {
+    afterBoardIntro(() => {
+      if (App.gameId !== gid) return;
+      drawReveal(S).then(() => {
         if (App.gameId !== gid) return;
-        drawReveal(S).then(() => {
-          if (App.gameId !== gid) return;
-          App.revealing = false;
-          UI.merpiSay(S.players[S.start || 0].name + ' jalan duluan~ Semangat!', 'happy', 2400);
-          if (App.tourPending) setTimeout(startTour, UI.reduceMotion() ? 50 : 350);
-          else {
-            UI.renderStage();
-            UI.scheduleAI();
-          }
-        });
-      },
-      UI.reduceMotion() ? 50 : 450
-    );
+        App.revealing = false;
+        // giliran baru terungkap: sorotan pemain, pion & tombol aksi muncul sekarang
+        UI.renderPlayers(App.S);
+        UI.renderTokens(App.S);
+        UI.renderStage(App.S);
+        UI.renderTicker(App.S);
+        UI.merpiSay(S.players[S.start || 0].name + ' jalan duluan~ Semangat!', 'happy', 2400);
+        if (App.tourPending) setTimeout(startTour, UI.reduceMotion() ? 50 : 350);
+        else UI.scheduleAI();
+      });
+    });
   } else {
-    if (!S.over) setTimeout(startTour, UI.reduceMotion() ? 50 : 1300);
+    // tur hanya untuk perangkat yang belum pernah; tanpa tur tidak ada yang menunggu intro (ketukan ke petak langsung jalan)
+    if (App.tourPending)
+      afterBoardIntro(() => {
+        if (App.gameId === gid) startTour();
+      });
     setTimeout(() => {
       if (App.gameId === gid && !App.tour) UI.merpiSay(UI.pick(D.MERPI.hello), 'happy', 2600);
     }, 700);

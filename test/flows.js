@@ -788,7 +788,30 @@ const URL = (await serveDist()).url + '/';
     } while (S.turn.p !== 1);
     window.LoveUI.enterGame('local', -1, S);
   });
+  const tIntro = Date.now();
+  // papan muncul dulu (pop-up), siapa yang jalan duluan masih rahasia; undian baru tampil saat kartu sudah berdiri
+  await page.waitForTimeout(250);
+  const intro = await page.evaluate(() => ({
+    draw: !!document.getElementById('drawOv'),
+    enter: document.getElementById('board').classList.contains('enter'),
+    turn: (document.getElementById('turnLine') || {}).textContent || '',
+    active: document.querySelectorAll('.pcard.active, .token.me').length,
+    roll: !!document.getElementById('cRoll'),
+    news: [...document.querySelectorAll('#ticker, .log-card')].map(e => e.textContent).join(' '),
+  }));
+  ok(
+    'undian menunggu papan selesai muncul; giliran dirahasiakan',
+    !intro.draw &&
+      intro.enter &&
+      /Mengundi giliran/.test(intro.turn) &&
+      intro.active === 0 &&
+      !intro.roll &&
+      !/Undian giliran/.test(intro.news),
+    JSON.stringify(intro)
+  );
   await page.waitForSelector('#drawOv', { timeout: 4000 });
+  const tDraw = Date.now() - tIntro;
+  ok('undian tampil saat kartu papan sudah berdiri (±1 dtk), tidak langsung', tDraw >= 1000 && tDraw < 2600, tDraw + ' ms');
   const dr0 = await page.evaluate(() => ({ tour: !!document.getElementById('tourOv'), seq: window.LoveUI.App.S.seq }));
   await page.waitForSelector('#drawOv.dw-done', { timeout: 8000 });
   const dr1 = await page.evaluate(() => ({
@@ -849,6 +872,39 @@ const URL = (await serveDist()).url + '/';
     await page.evaluate(() =>
       JSON.stringify({ r: window.LoveUI.App.S.round, t: window.LoveUI.App.S.turn.p, rev: window.LoveUI.App.revealing })
     )
+  );
+  // pemain terburu-buru: ketuk papan saat masih muncul → langsung undian (ketukan tidak membuka info petak),
+  // sekali "Lewati" → langsung main
+  await page.evaluate(() => {
+    const E = window.LoveEngine;
+    let S,
+      sd = 1;
+    do {
+      S = E.create({
+        players: [
+          { name: 'Arfi', avatar: '🐻' },
+          { name: 'Nadia', avatar: '🐰' },
+        ],
+        settings: { debug: true },
+        seed: sd++,
+        first: 'random',
+      });
+    } while (S.turn.p !== 0);
+    window.LoveUI.enterGame('local', -1, S);
+  });
+  const tq0 = Date.now();
+  await page.waitForTimeout(200);
+  await page.$eval('#board .tile', e => e.click());
+  await page.waitForSelector('#drawOv', { timeout: 3000 });
+  const tqDraw = Date.now() - tq0;
+  const tqModal = !!(await page.$('#modalRoot:not([hidden]) .modal'));
+  await page.$eval('#drawGo', e => e.click());
+  await page.waitForSelector('#cRoll', { timeout: 5000 }).catch(() => {});
+  const tqRoll = Date.now() - tq0;
+  ok(
+    'undian cepat: ketuk papan saat muncul → undian, sekali Lewati → bisa melempar',
+    tqDraw < 1000 && !tqModal && !!(await page.$('#cRoll')) && tqRoll < 3500,
+    JSON.stringify({ undian: tqDraw, infoPetak: tqModal, lempar: tqRoll })
   );
 
   // 26. Paspor Cinta: muncul saat pertama kali, terbit, mengisi Pemain 1, mencatat hasil game

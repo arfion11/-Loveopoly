@@ -164,7 +164,7 @@ function renderTokens(S) {
     placeToken(p.i, p.pos);
     el.classList.toggle('out', !!p.bankrupt);
     el.classList.toggle('island', !!p.island);
-    el.classList.toggle('me', !S.over && p.i === S.turn.p);
+    el.classList.toggle('me', !S.over && !App.revealing && p.i === S.turn.p);
     el.style.zIndex = p.i === a ? 4 : p.i === S.turn.p ? 3 : 1;
   });
 }

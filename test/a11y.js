@@ -141,9 +141,10 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
         });
         window.LoveUI.enterGame('local', -1, S);
       });
-      await p.waitForSelector('#drawOv.dw-done', { timeout: 6000 });
+      await p.waitForSelector('#drawOv.dw-done', { timeout: 9000 });
       await audit(p, tag + ' undian giliran', '#drawOv');
-      await p.$eval('#drawGo', e => e.click());
+      // undian menutup sendiri ±1,6 dtk setelah hasil; tombol bisa sudah hilang
+      await p.$eval('#drawGo', e => e.click()).catch(() => {});
       await p.waitForSelector('#drawOv', { state: 'detached' });
       await newGame(
         p,

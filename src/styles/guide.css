@@ -156,9 +156,12 @@
   width: 26px;
   background: var(--brand);
 }
+/* adegan = size container: animasi yang berpindah tempat memakai cqw/cqh (relatif ukuran adegan), bukan px tetap,
+   supaya di HP (adegan lebih kecil) tidak kelewat keluar adegan */
 .sc {
   position: absolute;
   inset: 0;
+  container-type: size;
   --oc: #ff4f8b;
 }
 .g-tile {
@@ -805,14 +808,15 @@
   22% {
     opacity: 1;
   }
+  /* koin (18px, kiri 30%, atas 36%) masuk ke avatar pemilik kota (kanan 10%, atas 12%) */
   34% {
     opacity: 1;
-    transform: translate(150px, -110px);
+    transform: translate(calc(60cqw - 25px), calc(-24cqh + 7px));
   }
   36%,
   100% {
     opacity: 0;
-    transform: translate(150px, -110px);
+    transform: translate(calc(60cqw - 25px), calc(-24cqh + 7px));
   }
 }
 .g-toll {
@@ -1073,6 +1077,7 @@
 }
 .g-flyer {
   position: absolute;
+  z-index: 2;
   left: 8%;
   top: 62%;
   animation: gFly 4s cubic-bezier(0.45, 0, 0.3, 1) infinite;
@@ -1098,17 +1103,18 @@
   width: 20px;
   height: 20px;
 }
+/* pion (36px, kiri 8%, atas 62%) terbang melengkung lalu mendarat tepat di kartu tujuan (64px, kanan 6%, atas 52%) */
 @keyframes gFly {
   0%,
   10% {
     transform: translate(0, 0);
   }
   45% {
-    transform: translate(140px, -140px) scale(1.25);
+    transform: translate(calc(43cqw - 25px), -36cqh) scale(1.25);
   }
   80%,
   100% {
-    transform: translate(300px, -10px) scale(1);
+    transform: translate(calc(86cqw - 50px), calc(-10cqh + 4px)) scale(1);
   }
 }
 .sc-tour .g-tile.dest {

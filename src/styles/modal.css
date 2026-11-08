@@ -611,35 +611,24 @@
 .love-card .lc-front {
   border-radius: 24px;
 }
-/* kartu fisik 3D: muka depan (z 0), tepi tebal (lapisan tengah) & punggung (diputar 180°) dalam satu ruang 3D.
-   .love-card tidak boleh overflow:hidden (membuat isinya datar); kemiringan pointer lewat transform,
-   balikan lewat properti rotate/translate supaya keduanya tidak bentrok */
+/* kartu: muka depan + punggung bertumpuk di SATU bidang. Balikan kartu = 2D (menyempit ke 0 lalu melebar, punggung
+   berganti muka tepat di tengah), bukan ruang 3D rotateY + backface: Safari iOS meratakan 3D di dalam dialog
+   ber-overflow & sudut membulat, sehingga putaran tidak terlihat dan punggung bisa menutupi muka.
+   Kemiringan pointer (desktop) lewat transform; balikan lewat properti scale/translate supaya tidak bentrok */
 .lc-inner {
   position: relative;
-  transform-style: preserve-3d;
   transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .lc-inner.tilting {
   transition-duration: 0.12s;
 }
-.lc-inner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 24px;
-  background: var(--lb);
-  transform: translateZ(-4px);
-}
-.love-card .lc-front,
-.love-card .lc-back {
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
 .love-card .lc-back {
   position: absolute;
   inset: 0;
-  transform: translateZ(-8px) rotateY(180deg);
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
 }
 .love-card .lc-back svg.art {
   width: 104px;
@@ -693,12 +682,16 @@
     inset 0 0 0 11px var(--lr),
     0 6px 0 var(--lb);
 }
-/* kartu dibuka: punggung menghadap dulu, terangkat ke arah layar sambil berputar, lalu mendarat menghadap depan.
-   Angkatan kecil (< padding .modal-body) supaya tidak memunculkan scrollbar sesaat */
+/* kartu dibuka: punggung tampil dulu, kartu terangkat sambil "berbalik" (menyempit ke 0, muka depan muncul, melebar),
+   lalu mendarat. Waktu pergantian punggung → muka (lcBack*) = titik scale x 0 pada balikan kartu */
 .love-card.flip .lc-inner {
   animation: lcFlip 1.1s ease-in-out backwards;
 }
-.modal.still .love-card .lc-inner {
+.love-card.flip .lc-back {
+  animation: lcBackFlip 1.1s linear backwards;
+}
+.modal.still .love-card .lc-inner,
+.modal.still .love-card .lc-back {
   animation: none;
 }
 /* kartu sedang terbang ke sini: tunggu tersembunyi, lalu dibalik langsung dari punggung (tanpa awalan) */
@@ -707,42 +700,73 @@
   visibility: hidden;
   animation-play-state: paused;
 }
+.love-card.await .lc-back {
+  animation-play-state: paused;
+}
 .love-card.flown .lc-inner {
   animation: lcLand 0.8s ease-in-out backwards;
 }
+.love-card.flown .lc-back {
+  animation: lcBackLand 0.8s linear backwards;
+}
 @keyframes lcLand {
   0% {
-    rotate: y 180deg;
+    scale: 1 1;
+    translate: 0 0;
   }
-  65% {
-    rotate: y -10deg;
-    translate: 0 -4px 16px;
+  45% {
+    scale: 0 1.04;
+    translate: 0 -6px;
+  }
+  78% {
+    scale: 1.04 1;
+    translate: 0 -4px;
   }
   100% {
-    rotate: y 0deg;
-    translate: 0 0 0;
+    scale: 1 1;
+    translate: 0 0;
+  }
+}
+@keyframes lcBackLand {
+  0%,
+  44.9% {
+    opacity: 1;
+  }
+  45%,
+  100% {
+    opacity: 0;
   }
 }
 @keyframes lcFlip {
   0% {
-    rotate: y 180deg;
-    translate: 0 10px 0;
-    scale: 0.9;
+    scale: 0.9 0.9;
+    translate: 0 10px;
   }
-  30% {
-    rotate: y 165deg;
-    translate: 0 0 0;
-    scale: 0.96;
+  25% {
+    scale: 0.96 0.96;
+    translate: 0 0;
   }
-  78% {
-    rotate: y -10deg;
-    translate: 0 -4px 16px;
-    scale: 1;
+  55% {
+    scale: 0 1.02;
+    translate: 0 -6px;
+  }
+  82% {
+    scale: 1.04 1;
+    translate: 0 -4px;
   }
   100% {
-    rotate: y 0deg;
-    translate: 0 0 0;
-    scale: 1;
+    scale: 1 1;
+    translate: 0 0;
+  }
+}
+@keyframes lcBackFlip {
+  0%,
+  54.9% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
   }
 }
 .lc-cat {

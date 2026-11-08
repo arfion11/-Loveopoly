@@ -36,14 +36,14 @@ body[data-amb='rain'] .ctr-amb {
     repeating-linear-gradient(105deg, transparent 0 16px, color-mix(in srgb, #6f86b8 20%, transparent) 16px 17.5px),
     radial-gradient(110% 85% at 50% 0%, color-mix(in srgb, #6f86b8 40%, transparent), transparent 72%);
 }
-.page-sky::after {
+.page-sky::before {
   content: '';
   position: absolute;
   inset: 0;
   opacity: 0;
   transition: opacity 1.2s ease;
 }
-body[data-amb]:not(.amb-leave) .page-sky::after {
+body[data-amb]:not(.amb-leave) .page-sky::before {
   opacity: 1;
 }
 /* efek di sekitar Merpi: tetap di dalam kotak .ms-stand (elemen 3D) */
@@ -217,7 +217,7 @@ body.amb-peak .ms-peak {
 }
 @media (prefers-reduced-motion: reduce) {
   .ctr-amb,
-  .page-sky::after,
+  .page-sky::before,
   .ms-fx,
   .ms-orbit,
   .ms-peak {
@@ -226,13 +226,15 @@ body.amb-peak .ms-peak {
 }
 
 /* ---------- suasana seluruh ruangan (layar game) ----------
-   ::after = semburat warna (diam). .sky-a / .sky-b = dua lapisan pola SVG yang hanya bergerak saat ada Kabar Merpi
-   atau Musim Puncak (transform/opacity saja: dikerjakan GPU, ringan di HP). Tanpa suasana / reduced motion = diam.
+   ::before = semburat warna (diam, di BAWAH pola: ikut digambar di lapisan .page-sky, bukan lapisan GPU seukuran layar
+   sendiri). .sky-a / .sky-b = dua lapisan pola SVG yang hanya bergerak saat ada Kabar Merpi atau Musim Puncak
+   (transform/opacity saja: dikerjakan GPU, ringan di HP; jangan beri filter blur, efek lembut taruh di dalam SVG).
+   Tanpa suasana / reduced motion = diam.
    Lapisan dibuat lebih besar satu ubin ke arah gerak, lalu digeser tepat satu ubin → berulang mulus. */
-body[data-amb] .page-sky::after {
+body[data-amb] .page-sky::before {
   background: linear-gradient(180deg, color-mix(in srgb, var(--amb) 30%, transparent), color-mix(in srgb, var(--amb) 12%, transparent) 70%);
 }
-body[data-amb='peak'] .page-sky::after {
+body[data-amb='peak'] .page-sky::before {
   background:
     radial-gradient(120% 70% at 50% 110%, color-mix(in srgb, #ff8a3d 40%, transparent), transparent 70%),
     linear-gradient(180deg, color-mix(in srgb, #ffc93c 22%, transparent), transparent 60%);
@@ -341,13 +343,10 @@ body[data-amb='love'] .sky-a {
 }
 body[data-amb='love'] .sky-b {
   inset: 0 0 -80px 0;
-  background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E');
+  background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cfilter id=%22b%22%3E%3CfeGaussianBlur stdDeviation=%22.7%22/%3E%3C/filter%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22 filter=%22url(%23b)%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E');
   background-size: 80px 80px;
   background-position: 40px 30px;
   animation: skyUp80 11s linear infinite;
-}
-body[data-amb='love'] .sky-b {
-  filter: blur(0.5px);
 }
 @keyframes skyUp120 {
   to {
@@ -386,7 +385,7 @@ body[data-amb='peak'] .sky-b {
   .sky-fx {
     transition: none;
   }
-  .page-sky::after {
+  .page-sky::before {
     transition: none;
   }
 }

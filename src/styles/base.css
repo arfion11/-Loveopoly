@@ -95,6 +95,9 @@ svg.art {
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  /* lapisan suasana yang bergerak (lebih besar satu ubin) dipotong di tepi layar: batas gambarnya pasti */
+  overflow: hidden;
+  contain: strict;
   background:
     radial-gradient(70% 60% at 0% 0%, color-mix(in srgb, var(--brand-soft) 85%, transparent), transparent 70%),
     radial-gradient(65% 55% at 100% 100%, color-mix(in srgb, var(--bg-2) 95%, transparent), transparent 72%), var(--bg);
@@ -132,9 +135,9 @@ svg.art {
   align-items: center;
   gap: 12px;
   padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  /* tanpa backdrop-filter: blur di atas latar suasana yang bergerak dihitung ulang tiap frame & di sebagian GPU
+     (layar besar, Chrome/Safari) header bisa berkedip hitam/hilang. Latar hampir pekat sudah cukup. */
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
   border-bottom: 1px solid var(--line);
 }
 body::before {

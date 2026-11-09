@@ -1,0 +1,194 @@
+/* LOVEOPOLY — progres Paspor Cinta (murni: tanpa DOM & tanpa impor; diuji test/progress.js, dipakai screens/passport.js)
+   - Api Cinta: rekor minggu beruntun main (minggu lokal Senin–Minggu). Satu minggu tercatat saat game mencapai ronde 3
+     atau selesai. Versi mingguan, bukan harian: pasangan tidak dikejar-kejar tiap hari.
+   - Payung Rindu: pelindung otomatis minggu yang bolong. Didapat 1 tiap 4 minggu beruntun, disimpan maks 2.
+   - Jam Terbang: XP & level (gelar). Hanya progres di paspor, tidak memengaruhi permainan (keadilan kursi tetap).
+   - Lencana seumur hidup bertingkat Perunggu / Perak / Emas. */
+
+const DAY = 864e5;
+const UMB_MAX = 2;
+const UMB_EVERY = 4;
+const int = v => (Number.isFinite(+v) ? Math.max(0, Math.floor(+v)) : 0);
+
+// Nomor minggu lokal (Senin = awal minggu). Tanggal lokal → hari sejak 1 Jan 1970 lewat Date.UTC, jadi jam musim
+// panas / zona waktu tidak menggeser hari. 1 Jan 1970 = Kamis → +3 supaya pergantian minggu jatuh tiap Senin.
+function weekNo(ms) {
+  const d = new Date(ms);
+  return Math.floor((Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY) + 3) / 7);
+}
+// sisa hari minggu ini termasuk hari ini: Senin 7 … Minggu 1
+function daysLeft(ms) {
+  const g = new Date(ms).getDay();
+  return g === 0 ? 1 : 8 - g;
+}
+// hari kalender penuh di antara dua waktu (tanggal lokal)
+function daysBetween(a, b) {
+  const da = new Date(a),
+    db = new Date(b);
+  return Math.round(
+    (Date.UTC(db.getFullYear(), db.getMonth(), db.getDate()) - Date.UTC(da.getFullYear(), da.getMonth(), da.getDate())) / DAY
+  );
+}
+
+function normWeek(wk) {
+  const o = wk && typeof wk === 'object' ? wk : {};
+  const n = int(o.n);
+  return { last: int(o.last), n, best: Math.max(int(o.best), n), umb: Math.min(UMB_MAX, int(o.umb)) };
+}
+// Keadaan Api Cinta pada minggu w, tanpa mengubah data:
+// none (belum pernah) · done (minggu ini sudah) · due (minggu lalu main, minggu ini belum) ·
+// umb (ada minggu bolong, Payung cukup menutupinya bila main minggu ini) · out (padam)
+function streakView(wk, w) {
+  const s = normWeek(wk);
+  const base = { best: s.best, umb: s.umb, need: 0, prev: 0 };
+  if (!s.n) return Object.assign(base, { n: 0, state: 'none' });
+  const missed = w - s.last - 1;
+  if (missed < 0) return Object.assign(base, { n: s.n, state: 'done' }); // minggu ini (atau jam perangkat mundur)
+  if (missed === 0) return Object.assign(base, { n: s.n, state: 'due' });
+  if (missed <= s.umb) return Object.assign(base, { n: s.n, state: 'umb', need: missed });
+  return Object.assign(base, { n: 0, state: 'out', prev: s.n });
+}
+// Catat "main di minggu w". ev = null bila minggu ini sudah tercatat (atau jam mundur), selain itu kejadian untuk UI:
+// start (pertama) · up (+1) · saved (Payung menutup minggu bolong) · restart (padam, mulai lagi dari 1)
+function markWeek(wk, w) {
+  const s = normWeek(wk);
+  if (s.n && w <= s.last) return { wk: s, ev: null };
+  const prev = s.n;
+  let kind,
+    used = 0;
+  if (!s.n) {
+    s.n = 1;
+    kind = 'start';
+  } else {
+    const missed = w - s.last - 1;
+    if (missed <= 0) {
+      s.n++;
+      kind = 'up';
+    } else if (missed <= s.umb) {
+      s.umb -= missed;
+      used = missed;
+      s.n++;
+      kind = 'saved';
+    } else {
+      s.n = 1;
+      kind = 'restart';
+    }
+  }
+  s.last = w;
+  let earned = 0;
+  if (s.n % UMB_EVERY === 0 && s.umb < UMB_MAX) {
+    s.umb++;
+    earned = 1;
+  }
+  s.best = Math.max(s.best, s.n);
+  return { wk: s, ev: { kind, n: s.n, prev, used, earned, umb: s.umb, best: s.best } };
+}
+
+// ---------- Jam Terbang (XP & level) ----------
+const XP = { game: 20, win: 30, challenge: 5, stamp: 5, week: 10 };
+const RANKS = [
+  'Penumpang Baru',
+  'Turis Cinta',
+  'Backpacker Rindu',
+  'Penjelajah Hati',
+  'Pilot Kangen',
+  'Kapten Romansa',
+  'Duta Cinta',
+  'Legenda Dunia',
+];
+// XP minimal untuk level L: 0, 60, 180, 360, 600, 900, 1260, 1680, … (tiap level butuh 60 XP lebih banyak)
+const levelXp = L => 30 * (L - 1) * L;
+function levelOf(xp) {
+  xp = int(xp);
+  let L = 1;
+  while (L < 999 && xp >= levelXp(L + 1)) L++;
+  return L;
+}
+function levelInfo(xp) {
+  xp = int(xp);
+  const L = levelOf(xp),
+    a = levelXp(L),
+    b = levelXp(L + 1);
+  return { L, title: RANKS[Math.min(L, RANKS.length) - 1], xp, cur: xp - a, need: b - a, pct: Math.floor(((xp - a) / (b - a)) * 100) };
+}
+// XP satu game selesai + rinciannya (ditampilkan di layar menang)
+function gameXp(o) {
+  const ch = int(o.challenges),
+    st = int(o.newStamps);
+  const parts = [['Selesai main', XP.game]];
+  if (o.won) parts.push(['Menang', XP.win]);
+  if (ch) parts.push([ch + ' tantangan lulus', ch * XP.challenge]);
+  if (st) parts.push([st + ' cap kota baru', st * XP.stamp]);
+  return { total: parts.reduce((s, p) => s + p[1], 0), parts };
+}
+
+// ---------- lencana seumur hidup ----------
+// tingkat cap kota = jumlah kota di papan (19; dicek test/progress.js supaya ikut bila papan berubah)
+const BADGES = [
+  { id: 'games', name: 'Teman Setia', icon: 'heart', unit: 'game selesai', tiers: [5, 25, 100] },
+  { id: 'wins', name: 'Sang Juara', icon: 'trophy', unit: 'kemenangan', tiers: [3, 15, 50] },
+  { id: 'challenges', name: 'Bucin Totalitas', icon: 'sparkle', unit: 'tantangan lulus', tiers: [10, 50, 150] },
+  { id: 'stamps', name: 'Kolektor Cap', icon: 'map', unit: 'cap kota', tiers: [5, 12, 19] },
+  { id: 'landmarks', name: 'Arsitek Cinta', icon: 'crown', unit: 'landmark', tiers: [3, 15, 50] },
+  { id: 'letters', name: 'Penulis Surat', icon: 'letter', unit: 'pesan cinta', tiers: [3, 15, 50] },
+  { id: 'soulmate', name: 'Soulmate Sejati', icon: 'ring', unit: 'game sampai Soulmate', tiers: [1, 10, 30] },
+  { id: 'streak', name: 'Api Abadi', icon: 'flame', unit: 'minggu beruntun', tiers: [4, 12, 26] },
+];
+const TIER_NAMES = ['Perunggu', 'Perak', 'Emas'];
+function normLife(l) {
+  const o = l && typeof l === 'object' ? l : {};
+  return { ch: int(o.ch), lm: int(o.lm), lt: int(o.lt), sm: int(o.sm) };
+}
+// nilai tiap lencana dari data paspor (p sudah dinormalkan passport())
+function badgeValues(p) {
+  return {
+    games: int(p.games),
+    wins: int(p.wins),
+    challenges: p.life.ch,
+    stamps: p.stamps.length,
+    landmarks: p.life.lm,
+    letters: p.life.lt,
+    soulmate: p.life.sm,
+    streak: p.wk.best,
+  };
+}
+const tierOf = (b, v) => b.tiers.reduce((t, x, i) => (v >= x ? i + 1 : t), 0);
+function badgeTiers(p) {
+  const v = badgeValues(p);
+  const out = {};
+  BADGES.forEach(b => (out[b.id] = tierOf(b, v[b.id])));
+  return out;
+}
+// lencana yang naik tingkat di antara dua keadaan
+function tierUps(before, after) {
+  return BADGES.filter(b => (after[b.id] || 0) > (before[b.id] || 0)).map(b => ({
+    id: b.id,
+    name: b.name,
+    icon: b.icon,
+    tier: after[b.id],
+  }));
+}
+
+export {
+  BADGES,
+  RANKS,
+  TIER_NAMES,
+  UMB_EVERY,
+  UMB_MAX,
+  XP,
+  badgeTiers,
+  badgeValues,
+  daysBetween,
+  daysLeft,
+  gameXp,
+  levelInfo,
+  levelOf,
+  levelXp,
+  markWeek,
+  normLife,
+  normWeek,
+  streakView,
+  tierOf,
+  tierUps,
+  weekNo,
+};

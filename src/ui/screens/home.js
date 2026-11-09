@@ -2,7 +2,7 @@
 import { D, ART, TILES, KEYS, esc, ic, $, store } from '../core.js';
 import { UI } from '../ns.js';
 import { validSave } from './base.js';
-import { openPassport, passportCard } from './passport.js';
+import { dismissKangen, kangenNote, openPassport, passportCard } from './passport.js';
 import { openSetup } from './setup.js';
 import { openOnline } from './online.js';
 import { enterGame } from './game.js';
@@ -24,6 +24,19 @@ function homeArt() {
     '<div class="hero-hearts"><i></i><i></i><i></i><i></i><i></i></div>' +
     '</div>'
   );
+}
+// Merpi kangen: sekali per sesi bila sudah ≥ 5 hari tidak membuka Loveopoly (lihat kangenNote di passport.js)
+function kangenHTML() {
+  const t = kangenNote();
+  return t
+    ? '<div class="merpi-note" role="status"><span class="mn-merpi" aria-hidden="true">' +
+        ART.merpi('is-love') +
+        '</span><p>' +
+        esc(t) +
+        '</p><button type="button" class="icon-btn mn-x" id="hKangenX" aria-label="Tutup pesan Merpi">' +
+        ic('x') +
+        '</button></div>'
+    : '';
 }
 function renderHome() {
   const save = store.get(KEYS.save, null);
@@ -67,6 +80,7 @@ function renderHome() {
       .join('') +
     '</span></h1>' +
     '<p class="home-sub">Keliling dunia berdua: beli kota romantis, bangun sampai landmark, adakan festival, dan rebut kota pasanganmu. Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata!</p>' +
+    kangenHTML() +
     passportCard() +
     resume +
     '<div class="home-actions">' +
@@ -115,6 +129,11 @@ function renderHome() {
   on('hOnline', openOnline);
   on('hHow', () => UI.openGuide());
   on('hPass', () => openPassport());
+  on('hKangenX', () => {
+    dismissKangen();
+    const n = $('#scrHome .merpi-note');
+    if (n) UI.leave(n, 260);
+  });
   on('hPrivacy', () => UI.openPrivacy());
   on('hResume', () => {
     const s = store.get(KEYS.save, null);

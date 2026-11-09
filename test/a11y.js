@@ -92,9 +92,31 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await p.close();
 
       // beranda dengan kartu paspor, setup, panduan, privasi, pengaturan
-      p = await page(vp, scheme, { name: 'Arfi', avatar: '🐻', color: '#FF4F8B', since: 1, games: 3, wins: 2, stamps: [1, 2, 9] });
+      // + progres paspor (Jam Terbang, Api Cinta minggu lalu, lencana) & terakhir dibuka 9 hari lalu → Merpi kangen
+      const d0 = new Date(),
+        wk0 = Math.floor((Math.floor(Date.UTC(d0.getFullYear(), d0.getMonth(), d0.getDate()) / 864e5) + 3) / 7);
+      p = await page(vp, scheme, {
+        name: 'Arfi',
+        avatar: '🐻',
+        color: '#FF4F8B',
+        since: 1,
+        games: 3,
+        wins: 2,
+        stamps: [1, 2, 9],
+        xp: 250,
+        wk: { n: 3, last: wk0 - 1, best: 5, umb: 1 },
+        life: { ch: 12, lm: 4, lt: 3, sm: 1 },
+        seen: Date.now() - 9 * 864e5,
+      });
       await p.waitForSelector('#hPass');
+      await p.waitForSelector('#scrHome .merpi-note');
       await audit(p, tag + ' beranda');
+      await click(p, '#hPass');
+      await p.waitForSelector('#passOv .pp-prog');
+      await p.waitForTimeout(900);
+      await audit(p, tag + ' paspor: Jam Terbang & lencana', '#passOv');
+      await click(p, '#ppCancel');
+      await p.waitForSelector('#passOv', { state: 'detached' });
       await click(p, '#hAI');
       await p.waitForSelector('#pn0');
       await audit(p, tag + ' setup lawan AI');
@@ -230,7 +252,12 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await settle(p);
       await p.evaluate(() => window.LoveUI.act({ type: 'FINISH_NOW', p: 0 }));
       await p.waitForSelector('#winOv', { timeout: 10000 }).catch(() => {});
+      await p.waitForSelector('#winOv .panel.jt');
       await audit(p, tag + ' layar menang', '#winOv');
+      // lencana Sang Juara (3 kemenangan) naik tingkat → layar perayaan singkat
+      await p.waitForSelector('#celebOv', { timeout: 4000 });
+      await audit(p, tag + ' layar perayaan', '#celebOv');
+      await p.waitForSelector('#celebOv', { state: 'detached', timeout: 6000 });
       await click(p, '#wShare');
       await p.waitForSelector('#memOv .mem-prev img', { timeout: 15000 });
       await p.waitForTimeout(500);

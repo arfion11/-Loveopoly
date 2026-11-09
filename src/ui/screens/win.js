@@ -3,11 +3,134 @@ import { Icons } from '../../assets/icons.js';
 import { Net } from '../../net/net.js';
 import { App, D, E, SND, ART, fmt, esc, ic, $, coin, avatarHTML } from '../core.js';
 import { UI } from '../ns.js';
-import { recordPassport } from './passport.js';
+import { passport, recordPassport, xpBar } from './passport.js';
+import { TIER_NAMES } from '../progress.js';
 import { enterGame, exitToHome } from './game.js';
 import { openMemoryCard } from './memory.js';
 import { track } from '../../analytics.js';
 let trackedEnd = '';
+
+// ---------- progres paspor di layar menang ----------
+const chip = (icon, text, cls) => '<span class="jt-chip ' + (cls || '') + '">' + ic(icon) + '<span>' + esc(text) + '</span></span>';
+// panel Jam Terbang: XP yang didapat + rinciannya, level & bar, Api Cinta, lencana baru, cap kota baru
+function progPanel(r) {
+  if (!r)
+    return passport().name
+      ? ''
+      : '<div class="panel jt-hint">' +
+          ic('book') +
+          '<span>Buat <b>Paspor Cinta</b> di beranda untuk mengumpulkan Jam Terbang, Api Cinta & lencana dari tiap game.</span></div>';
+  const up = r.to.L > r.from.L;
+  const chips = [];
+  const w = r.week;
+  chips.push(
+    chip(
+      w && w.kind === 'saved' ? 'umbrella' : 'flame',
+      w
+        ? w.kind === 'saved'
+          ? 'Payung Rindu menyelamatkan Api Cinta: ' + w.n + ' minggu'
+          : w.kind === 'up'
+            ? 'Api Cinta naik: ' + w.n + ' minggu'
+            : 'Api Cinta menyala: ' + w.n + ' minggu'
+        : 'Api Cinta ' + r.streak.n + ' minggu',
+      'fire'
+    )
+  );
+  if (w && w.earned) chips.push(chip('umbrella', 'Dapat Payung Rindu'));
+  r.badges.forEach(b => chips.push(chip('medal', 'Lencana ' + b.name + ' · ' + TIER_NAMES[b.tier - 1], 'gold')));
+  if (r.fresh) chips.push(chip('map', r.fresh + ' cap kota baru'));
+  return (
+    '<div class="panel jt"><h3>' +
+    ic('book') +
+    'Paspor Cinta · Jam Terbang</h3>' +
+    '<div class="jt-head"><span class="jt-gain">+' +
+    r.xp +
+    ' XP</span><span class="jt-lv' +
+    (up ? ' up' : '') +
+    '">' +
+    (up ? 'Naik ke ' : '') +
+    'Lv ' +
+    r.to.L +
+    ' · ' +
+    esc(r.to.title) +
+    '</span></div>' +
+    xpBar(r.to.pct, 'jt-bar') +
+    '<div class="jt-next">' +
+    r.to.cur +
+    '/' +
+    r.to.need +
+    ' XP ke Level ' +
+    (r.to.L + 1) +
+    '</div>' +
+    '<ul class="jt-parts">' +
+    r.parts.map(([t, v]) => '<li>' + esc(t) + ' <b>+' + v + '</b></li>').join('') +
+    '</ul>' +
+    '<div class="jt-chips">' +
+    chips.join('') +
+    '</div></div>'
+  );
+}
+// Layar perayaan singkat (naik level / lencana naik tingkat) di atas layar menang: tutup sendiri ±2,4 dtk, ketuk /
+// Enter / Spasi / Esc melewati (ketukan & tombol ditelan, tidak mengenai tombol layar menang di bawahnya).
+// role=status (bukan dialog): pengumuman sesaat, fokus tetap di layar menang.
+function celebrate(r) {
+  // jangan menumpuk di atas dialog lain yang sudah dibuka (Kartu Kenangan, dialog)
+  if (!r || $('#celebOv') || !$('#winOv') || $('#memOv') || $('#modalRoot .modal')) return;
+  const up = r.to.L > r.from.L;
+  if (!up && !r.badges.length) return;
+  const el = document.createElement('div');
+  el.className = 'celeb';
+  el.id = 'celebOv';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.innerHTML =
+    '<div class="cb-card"><span class="cb-merpi" aria-hidden="true">' +
+    ART.merpi('is-wow') +
+    '</span>' +
+    (up
+      ? '<div class="cb-k">Naik level!</div><div class="cb-lv"><span class="cb-from">Lv ' +
+        r.from.L +
+        '</span>' +
+        ic('chevron') +
+        '<b class="cb-to">Lv ' +
+        r.to.L +
+        '</b></div><div class="cb-title">' +
+        esc(r.to.title) +
+        '</div>'
+      : '<div class="cb-k">Lencana baru!</div>') +
+    (r.badges.length
+      ? '<ul class="cb-badges">' +
+        r.badges
+          .map(b => '<li class="t' + b.tier + '">' + ic(b.icon) + '<span>' + esc(b.name) + ' · ' + TIER_NAMES[b.tier - 1] + '</span></li>')
+          .join('') +
+        '</ul>'
+      : '') +
+    '<span class="cb-skip">Ketuk untuk lanjut</span></div>';
+  document.body.appendChild(el);
+  SND.play('achieve');
+  let done = false;
+  const close = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(t);
+    document.removeEventListener('keydown', key, true);
+    UI.leave(el, 300);
+  };
+  const key = e => {
+    if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    }
+  };
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    close();
+  });
+  document.addEventListener('keydown', key, true);
+  const t = setTimeout(close, UI.reduceMotion() ? 2600 : 2400);
+}
 
 // ---------- layar menang ----------
 let confettiStop = null;
@@ -73,8 +196,9 @@ function confetti(canvas) {
   };
 }
 function showWin() {
+  let prog = null;
   try {
-    recordPassport(App.S);
+    prog = recordPassport(App.S);
   } catch (e) {
     /* abaikan */
   }
@@ -283,6 +407,7 @@ function showWin() {
     '</p><button type="button" class="btn go win-share" id="wShare">' +
     ic('share') +
     '<span>Bagikan Kenangan</span></button></div>' +
+    progPanel(prog) +
     '<div class="panel"><h3>' +
     ic('trophy') +
     'Peringkat</h3><div class="rank-list">' +
@@ -317,6 +442,7 @@ function showWin() {
   root.appendChild(el);
   SND.play('win');
   confettiStop = confetti($('#confetti'));
+  if (prog) setTimeout(() => celebrate(prog), UI.reduceMotion() ? 200 : 1100);
   $('#wShare').onclick = () => openMemoryCard(S, { reason, msg, author });
   $('#wBoard').onclick = () => {
     if (confettiStop) confettiStop();

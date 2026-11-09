@@ -1068,6 +1068,135 @@ const URL = (await serveDist()).url + '/';
     JSON.stringify(inst).slice(0, 160)
   );
 
+  // Progres Paspor: Jam Terbang (XP & level), Api Cinta mingguan + Payung Rindu, lencana, layar perayaan, Merpi kangen
+  const weekNow = () =>
+    page.evaluate(() => {
+      const d = new Date();
+      return Math.floor((Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5) + 3) / 7);
+    });
+  const prof = () => page.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')));
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.evaluate(() =>
+    localStorage.setItem(
+      'loveopoly.v1.profile',
+      JSON.stringify({ name: 'Arfi', avatar: '🦊', color: '#FF4F8B', since: 1, games: 4, wins: 2, stamps: [], xp: 50, life: { ch: 9 } })
+    )
+  );
+  await page.evaluate(() => {
+    const E = window.LoveEngine;
+    const S = E.create({
+      players: [
+        { name: 'Arfi', avatar: '🦊' },
+        { name: 'Bot', kind: 'ai' },
+      ],
+      settings: { debug: true },
+      seed: 91,
+    });
+    S.tiles[1].owner = 0;
+    S.tiles[2].owner = 0;
+    S.players[0].stats.challenges = 2;
+    window.LoveUI.enterGame('local', -1, S);
+    window.LoveUI.act({ type: 'FINISH_NOW', p: 0 });
+  });
+  await page.waitForSelector('#winOv .panel.jt', { timeout: 8000 }).catch(() => {});
+  const jt = await page.evaluate(() => ({
+    panel: (document.querySelector('#winOv .panel.jt') || {}).textContent || '',
+    winner: window.LoveUI.App.S.over.winner,
+  }));
+  const pr1 = await prof();
+  ok(
+    'Jam Terbang: game selesai → +80 XP (selesai, menang, 2 tantangan, 2 cap, Api Cinta) & naik ke Lv 2',
+    jt.winner === 0 && /\+80 XP/.test(jt.panel) && /Naik ke Lv 2/.test(jt.panel) && pr1.xp === 130,
+    JSON.stringify({ xp: pr1.xp, panel: jt.panel.slice(0, 160) })
+  );
+  ok(
+    'Api Cinta & lencana: minggu ini tercatat, catatan seumur hidup bertambah, lencana baru di panel',
+    pr1.wk.n === 1 &&
+      pr1.wk.last === (await weekNow()) &&
+      pr1.life.ch === 11 &&
+      pr1.games === 5 &&
+      /Teman Setia/.test(jt.panel) &&
+      /Bucin Totalitas/.test(jt.panel),
+    JSON.stringify({ wk: pr1.wk, life: pr1.life })
+  );
+  await page.waitForSelector('#celebOv', { timeout: 3000 }).catch(() => {});
+  const cb = await page.evaluate(() => (document.querySelector('#celebOv') || {}).textContent || '');
+  ok(
+    'layar perayaan: naik level + lencana baru tampil di atas layar menang',
+    /Naik level/.test(cb) && /Lv 2/.test(cb) && /Sang Juara/.test(cb),
+    cb.slice(0, 160)
+  );
+  await page.click('#celebOv');
+  await page.waitForTimeout(450);
+  ok(
+    'layar perayaan: ketukan menutupnya tanpa mengenai tombol layar menang',
+    !(await page.$('#celebOv')) && !!(await page.$('#winOv')),
+    JSON.stringify({ celeb: !!(await page.$('#celebOv')), win: !!(await page.$('#winOv')) })
+  );
+  ok(
+    'Jam Terbang: game yang sama tidak dicatat dua kali',
+    (await page.evaluate(
+      () => window.LoveUI.recordPassport(window.LoveUI.App.S) && JSON.parse(localStorage.getItem('loveopoly.v1.profile')).xp
+    )) === 130
+  );
+  // Api Cinta di tengah game: minggu lalu terakhir main → game baru mencapai ronde 3 → 4 minggu beruntun + Payung Rindu
+  const wNow = await weekNow();
+  await page.evaluate(w => {
+    const p = JSON.parse(localStorage.getItem('loveopoly.v1.profile'));
+    p.wk = { n: 3, last: w - 1, best: 3, umb: 0 };
+    localStorage.setItem('loveopoly.v1.profile', JSON.stringify(p));
+  }, wNow);
+  await newGame('S.round = 3;', null, [
+    { name: 'Arfi', avatar: '🦊' },
+    { name: 'Nadia', avatar: '🐰' },
+  ]);
+  await page.waitForTimeout(300);
+  const toastTxt = await page.evaluate(() => [...document.querySelectorAll('#toasts .toast')].map(t => t.textContent).join(' | '));
+  const pr2 = await prof();
+  ok(
+    'Api Cinta: ronde 3 → minggu ini tercatat (4 minggu) + dapat Payung Rindu + 10 XP, dengan kabar',
+    pr2.wk.n === 4 && pr2.wk.umb === 1 && pr2.xp === 140 && /4 minggu/.test(toastTxt) && /Payung Rindu/.test(toastTxt),
+    JSON.stringify({ wk: pr2.wk, xp: pr2.xp, toast: toastTxt.slice(0, 160) })
+  );
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+  await page.waitForTimeout(200);
+  const card = await page.textContent('#hPass');
+  ok(
+    'beranda: kartu paspor menampilkan Api Cinta, level & status minggu ini',
+    /4\s*minggu/.test(card) && /Lv\s*2/.test(card) && /Minggu ini aman/.test(card),
+    card.slice(0, 200)
+  );
+  await page.click('#hPass');
+  await page.waitForSelector('#passOv .pp-prog', { timeout: 6000 }).catch(() => {});
+  const ppTxt = await page.evaluate(() => (document.querySelector('#passOv .pp-prog') || {}).textContent || '');
+  ok(
+    'paspor: halaman Jam Terbang & lencana (tingkat + progres)',
+    /Api Cinta 4 minggu/.test(ppTxt) && /Teman Setia/.test(ppTxt) && /Perunggu/.test(ppTxt),
+    ppTxt.slice(0, 200)
+  );
+  await page.evaluate(() => document.querySelector('#ppCancel') && document.querySelector('#ppCancel').click());
+  await page.waitForSelector('#passOv', { state: 'detached', timeout: 5000 }).catch(() => {});
+  // Merpi kangen: 9 hari tidak membuka (terakhir main minggu lalu) → pesan sekali di beranda + status Api Cinta,
+  // bisa ditutup; kunjungan tercatat
+  await page.evaluate(w => {
+    const p = JSON.parse(localStorage.getItem('loveopoly.v1.profile'));
+    p.seen = Date.now() - 9 * 864e5;
+    p.wk = { n: 4, last: w - 1, best: 4, umb: 1 };
+    localStorage.setItem('loveopoly.v1.profile', JSON.stringify(p));
+  }, wNow);
+  await page.reload();
+  await page.waitForSelector('#hLocal');
+  const note = await page.evaluate(() => (document.querySelector('#scrHome .merpi-note') || {}).textContent || '');
+  const seenNow = (await prof()).seen > Date.now() - 60000;
+  ok(
+    'Merpi kangen: setelah 9 hari muncul pesan rindu + status Api Cinta, kunjungan tercatat',
+    /9 hari/.test(note) && /Api Cinta/.test(note) && seenNow,
+    note
+  );
+  await page.click('#hKangenX');
+  await page.waitForTimeout(350);
+  ok('Merpi kangen: bisa ditutup', !(await page.$('#scrHome .merpi-note')));
+
   // Hemat daya: saat diam ±12 dtk semua hiasan berulang dijeda (tidak ada animasi berjalan = HP tidak terus
   // menggambar ulang & panas), sentuhan membangunkan. Hiasan berulang baru wajib masuk src/styles/power.css.
   await newGame('');

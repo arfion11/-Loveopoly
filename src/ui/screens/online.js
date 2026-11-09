@@ -382,7 +382,13 @@ function renderLobby() {
 }
 function bindProfile(root) {
   const p = onlineProfile;
-  const save = () => store.set('loveopoly.v1.profile', p);
+  // hanya field yang diedit di sini yang ditulis, digabung ke profil TERKINI: onlineProfile bisa salinan lama
+  // (dibuat saat layar online pertama dibuka), jangan sampai menimpa progres paspor yang tercatat sesudahnya
+  const save = () =>
+    store.set(
+      'loveopoly.v1.profile',
+      Object.assign({}, store.get('loveopoly.v1.profile', null) || {}, { name: p.name, avatar: p.avatar, color: p.color })
+    );
   const n = $('#oName', root);
   if (n)
     n.addEventListener('input', () => {

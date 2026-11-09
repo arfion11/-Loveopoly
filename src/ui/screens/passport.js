@@ -2,6 +2,24 @@
 import { App, D, E, SND, ART, TILES, esc, ic, $, $$, store, toast } from '../core.js';
 import { UI } from '../ns.js';
 import { renderHome } from './home.js';
+import {
+  BADGES,
+  TIER_NAMES,
+  UMB_MAX,
+  XP,
+  badgeTiers,
+  badgeValues,
+  daysBetween,
+  daysLeft,
+  gameXp,
+  levelInfo,
+  markWeek,
+  normLife,
+  normWeek,
+  streakView,
+  tierUps,
+  weekNo,
+} from '../progress.js';
 
 // ---------- Paspor Cinta (profil di perangkat: nama, avatar, warna + statistik & cap kota) ----------
 // Disimpan di loveopoly.v1.profile (sama dengan profil online). Tidak ada kata sandi: login online tetap anonim.
@@ -20,6 +38,11 @@ function passport() {
     skipped: !!p.skipped,
     last: p.last || '',
     msg: typeof p.msg === 'string' ? p.msg.slice(0, 240) : '',
+    // progres (lihat src/ui/progress.js): Jam Terbang, Api Cinta, catatan seumur hidup untuk lencana, kunjungan terakhir
+    xp: Number.isFinite(+p.xp) ? Math.max(0, Math.floor(+p.xp)) : 0,
+    wk: normWeek(p.wk),
+    life: normLife(p.life),
+    seen: Number.isFinite(+p.seen) ? Math.max(0, +p.seen) : 0,
   };
 }
 const savePassport = p => store.set(PKEY, p);
@@ -28,28 +51,234 @@ const passNo = p =>
   String((p.since || 1) % 1e8)
     .padStart(8, '0')
     .replace(/(\d{4})(\d{4})/, '$1 $2');
-// catat hasil permainan sekali per game untuk pemegang paspor (online: kursi sendiri; lokal: nama sama / satu-satunya manusia)
+// kursi pemegang paspor di game ini (online: kursi sendiri; lokal: nama sama / satu-satunya manusia), -1 = tidak ikut
+function holderSeat(S, p) {
+  if (!p.name || !S) return -1;
+  if (App.mode === 'online') return S.players[App.seat] ? App.seat : -1;
+  const humans = S.players.filter(q => q.kind === 'human');
+  const byName = S.players.find(q => q.kind === 'human' && q.name.trim().toLowerCase() === p.name.trim().toLowerCase());
+  return byName ? byName.i : humans.length === 1 ? humans[0].i : -1;
+}
+// catat "main minggu ini" ke Api Cinta (+XP minggu). Mengubah p, mengembalikan kejadian atau null
+function noteWeek(p, now) {
+  const r = markWeek(p.wk, weekNo(now));
+  if (!r.ev) return null;
+  p.wk = r.wk;
+  p.xp += XP.week;
+  return r.ev;
+}
+let lastRec = null;
+// catat hasil permainan sekali per game untuk pemegang paspor. Mengembalikan ringkasan progres untuk layar menang
+// (XP + rinciannya, level sebelum/sesudah, kejadian Api Cinta, lencana yang naik tingkat), null bila tidak dicatat
 function recordPassport(S) {
   const p = passport();
-  if (!p.name || !S || !S.over) return;
+  if (!p.name || !S || !S.over) return null;
   const key = S.seed + ':' + S.over.round + ':' + S.players.length;
-  if (p.last === key) return;
-  let me;
-  if (App.mode === 'online') me = App.seat;
-  else {
-    const humans = S.players.filter(q => q.kind === 'human');
-    const byName = S.players.find(q => q.kind === 'human' && q.name.trim().toLowerCase() === p.name.trim().toLowerCase());
-    me = byName ? byName.i : humans.length === 1 ? humans[0].i : -1;
-  }
-  if (me < 0 || !S.players[me]) return;
+  if (p.last === key) return lastRec && lastRec.key === key ? lastRec.res : null;
+  const me = holderSeat(S, p);
+  if (me < 0) return null;
+  const pl = S.players[me],
+    st = pl.stats || {};
+  const before = { xp: p.xp, tiers: badgeTiers(p) };
+  const won = S.over.winner === me;
   p.last = key;
   p.games++;
-  if (S.over.winner === me) p.wins++;
+  if (won) p.wins++;
+  let fresh = 0;
   E.citiesOf(S, me).forEach(t => {
-    if (!p.stamps.includes(t)) p.stamps.push(t);
+    if (!p.stamps.includes(t)) {
+      p.stamps.push(t);
+      fresh++;
+    }
   });
+  p.life.ch += st.challenges | 0;
+  p.life.lm += st.landmarks | 0;
+  p.life.lt += st.letters | 0;
+  if (E.tierInfo(pl.love).name === 'Soulmate') p.life.sm++;
+  const g = gameXp({ won, challenges: st.challenges, newStamps: fresh });
+  p.xp += g.total;
+  const now = Date.now();
+  const week = noteWeek(p, now);
+  p.seen = now;
   savePassport(p);
+  const res = {
+    xp: g.total + (week ? XP.week : 0),
+    parts: week ? g.parts.concat([['Api Cinta minggu ini', XP.week]]) : g.parts,
+    from: levelInfo(before.xp),
+    to: levelInfo(p.xp),
+    week,
+    streak: streakView(p.wk, weekNo(now)),
+    badges: tierUps(before.tiers, badgeTiers(p)),
+    fresh,
+  };
+  lastRec = { key, res };
+  return res;
 }
+// Api Cinta di tengah game: minggu ini tercatat begitu game mencapai ronde 3 (game panjang tidak perlu selesai dulu).
+// Dipanggil renderStage tiap perubahan → pemeriksaan murah dulu (sekali per minggu per game).
+let notedKey = '';
+function notePlay(S) {
+  if (!S || S.over || S.round < 3) return;
+  const now = Date.now(),
+    k = weekNo(now) + ':' + S.seed;
+  if (notedKey === k) return;
+  notedKey = k;
+  const p = passport();
+  if (holderSeat(S, p) < 0) return;
+  const L0 = levelInfo(p.xp).L;
+  const ev = noteWeek(p, now);
+  if (!ev) return;
+  p.seen = now;
+  savePassport(p);
+  const lv = levelInfo(p.xp);
+  toast(weekText(ev) + ' +' + XP.week + ' XP Jam Terbang.' + (lv.L > L0 ? ' Naik ke Level ' + lv.L + ': ' + lv.title + '!' : ''), {
+    kind: 'good',
+    icon: ev.kind === 'saved' ? 'umbrella' : 'flame',
+    title: weekTitle(ev),
+    ms: 5200,
+  });
+  SND.play('ding');
+}
+function weekTitle(ev) {
+  return ev.kind === 'saved'
+    ? 'Payung Rindu melindungi Api Cinta'
+    : ev.kind === 'start'
+      ? 'Api Cinta menyala'
+      : ev.kind === 'restart'
+        ? 'Api Cinta menyala lagi'
+        : 'Api Cinta: ' + ev.n + ' minggu beruntun!';
+}
+function weekText(ev) {
+  const t =
+    ev.kind === 'start'
+      ? 'Minggu pertama! Main tiap minggu supaya apinya terus menyala.'
+      : ev.kind === 'restart'
+        ? 'Rekor terbaikmu ' + ev.best + ' minggu. Ayo kejar lagi!'
+        : ev.kind === 'saved'
+          ? ev.used + ' minggu bolong tertutup. Api Cinta sekarang ' + ev.n + ' minggu.'
+          : 'Pertahankan, main lagi minggu depan ya.';
+  return t + (ev.earned ? ' Dapat Payung Rindu (punya ' + ev.umb + '/' + UMB_MAX + ').' : '');
+}
+// status Api Cinta untuk kartu beranda & halaman paspor
+function streakLine(p, now) {
+  const v = streakView(p.wk, weekNo(now)),
+    left = daysLeft(now);
+  const sisa = left === 1 ? 'hari terakhir' : 'sisa ' + left + ' hari';
+  switch (v.state) {
+    case 'done':
+      return { v, text: 'Minggu ini aman, sampai jumpa minggu depan' };
+    case 'due':
+      return { v, text: 'Main minggu ini biar tetap menyala (' + sisa + ')' };
+    case 'umb':
+      return { v, text: 'Payung Rindu siap melindungi, main minggu ini ya (' + sisa + ')' };
+    case 'out':
+      return { v, text: 'Api sempat padam (rekor ' + v.best + ' minggu). Nyalakan lagi minggu ini' };
+    default:
+      return { v, text: 'Main minggu ini untuk menyalakan Api Cinta' };
+  }
+}
+// Merpi kangen: sekali per sesi, bila sudah ≥ 5 hari tidak membuka Loveopoly. Mencatat kunjungan sekarang.
+let kangenMsg = null;
+function kangenNote() {
+  if (kangenMsg !== null) return kangenMsg;
+  kangenMsg = '';
+  const raw = store.get(PKEY, null);
+  if (!raw) return kangenMsg; // pengunjung baru: belum ada yang dirindukan (paspor pertama kali muncul)
+  const p = passport(),
+    now = Date.now();
+  const away = p.seen ? daysBetween(p.seen, now) : 0;
+  if (p.seen && away >= 5) {
+    const v = streakView(p.wk, weekNo(now));
+    const hi = p.name ? 'Akhirnya ' + p.name + ' datang! ' : 'Akhirnya kalian datang! ';
+    kangenMsg =
+      v.state === 'due' || v.state === 'umb'
+        ? 'Kangen! ' +
+          away +
+          ' hari nggak ketemu. Api Cinta ' +
+          v.n +
+          ' minggu masih menyala' +
+          (v.state === 'umb' ? ' berkat Payung Rindu' : '') +
+          ', yuk main minggu ini 🔥'
+        : v.state === 'out'
+          ? hi + 'Merpi kangen 🥺 Api Cinta sempat padam (rekor ' + v.best + ' minggu), yuk nyalakan lagi.'
+          : hi + away + ' hari nggak ketemu, Merpi kangen 🥺';
+  }
+  p.seen = now;
+  savePassport(p);
+  return kangenMsg;
+}
+const dismissKangen = () => (kangenMsg = '');
+// bar XP (dekoratif, teksnya di sebelahnya)
+const xpBar = (pct, cls) =>
+  '<span class="xp-bar ' + (cls || '') + '" aria-hidden="true"><i style="--p:' + Math.max(0, Math.min(100, pct)) / 100 + '"></i></span>';
+// kisi lencana di halaman paspor: tingkat sekarang + progres ke tingkat berikut
+function badgeGrid(p) {
+  const v = badgeValues(p),
+    t = badgeTiers(p);
+  return (
+    '<ul class="bdg-grid" aria-label="Lencana seumur hidup">' +
+    BADGES.map(b => {
+      const k = t[b.id],
+        next = b.tiers[k];
+      const tierName = k ? TIER_NAMES[k - 1] : 'Belum';
+      return (
+        '<li class="bdg t' +
+        k +
+        '"><span class="bdg-ic" aria-hidden="true">' +
+        ic(b.icon) +
+        '</span><span class="bdg-txt"><b>' +
+        esc(b.name) +
+        '</b><small>' +
+        tierName +
+        ' · ' +
+        (next ? Math.min(v[b.id], next) + '/' + next + ' ' + b.unit : v[b.id] + ' ' + b.unit + ', tingkat tertinggi') +
+        '</small></span></li>'
+      );
+    }).join('') +
+    '</ul>'
+  );
+}
+// halaman paspor: Jam Terbang + Api Cinta + lencana
+function progressSection(p) {
+  const lv = levelInfo(p.xp),
+    sl = streakLine(p, Date.now());
+  return (
+    '<div class="pp-prog">' +
+    '<div class="pp-lbl">Jam Terbang & Api Cinta</div>' +
+    '<div class="pg-row"><span class="pg-lv">Lv ' +
+    lv.L +
+    '</span><span class="grow"><b>' +
+    esc(lv.title) +
+    '</b><small>' +
+    lv.cur +
+    '/' +
+    lv.need +
+    ' XP ke Level ' +
+    (lv.L + 1) +
+    '</small>' +
+    xpBar(lv.pct) +
+    '</span></div>' +
+    '<div class="pg-row"><span class="pg-fire s-' +
+    sl.v.state +
+    '">' +
+    ic('flame') +
+    '</span><span class="grow"><b>Api Cinta ' +
+    sl.v.n +
+    ' minggu</b><small>' +
+    esc(sl.text) +
+    ' · rekor ' +
+    sl.v.best +
+    ' · Payung Rindu ' +
+    sl.v.umb +
+    '/' +
+    UMB_MAX +
+    '</small></span></div>' +
+    '<div class="pp-lbl">Lencana</div>' +
+    badgeGrid(p) +
+    '</div>'
+  );
+}
+
 function stampGrid(p, cls) {
   return (
     '<div class="pp-stamps ' +
@@ -234,6 +463,7 @@ function openPassport(opts) {
       esc(st.msg) +
       '</textarea>' +
       '<p class="pp-msg-note">Opsional. Muncul di layar kemenangan setiap game. Saat main online, pesan ini juga terlihat oleh pemain lain di room.</p>' +
+      (edit ? progressSection(p) : '') +
       (edit
         ? '<div class="pp-lbl">Cap kota · ' +
           p.stamps.length +
@@ -429,11 +659,13 @@ function passportCard() {
     return (
       '<button type="button" class="pass-card empty" id="hPass"><span class="pc-book" aria-hidden="true">' +
       ic('book') +
-      '</span><span class="grow"><b>Buat Paspor Cinta</b><span>Simpan nama & pionmu, kumpulkan cap kota tiap kali main.</span></span>' +
+      '</span><span class="grow"><b>Buat Paspor Cinta</b><span>Simpan nama & pionmu, kumpulkan cap kota, Api Cinta & Jam Terbang tiap kali main.</span></span>' +
       ic('chevron') +
       '</button>'
     );
   const rate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
+  const lv = levelInfo(p.xp),
+    sl = streakLine(p, Date.now());
   return (
     '<button type="button" class="pass-card" id="hPass"><span class="pc-photo" style="--c:' +
     p.color +
@@ -455,11 +687,26 @@ function passportCard() {
     p.stamps.length +
     '</b>/' +
     CITY_TILES.length +
-    ' cap kota</span></span></span>' +
+    ' cap kota</span></span>' +
+    '<span class="pc-prog"><span class="pc-fire s-' +
+    sl.v.state +
+    '">' +
+    ic('flame') +
+    '<b>' +
+    sl.v.n +
+    '</b> minggu</span><span class="pc-lv">Lv <b>' +
+    lv.L +
+    '</b> ' +
+    esc(lv.title) +
+    '</span>' +
+    xpBar(lv.pct, 'pc-xp') +
+    '</span><span class="pc-wk">' +
+    esc(sl.text) +
+    '</span></span>' +
     '<span class="pc-foil" aria-hidden="true">' +
     ic('heart') +
     '</span></button>'
   );
 }
 
-export { openPassport, passport, passportCard, recordPassport };
+export { dismissKangen, kangenNote, notePlay, openPassport, passport, passportCard, recordPassport, xpBar };

@@ -2,7 +2,7 @@
    berkas ini mengumpulkan API-nya dan mendaftarkannya di registri UI. */
 import { UI } from './ns.js';
 import { show, savePrefs, applyTheme, syncSoundBtn, toggleSound } from './screens/base.js';
-import { passport, recordPassport, openPassport } from './screens/passport.js';
+import { passport, recordPassport, openPassport, notePlay } from './screens/passport.js';
 import { renderHome } from './screens/home.js';
 import { openSetup } from './screens/setup.js';
 import { openOnline, renderLobby } from './screens/online.js';
@@ -16,6 +16,7 @@ Object.assign(UI, {
   openPassport,
   passport,
   recordPassport,
+  notePlay,
   show,
   savePrefs,
   applyTheme,

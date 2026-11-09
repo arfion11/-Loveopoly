@@ -29,6 +29,7 @@ jobs:
       - name: Pasang Chromium untuk Playwright
         run: npx playwright install --with-deps chromium
       - run: npm run test:sim
+      - run: npm run test:progress
       - run: npm run test:flows
       - run: npm run test:online
       - run: npm run test:migrate

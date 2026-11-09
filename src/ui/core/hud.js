@@ -327,6 +327,7 @@ function renderStage(S) {
   S = S || App.S;
   if (!S || !$('#turnLine')) return;
   wakeCalm(); // ada perubahan di permainan: hiasan jalan lagi (lihat power.js)
+  if (UI.notePlay) UI.notePlay(S); // Api Cinta: minggu ini tercatat saat game mencapai ronde 3 (paspor)
   const cur = S.players[S.turn.p];
   const lim = S.settings.roundLimit;
   setHTML($('#roundChip'), ic('calendar') + '<span>Ronde <b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span>');

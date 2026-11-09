@@ -7,6 +7,7 @@ import { applyTheme, keepGameTop, show, syncSoundBtn } from './base.js';
 import { openPassport, passport } from './passport.js';
 import { renderHome } from './home.js';
 import { dailyFromHash, openDaily } from './daily.js';
+import { openRestore, restoreFromHash } from './backup.js';
 
 // ---------- boot ----------
 function bindHeader() {
@@ -21,6 +22,19 @@ function bindHeader() {
   };
   $('#hMenu').innerHTML = ic('menu');
   $('.brand-mark').innerHTML = ART.merpi('');
+}
+// tautan di alamat: cadangan paspor (#pulihkan=…) atau Pertanyaan Hari Ini (#tanya=…). true bila dialog dibuka
+function takeHash() {
+  const bk = restoreFromHash();
+  if (bk) {
+    setTimeout(() => openRestore(bk), UI.reduceMotion() ? 0 : 300);
+    return true;
+  }
+  if (bk === false) {
+    setTimeout(() => toast('Tautan cadangan tidak valid atau rusak. Coba salin ulang tautannya.', { kind: 'err' }), 400);
+    return false;
+  }
+  return takeLink(dailyFromHash());
 }
 // buka tautan Pertanyaan Hari Ini (null = tidak ada tautan, false = rusak). true bila dialog dibuka
 function takeLink(link) {
@@ -75,8 +89,8 @@ function boot() {
     );
   // tautan Pertanyaan Hari Ini dari pasangan (#tanya=…): didahulukan, paspor tidak muncul otomatis di sesi ini.
   // Juga saat halaman sudah terbuka & hanya bagian # yang berganti (tautan ditempel di tab yang sama).
-  window.addEventListener('hashchange', () => takeLink(dailyFromHash()));
-  if (takeLink(dailyFromHash())) return;
+  window.addEventListener('hashchange', takeHash);
+  if (takeHash()) return;
   const pp = passport();
   if (!pp.name && !pp.skipped)
     setTimeout(

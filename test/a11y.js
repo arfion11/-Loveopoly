@@ -117,6 +117,18 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await audit(p, tag + ' paspor: Jam Terbang & lencana', '#passOv');
       await click(p, '#ppCancel');
       await p.waitForSelector('#passOv', { state: 'detached' });
+      await p.evaluate(() => window.LoveUI.openSettings());
+      await p.waitForSelector('#modalRoot #sBackupWa', { state: 'attached' });
+      const bkHash = await p.$eval(
+        '#modalRoot #sBackupWa',
+        a => decodeURIComponent(a.href.split('text=')[1]).split(' ').pop().split('#')[1]
+      );
+      await p.evaluate(() => window.LoveUI.closeModal(true));
+      // konfirmasi pulihkan dari tautan cadangan (dibatalkan)
+      await p.evaluate(h => (location.hash = h), bkHash);
+      await p.waitForSelector('#modalRoot #bkYes');
+      await audit(p, tag + ' pulihkan paspor', '#modalRoot');
+      await click(p, '#modalRoot #bkNo');
       // Pengaturan: tema papan (Lv 3: Klasik & Senja Bali terbuka, sisanya terkunci)
       await p.evaluate(() => window.LoveUI.openSettings());
       await p.waitForSelector('#modalRoot .bt-grid');

@@ -1,6 +1,7 @@
 /* LOVEOPOLY — dialog permainan › menu, keluar, pengaturan, privasi (dikumpulkan lewat src/ui/modals.js) */
 import { App, SND, esc, ic, $, $$, toast, controls, viewer, act, canBuzz } from '../core.js';
 import { BOARD_THEMES, levelOf, themeFor } from '../progress.js';
+import { parseBackup } from '../backup.js';
 import { UI } from '../ns.js';
 import { btn, closeModal, on, refreshModal, showModal } from './base.js';
 import { openHistory, openPortfolio } from './info.js';
@@ -248,6 +249,29 @@ function boardThemeOpt() {
     '</div></div>'
   );
 }
+// cadangan paspor (pindah HP / data browser terhapus): tautan pribadi #pulihkan=… (src/ui/screens/backup.js)
+function backupOpt() {
+  const has = !!UI.passport().name;
+  const wa = has
+    ? 'https://wa.me/?text=' + encodeURIComponent('Cadangan Paspor Cinta Loveopoly (simpan untuk diri sendiri): ' + UI.backupLink())
+    : '';
+  return (
+    '<div class="opt"><span class="label">Cadangan Paspor</span>' +
+    '<div class="tiny muted">Jam Terbang, Api Cinta, lencana & cap kota hanya tersimpan di perangkat ini. Simpan tautan cadangan di catatan atau chat pribadimu supaya bisa dipulihkan di HP lain atau setelah data browser terhapus. Siapa pun yang memegang tautannya bisa memulihkan paspormu.</div>' +
+    (has
+      ? '<div class="bk-row">' +
+        btn('id="sBackup"', 'soft', 'share', 'Cadangkan') +
+        '<a class="btn soft" id="sBackupWa" target="_blank" rel="noopener" href="' +
+        esc(wa) +
+        '">' +
+        ic('chat') +
+        '<span>WhatsApp ke diri sendiri</span></a></div>'
+      : '<div class="tiny muted">Buat Paspor Cinta dulu untuk bisa mencadangkan.</div>') +
+    '<label class="label" for="sRestoreIn">Pulihkan dari tautan cadangan</label><div class="bk-row"><input class="input" id="sRestoreIn" placeholder="loveopoly.web.app/#pulihkan=…" autocomplete="off" spellcheck="false">' +
+    btn('id="sRestoreGo"', 'ghost', 'refresh', 'Pulihkan') +
+    '</div></div>'
+  );
+}
 function openSettings() {
   showModal({
     key: 'settings',
@@ -278,6 +302,7 @@ function openSettings() {
         analyticsOn() +
         '" aria-label="Bantu kembangkan Loveopoly"></button></div>' +
         boardThemeOpt() +
+        backupOpt() +
         '<div class="opt"><span class="label">Hemat baterai</span>' +
         seg(
           'sPower',
@@ -359,6 +384,25 @@ function openSettings() {
           refreshModal();
         })
       );
+      on(m, '#sBackup', () => UI.shareBackup());
+      const rin = $('#sRestoreIn', m);
+      const restore = () => {
+        const data = parseBackup(rin.value);
+        if (!data) {
+          toast('Tautan cadangan tidak dikenali. Tempel tautan lengkap yang diawali loveopoly.web.app/#pulihkan=…', { kind: 'err' });
+          rin.focus();
+          return;
+        }
+        UI.openRestore(data);
+      };
+      on(m, '#sRestoreGo', restore);
+      if (rin)
+        rin.addEventListener('keydown', e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            restore();
+          }
+        });
       on(m, '#sAutoEnd', () => {
         App.prefs.autoEnd = App.prefs.autoEnd === false;
         UI.savePrefs();
@@ -424,7 +468,7 @@ function openPrivacy() {
           row(
             'user',
             'Paspor Cinta & simpanan game',
-            'Nama, avatar, warna pion, statistik, cap kota, Jam Terbang, Api Cinta, lencana, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser).'
+            'Nama, avatar, warna pion, statistik, cap kota, Jam Terbang, Api Cinta, lencana, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser). Menghapus data browser atau pindah HP berarti mulai dari awal, kecuali kamu menyimpan tautan cadangan (Pengaturan → Cadangan Paspor): isinya paspor & pengaturan tampilanmu (bagian setelah tanda #, tidak dikirim ke server kami), jadi simpan untuk dirimu sendiri.'
           ) +
           row(
             'letter',
@@ -454,7 +498,7 @@ function openPrivacy() {
           (confirmDel
             ? '<div class="note warn">' +
               ic('alert') +
-              '<span>Hapus Paspor Cinta, simpanan game, dan pengaturan di perangkat ini? Tidak bisa dibatalkan.</span></div>'
+              '<span>Hapus Paspor Cinta, simpanan game, dan pengaturan di perangkat ini? Tidak bisa dibatalkan. Simpan tautan cadangan dulu (Pengaturan → Cadangan Paspor) kalau ingin memulihkannya nanti.</span></div>'
             : '') +
           btn(
             'id="pvDel"',

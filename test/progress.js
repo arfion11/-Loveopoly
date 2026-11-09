@@ -3,6 +3,7 @@
 import * as P from '../src/ui/progress.js';
 import { D } from '../src/engine/data.js';
 import * as Q from '../src/ui/daily.js';
+import * as B from '../src/ui/backup.js';
 
 const results = [];
 const ok = (name, cond, detail) => results.push((cond ? 'PASS ' : 'FAIL ') + name + (detail !== undefined ? ' — ' + detail : ''));
@@ -131,8 +132,15 @@ ok(
   'harian: tiap soal punya 4 pilihan',
   D.DAILY_QS.every(x => x.q && x.o.length === 4)
 );
-ok('harian: tengah malam lokal = hari baru', Q.dayNo(at(2026, 11, 9, 0, 0)) === Q.dayNo(at(2026, 11, 8, 23, 59)) + 1);
-ok('harian: nomor urut 1 Jan 2026 = #1', Q.dailyNo(Q.dayNo(at(2026, 1, 1))) === 1);
+ok(
+  'harian: hari berganti tepat 00.00 WIB (17.00 UTC), di zona mana pun perangkatnya',
+  Q.dayNo(Date.UTC(2026, 10, 8, 17, 0)) === Q.dayNo(Date.UTC(2026, 10, 8, 16, 59)) + 1 &&
+    Q.dayNo(Date.UTC(2026, 10, 8, 16, 59)) === Q.dayNo(Date.UTC(2026, 10, 7, 17, 0))
+);
+ok(
+  'harian: nomor urut 1 Jan 2026 00.00 WIB = #1',
+  Q.dailyNo(Q.dayNo(Date.UTC(2025, 11, 31, 17, 0))) === 1 && Q.dailyNo(Q.dayNo(Date.UTC(2025, 11, 31, 16, 59))) === 0
+);
 const lk = Q.encodeLink({ d: today, n: 'Nadia 💕', a: 2, g: 1 });
 const back = Q.decodeLink(lk, today);
 ok(
@@ -157,6 +165,62 @@ ok(
 );
 const xss = Q.decodeLink(bad({ v: 1, d: today, n: '<img src=x onerror=alert(1)>', a: 1, g: 0 }), today);
 ok('tautan: tanda < > dibuang dari nama (lapisan kedua selain esc saat tampil)', xss && !/[<>]/.test(xss.n), xss && xss.n);
+
+// --- cadangan paspor ---
+const prof = {
+  name: 'Arfi',
+  avatar: D.AVATARS[2],
+  color: D.TOKEN_COLORS[1],
+  since: 123,
+  games: 9,
+  wins: 4,
+  stamps: [1, 2, 2, 999, 'x'],
+  xp: 420,
+  wk: { n: 3, last: 2966, best: 5, umb: 1 },
+  life: { ch: 12 },
+  msg: 'Sayang',
+  seen: 5,
+};
+const code = B.makeBackup(
+  {
+    profile: prof,
+    prefs: { theme: 'dark', board: 'paris', analytics: true, sound: false, power: 'save', evil: '<x>' },
+    daily: { d: 20766, n: 'Arfi', a: 1, g: 2, p: null, xp: true },
+  },
+  1700000000000
+);
+const bk = B.parseBackup('https://loveopoly.web.app/#pulihkan=' + code);
+ok(
+  'cadangan: bolak-balik utuh dari tautan lengkap',
+  bk && bk.p.name === 'Arfi' && bk.p.xp === 420 && bk.p.wk.best === 5 && bk.p.msg === 'Sayang' && bk.d.a === 1 && bk.t === 1700000000000,
+  JSON.stringify(bk && bk.p).slice(0, 120)
+);
+ok(
+  'cadangan: cap kota disaring (dobel / bukan kota dibuang)',
+  bk && JSON.stringify(bk.p.stamps) === JSON.stringify(B.normProfile({ stamps: [1, 2, 2, 999, 'x'] }).stamps) && !bk.p.stamps.includes(999)
+);
+ok(
+  'cadangan: pengaturan daftar putih (persetujuan statistik & kunci asing tidak ikut)',
+  bk && bk.s.theme === 'dark' && bk.s.board === 'paris' && bk.s.power === 'save' && !('analytics' in bk.s) && !('evil' in bk.s),
+  JSON.stringify(bk && bk.s)
+);
+ok('cadangan: kode mentah (tanpa alamat) juga diterima', !!B.parseBackup(code));
+const enc = o => btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+ok(
+  'cadangan: rusak / tanpa nama paspor / versi lain ditolak',
+  B.parseBackup('halo') === null &&
+    B.parseBackup(enc({ v: 1, p: { name: '' } })) === null &&
+    B.parseBackup(enc({ v: 2, p: { name: 'A' } })) === null &&
+    B.parseBackup('') === null
+);
+const nasty = B.parseBackup(
+  enc({ v: 1, p: { name: 'A\u0000B', xp: -9, games: 'banyak', avatar: '<script>', wk: { n: 99999999999, umb: 50 } } })
+);
+ok(
+  'cadangan: nilai aneh dinormalkan (karakter kontrol, angka negatif, avatar asing)',
+  nasty && nasty.p.name === 'AB' && nasty.p.xp === 0 && nasty.p.games === 0 && D.AVATARS.includes(nasty.p.avatar) && nasty.p.wk.umb === 2,
+  JSON.stringify(nasty && nasty.p).slice(0, 140)
+);
 
 console.log(results.join('\n'));
 const fails = results.filter(x => x.startsWith('FAIL')).length;

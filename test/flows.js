@@ -1446,6 +1446,128 @@ const URL = (await serveDist()).url + '/';
     await sctx.close();
   }
 
+  // Cadangan Paspor: HP lama → tautan #pulihkan=… → HP baru (konfirmasi) → progres & tema kembali; tempel di Paspor;
+  // HP yang sudah punya paspor lain diberi peringatan; persetujuan statistik tidak ikut
+  {
+    const dev = async (prof, prefs) => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const p = await ctx.newPage();
+      p.on('pageerror', e => errors.push('cadangan pageerror: ' + e.message));
+      p.on('console', m => m.type() === 'error' && errors.push('cadangan console: ' + m.text()));
+      await p.addInitScript(
+        ([pr, ps]) => {
+          if (sessionStorage.getItem('bk')) return;
+          sessionStorage.setItem('bk', '1');
+          localStorage.setItem('loveopoly.v1.prefs', JSON.stringify(Object.assign({ sound: false, speed: 'fast' }, ps || {})));
+          localStorage.setItem('loveopoly.v2.tour', '"done"');
+          if (pr) localStorage.setItem('loveopoly.v1.profile', JSON.stringify(pr));
+        },
+        [prof, prefs]
+      );
+      return { ctx, p };
+    };
+    // HP lama: tema Paris Malam, gelap, statistik dinyalakan → yang ikut cadangan hanya tampilan, bukan persetujuan statistik
+    const OLD = await dev(
+      {
+        name: 'Arfi',
+        avatar: '🦊',
+        since: 77,
+        games: 9,
+        wins: 4,
+        stamps: [1, 2, 9],
+        xp: 700,
+        wk: { n: 3, last: 1, best: 5, umb: 1 },
+        seen: Date.now(),
+      },
+      { board: 'paris', theme: 'dark', analytics: true }
+    );
+    await OLD.p.goto(URL);
+    // Simpan Paspor di HP: tombol di paling bawah → halaman digulir ke cap "DISETUJUI" dulu, baru dicap, lalu tutup
+    await OLD.p.click('#hPass');
+    await OLD.p.waitForSelector('#ppGo', { state: 'visible', timeout: 6000 });
+    await OLD.p.waitForTimeout(900);
+    await OLD.p.$eval('#ppGo', b => b.scrollIntoView({ block: 'end' }));
+    const stampAway = await OLD.p.$eval('.pp-stamp', e => e.getBoundingClientRect().bottom < 0);
+    await OLD.p.click('#ppGo');
+    await OLD.p.waitForSelector('.pp-book.done', { timeout: 3000 });
+    const stampSeen = await OLD.p.$eval('.pp-stamp', e => {
+      const r = e.getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= innerHeight;
+    });
+    await OLD.p.waitForSelector('#passOv', { state: 'detached', timeout: 5000 });
+    ok(
+      'Simpan Paspor di HP: gulir ke cap DISETUJUI dulu (terlihat), lalu paspor tertutup',
+      stampAway && stampSeen,
+      JSON.stringify({ stampAway, stampSeen })
+    );
+    // cadangan sekarang di Pengaturan → Cadangan Paspor (buku paspor tetap ringkas)
+    await OLD.p.evaluate(() => window.LoveUI.openSettings());
+    await OLD.p.waitForSelector('#modalRoot #sBackupWa', { state: 'attached', timeout: 6000 });
+    const inBook = await OLD.p.evaluate(() => !!document.querySelector('#passOv #ppBackupWa, #passOv #ppRestoreIn'));
+    const bkHref = await OLD.p.$eval('#modalRoot #sBackupWa', a => a.href);
+    ok('cadangan ada di Pengaturan, bukan di buku paspor', !inBook && /#pulihkan=/.test(decodeURIComponent(bkHref)));
+    const bkLink = decodeURIComponent(bkHref.split('text=')[1])
+      .split(' ')
+      .pop()
+      .replace(/^https?:\/\/[^/]+\//, URL);
+    await OLD.ctx.close();
+    const NEW = await dev(null);
+    await NEW.p.goto(bkLink);
+    await NEW.p.waitForSelector('#modalRoot #bkYes', { timeout: 6000 });
+    const sum = (await NEW.p.textContent('#modalRoot .modal')).replace(/\s+/g, ' ');
+    const passOv = !!(await NEW.p.$('#passOv'));
+    await NEW.p.click('#modalRoot #bkYes');
+    await NEW.p.waitForTimeout(400);
+    const got = await NEW.p.evaluate(() => ({
+      p: JSON.parse(localStorage.getItem('loveopoly.v1.profile')),
+      prefs: JSON.parse(localStorage.getItem('loveopoly.v1.prefs')),
+      board: document.documentElement.dataset.board,
+      card: (document.getElementById('hPass') || {}).textContent || '',
+      hash: location.hash,
+    }));
+    ok(
+      'cadangan: tautan dari HP lama → HP baru → konfirmasi → paspor, Jam Terbang, Api Cinta & tema kembali',
+      /Arfi/.test(sum) &&
+        /Lv 5/.test(sum) &&
+        !passOv &&
+        got.p.name === 'Arfi' &&
+        got.p.xp === 700 &&
+        got.p.wk.best === 5 &&
+        got.p.stamps.length === 3 &&
+        got.board === 'paris' &&
+        /Halo, Arfi/.test(got.card) &&
+        got.hash === '',
+      JSON.stringify({ sum: sum.slice(0, 90), xp: got.p.xp, board: got.board })
+    );
+    ok(
+      'cadangan: persetujuan statistik tidak ikut dipulihkan',
+      got.prefs.analytics === undefined || got.prefs.analytics === null,
+      JSON.stringify(got.prefs)
+    );
+    await NEW.ctx.close();
+    const OTHER = await dev({ name: 'Nadia', since: 5, games: 3, xp: 200, seen: Date.now() });
+    await OTHER.p.goto(URL);
+    await OTHER.p.evaluate(() => window.LoveUI.openSettings());
+    await OTHER.p.waitForSelector('#sRestoreIn', { state: 'visible', timeout: 6000 });
+    await OTHER.p.fill('#sRestoreIn', 'bukan tautan');
+    await OTHER.p.click('#sRestoreGo');
+    await OTHER.p.waitForTimeout(250);
+    const badMsg = /tidak dikenali/.test(await OTHER.p.textContent('#toasts'));
+    await OTHER.p.fill('#sRestoreIn', bkLink);
+    await OTHER.p.press('#sRestoreIn', 'Enter');
+    await OTHER.p.waitForSelector('#modalRoot #bkYes', { timeout: 6000 });
+    const warn = (await OTHER.p.textContent('#modalRoot .modal')).replace(/\s+/g, ' ');
+    await OTHER.p.click('#modalRoot #bkNo');
+    await OTHER.p.waitForTimeout(300);
+    const kept = await OTHER.p.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')).name);
+    ok(
+      'cadangan: tempel di Pengaturan (tautan salah ditolak), HP dengan paspor lain diberi peringatan, Batal tidak mengubah apa pun',
+      badMsg && /Nadia, Lv 3\) akan diganti/.test(warn) && kept === 'Nadia',
+      warn.slice(-170)
+    );
+    await OTHER.ctx.close();
+  }
+
   // Pertanyaan Hari Ini: dua perangkat lewat tautan (#tanya=…) + satu HP bergantian + tautan rusak
   {
     const dev = async name => {

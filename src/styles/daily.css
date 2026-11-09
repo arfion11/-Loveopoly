@@ -207,3 +207,50 @@
 #dqName + .dq-share {
   margin-top: 10px;
 }
+.dq-wib {
+  margin: 10px 0 0;
+}
+/* konfirmasi pemulihan cadangan paspor */
+.bk-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  color: var(--ink);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 2px var(--line);
+}
+.bk-card b {
+  display: block;
+  font: 700 17px var(--fd);
+}
+.bk-card small {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.bk-av {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  font-size: 28px;
+  background: color-mix(in srgb, var(--c) 30%, var(--surface));
+}
+/* Pengaturan → Cadangan Paspor */
+.bk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.bk-row .btn {
+  text-decoration: none;
+}
+.bk-row .input {
+  flex: 1 1 200px;
+  min-width: 0;
+}

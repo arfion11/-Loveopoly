@@ -1,5 +1,5 @@
 /* LOVEOPOLY — Pertanyaan Hari Ini: logika murni (tanpa DOM; diuji test/progress.js, dipakai screens/daily.js)
-   Satu soal per hari dari D.DAILY_QS, sama di semua perangkat (dipilih dari tanggal lokal). Tanpa server: jawaban
+   Satu soal per hari dari D.DAILY_QS, sama di semua perangkat & zona waktu (hari menurut WIB). Tanpa server: jawaban
    pasangan dikirim lewat tautan …/#tanya=<base64url JSON> (bagian # tidak pernah terkirim ke server).
    Isi tautan: { v: 1, d: hari, n: nama pengirim, a: pilihan pengirim, g: tebakan pengirim atas pasangan,
                  m?: nama penjawab kedua, b?: pilihan penjawab kedua, h?: tebakan penjawab kedua atas pengirim }.
@@ -8,11 +8,10 @@ import { D } from '../engine/data.js';
 
 const DAY = 864e5;
 const N = D.DAILY_QS.length;
-// nomor hari lokal (tanggal lokal → hari sejak 1 Jan 1970 lewat Date.UTC, kebal jam musim panas)
-function dayNo(ms) {
-  const d = new Date(ms);
-  return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY);
-}
+// nomor hari menurut WIB (UTC+7, tanpa jam musim panas): SAMA untuk semua pemain di zona mana pun, berganti tiap
+// 00.00 WIB. Dulu tanggal lokal → pasangan LDR beda zona sempat melihat nomor & soal berbeda selama beberapa jam.
+const WIB = 7 * 3600e3;
+const dayNo = ms => Math.floor((Number(ms) + WIB) / DAY);
 // urutan soal diacak tetap (37 dan jumlah soal saling prima → semua soal muncul sebelum ada yang berulang)
 const dailyIndex = day => (((day * 37) % N) + N) % N;
 const dailyQ = day => D.DAILY_QS[dailyIndex(day)];
@@ -45,7 +44,7 @@ function encodeLink(o) {
   return b64(JSON.stringify(x));
 }
 // tautan → isi tervalidasi, atau null. today: hari sekarang (tautan lama s.d. 60 hari & paling jauh 2 hari ke depan,
-// karena pasangan LDR bisa beda zona waktu)
+// untuk jam perangkat yang sedikit meleset)
 function decodeLink(s, today) {
   try {
     if (typeof s !== 'string' || !/^[A-Za-z0-9_-]{8,400}$/.test(s)) return null;

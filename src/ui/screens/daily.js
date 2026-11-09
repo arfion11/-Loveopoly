@@ -202,6 +202,7 @@ function openDaily(link) {
             ' sudah menjawab. Sekarang giliranmu, nanti hasilnya terbuka untuk kalian berdua.</span></p>' +
             body;
         body += opts(p2 ? ui.p2.a : ui.tmp, 'data-dqa', 'Pilihanmu');
+        if (!p2) body += '<p class="tiny muted dq-wib">Soal baru setiap pukul 00.00 WIB, sama untuk semua pemain.</p>';
       } else if (v === 'guess' || v === 'p2guess') {
         const p2 = v === 'p2guess';
         const who = p2 ? myName(st) || 'pasanganmu' : partnerName();

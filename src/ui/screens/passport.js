@@ -2,6 +2,8 @@
 import { App, D, E, SND, ART, TILES, esc, ic, $, $$, store, toast } from '../core.js';
 import { UI } from '../ns.js';
 import { renderHome } from './home.js';
+import { normProfile } from '../backup.js';
+import { keepData } from './backup.js';
 import {
   BADGES,
   TIER_NAMES,
@@ -14,8 +16,6 @@ import {
   gameXp,
   levelInfo,
   markWeek,
-  normLife,
-  normWeek,
   streakView,
   themesUnlocked,
   tierUps,
@@ -26,25 +26,9 @@ import {
 // Disimpan di loveopoly.v1.profile (sama dengan profil online). Tidak ada kata sandi: login online tetap anonim.
 const PKEY = 'loveopoly.v1.profile';
 const CITY_TILES = TILES.filter(t => t.type === 'city');
+// penyaring profil ada di src/ui/backup.js (normProfile), dipakai juga saat memulihkan cadangan
 function passport() {
-  const p = store.get(PKEY, null) || {};
-  return {
-    name: typeof p.name === 'string' ? p.name.slice(0, 16) : '',
-    avatar: D.AVATARS.includes(p.avatar) ? p.avatar : D.AVATARS[0],
-    color: D.TOKEN_COLORS.includes(p.color) ? p.color : D.TOKEN_COLORS[0],
-    since: p.since || 0,
-    games: p.games | 0,
-    wins: p.wins | 0,
-    stamps: Array.isArray(p.stamps) ? p.stamps.filter(i => TILES[i] && TILES[i].type === 'city') : [],
-    skipped: !!p.skipped,
-    last: p.last || '',
-    msg: typeof p.msg === 'string' ? p.msg.slice(0, 240) : '',
-    // progres (lihat src/ui/progress.js): Jam Terbang, Api Cinta, catatan seumur hidup untuk lencana, kunjungan terakhir
-    xp: Number.isFinite(+p.xp) ? Math.max(0, Math.floor(+p.xp)) : 0,
-    wk: normWeek(p.wk),
-    life: normLife(p.life),
-    seen: Number.isFinite(+p.seen) ? Math.max(0, +p.seen) : 0,
-  };
+  return normProfile(store.get(PKEY, null));
 }
 const savePassport = p => store.set(PKEY, p);
 const passNo = p =>
@@ -102,6 +86,7 @@ function recordPassport(S) {
   const week = noteWeek(p, now);
   p.seen = now;
   savePassport(p);
+  keepData(); // ada progres: minta browser tidak menghapus data situs ini
   const res = {
     xp: g.total + (week ? XP.week : 0),
     parts: week ? g.parts.concat([['Api Cinta minggu ini', XP.week]]) : g.parts,
@@ -630,7 +615,8 @@ function openPassport(opts) {
       f.onsubmit = e => {
         e.preventDefault();
         const nm = st.name.trim();
-        if (!nm || nm.length > 16) return;
+        if (!nm || nm.length > 16 || st.saving) return;
+        st.saving = true;
         const q = passport();
         Object.assign(q, {
           name: nm,
@@ -644,19 +630,32 @@ function openPassport(opts) {
           since: q.since || Date.now(),
         });
         savePassport(q);
-        SND.play('stamp');
-        $('.pp-book', ov).classList.add('done');
-        setTimeout(
-          () => {
-            close();
-            toast(edit ? 'Paspor diperbarui.' : 'Paspor terbit! Selamat datang, ' + nm + '.', {
-              kind: 'good',
-              icon: 'heart',
-              title: edit ? '' : 'Selamat datang',
-            });
-          },
-          UI.reduceMotion() ? 300 : 1250
-        );
+        keepData();
+        // cap "DISETUJUI" ada di atas halaman; di HP tombol Simpan di paling bawah → gulir dulu supaya capnya
+        // terlihat, baru dicap, lalu tutup (st.saving: sekali saja walau tombol diketuk berulang)
+        const rm = UI.reduceMotion(),
+          stamp = $('.pp-stamp', ov),
+          r = stamp ? stamp.getBoundingClientRect() : null,
+          away = !!r && (r.top < 0 || r.bottom > window.innerHeight);
+        const seal = () => {
+          SND.play('stamp');
+          $('.pp-book', ov).classList.add('done');
+          setTimeout(
+            () => {
+              close();
+              toast(edit ? 'Paspor diperbarui.' : 'Paspor terbit! Selamat datang, ' + nm + '.', {
+                kind: 'good',
+                icon: 'heart',
+                title: edit ? '' : 'Selamat datang',
+              });
+            },
+            rm ? 300 : 1350
+          );
+        };
+        if (away && stamp) {
+          stamp.scrollIntoView({ block: 'center', behavior: rm ? 'auto' : 'smooth' });
+          setTimeout(seal, rm ? 0 : 480);
+        } else seal();
       };
     const first = st.open ? $('#ppName', ov) : $('#ppOpen', ov);
     if (first && !opts.noFocus)

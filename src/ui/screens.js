@@ -11,6 +11,7 @@ import { showWin } from './screens/win.js';
 import { endTour, startTour } from './screens/tour.js';
 import { boot } from './screens/boot.js';
 import { openDaily } from './screens/daily.js';
+import { backupLink, openRestore, shareBackup } from './screens/backup.js';
 
 Object.assign(UI, {
   toggleSound,
@@ -36,6 +37,9 @@ Object.assign(UI, {
   startTour,
   endTour,
   openDaily,
+  backupLink,
+  openRestore,
+  shareBackup,
 });
 
 export { start } from './screens/boot.js';

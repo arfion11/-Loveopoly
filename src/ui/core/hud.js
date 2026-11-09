@@ -4,6 +4,7 @@ import { Icons } from '../../assets/icons.js';
 import { D } from '../../engine/data.js';
 import { E } from '../../engine/engine.js';
 import { UI } from '../ns.js';
+import { wakeCalm } from './power.js';
 import {
   $,
   $$,
@@ -325,6 +326,7 @@ function logCardHTML(S) {
 function renderStage(S) {
   S = S || App.S;
   if (!S || !$('#turnLine')) return;
+  wakeCalm(); // ada perubahan di permainan: hiasan jalan lagi (lihat power.js)
   const cur = S.players[S.turn.p];
   const lim = S.settings.roundLimit;
   setHTML($('#roundChip'), ic('calendar') + '<span>Ronde <b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span>');

@@ -43,6 +43,7 @@ import { EMOTES, showEmote, sendEmote, renderAmbience, merpiSay, merpiPoke, pick
 import { renderPlayers, renderHeader, renderStage, renderTicker, renderAll, describeItem } from './core/hud.js';
 import { startPick, renderPick, endPick } from './core/pick.js';
 import { commit, cleanState, act, persist, scheduleAI, scheduleAutoEnd, cancelAutoEnd, fallbackAction, flyCard } from './core/flow.js';
+import { initPower, lowPower, probeFps, wakeCalm } from './core/power.js';
 import { UI } from './ns.js';
 
 Object.assign(UI, {
@@ -123,6 +124,10 @@ Object.assign(UI, {
   reduceMotion,
   pick,
   flyCard,
+  initPower,
+  lowPower,
+  probeFps,
+  wakeCalm,
 });
 
 export {
@@ -203,4 +208,8 @@ export {
   reduceMotion,
   pick,
   flyCard,
+  initPower,
+  lowPower,
+  probeFps,
+  wakeCalm,
 };

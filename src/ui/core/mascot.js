@@ -8,6 +8,7 @@ import { camInsets } from './layout.js';
 import { is3d } from './camera.js';
 import { tileAnchor, tokSize } from './pieces.js';
 import { boardFx, boardPt } from './effects.js';
+import { wakeCalm } from './power.js';
 
 // ---------- Merpi ----------
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -267,6 +268,7 @@ function mascotEmote(html, ms) {
 }
 // tertidur setelah 30 detik tanpa kejadian; bangun lagi saat ada kejadian atau diketuk
 function mascotWake() {
+  wakeCalm();
   const m = $('#mascot');
   if (!m) return;
   if (m.classList.contains('sleep')) {

@@ -1,5 +1,5 @@
 /* LOVEOPOLY — layar › util layar: pindah layar, tema, suara (dikumpulkan lewat src/ui/screens.js) */
-import { App, SND, TILES, KEYS, esc, $$, store } from '../core.js';
+import { App, SND, TILES, KEYS, esc, $$, store, wakeCalm } from '../core.js';
 import { UI } from '../ns.js';
 
 // ---------- util layar ----------
@@ -9,6 +9,7 @@ function show(id) {
   });
   const inGame = id === 'scrGame';
   document.body.classList.toggle('in-game', inGame);
+  wakeCalm();
   if (!inGame) {
     UI.renderHeader(null);
     if (UI.renderAmbience) UI.renderAmbience(null);

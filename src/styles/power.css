@@ -1,0 +1,39 @@
+/* ---------- hemat daya (src/ui/core/power.js) ----------
+   Hiasan yang berulang terus membuat browser menggambar ulang ±60× per detik walau permainan diam: di HP lemah jadi
+   panas & boros baterai. body.calm menjeda hiasan itu (berhenti di tempat, lanjut mulus saat bangun): dipasang
+   ±12 dtk setelah tidak ada kejadian di layar game, dan selalu di mode Hemat baterai (body.lowp). Animasi permainan
+   yang sekali jalan (pion melangkah, kartu ditarik, reaksi act-* & mood Merpi, dadu, dialog) sengaja dikecualikan
+   lewat :not(). Hiasan berulang (animation … infinite) yang baru WAJIB ditambahkan ke daftar ini. */
+body.calm .btn.go,
+body.calm .btn.attn,
+body.calm .token:not(.hop, .land, .fly, .plane, .cheer, .shake) .tk,
+body.calm .token .tk-shadow::after,
+body.calm .deck:not(.pull, .lift) .dk1,
+body.calm .deck .dk1::after,
+body.calm .t-fb,
+body.calm .turn-pill,
+body.calm .news-pill,
+body.calm .tile.threat .t-face,
+body.calm .dots i,
+body.calm .merpi:not(.is-happy, .is-sad, .is-wow, .is-love, .is-think, .mascot[class*='act-'] .merpi) *,
+body.calm .mascot:not([class*='act-']) .ms-body,
+body.calm .ms-land,
+body.calm .ms-clouds,
+body.calm .ms-ring,
+body.calm .mascot.sleep .ms-emote,
+body.calm .mascot.sleep .ms-emote *,
+body.calm .ms-fx *,
+body.calm .ms-orbit,
+body.calm .ms-peak,
+body.calm .sky-fx {
+  animation-play-state: paused !important;
+}
+/* logo Merpi di header cukup diam selama main (bagian SVG-nya yang bergerak memaksa header dicat ulang tiap frame) */
+body.in-game .brand-mark .merpi * {
+  animation-play-state: paused !important;
+}
+/* Hemat baterai: pola suasana Kabar Merpi tetap tampil tapi diam, tanpa lapisan GPU bergerak seukuran layar */
+body.lowp .sky-fx {
+  animation: none !important;
+  will-change: auto;
+}

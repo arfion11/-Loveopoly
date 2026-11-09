@@ -75,13 +75,20 @@
   border-radius: 50%;
   background: rgba(40, 10, 40, 0.28);
 }
-.token.me .tk-shadow {
-  box-shadow: 0 0 0 calc(var(--ts) * 0.1) color-mix(in srgb, var(--c) 45%, transparent);
+/* cincin giliran: elips di sekeliling bayangan yang membesar & memudar lewat transform/opacity (dikerjakan GPU),
+   bukan box-shadow yang mengecat ulang tiap frame */
+.token.me .tk-shadow::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--ts) * -0.1);
+  border-radius: 50%;
+  border: calc(var(--ts) * 0.1) solid color-mix(in srgb, var(--c) 45%, transparent);
   animation: meRing 1.4s ease-in-out infinite;
 }
 @keyframes meRing {
   50% {
-    box-shadow: 0 0 0 calc(var(--ts) * 0.22) color-mix(in srgb, var(--c) 20%, transparent);
+    transform: scale(1.28, 1.6);
+    opacity: 0.45;
   }
 }
 .token.me .tk {

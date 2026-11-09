@@ -4,6 +4,7 @@ import { camApply, camAuto, renderCamCtl } from './camera.js';
 import { renderTokens } from './pieces.js';
 import { trackBubble } from './mascot.js';
 import { placePlayers } from './hud.js';
+import { syncSmil } from './power.js';
 
 // ---------- tata letak ----------
 function computeLayout() {
@@ -53,6 +54,7 @@ function applyLayout(force) {
   }
   App.lastMini = mini;
   g.className = cls;
+  syncSmil(); // peta tengah papan tersembunyi di 3D & ponsel: pesawatnya dijeda
   placeStage();
   placePlayers();
   sizeBoard();

@@ -1068,6 +1068,74 @@ const URL = (await serveDist()).url + '/';
     JSON.stringify(inst).slice(0, 160)
   );
 
+  // Hemat daya: saat diam ±12 dtk semua hiasan berulang dijeda (tidak ada animasi berjalan = HP tidak terus
+  // menggambar ulang & panas), sentuhan membangunkan. Hiasan berulang baru wajib masuk src/styles/power.css.
+  await newGame('');
+  await page.waitForTimeout(12800);
+  const calmSt = await page.evaluate(() => ({
+    calm: document.body.classList.contains('calm'),
+    running: document
+      .getAnimations()
+      .filter(a => a.playState === 'running')
+      .map(
+        a =>
+          (a.animationName || a.transitionProperty) +
+          '@' +
+          (a.effect.target && a.effect.target.className.baseVal != null
+            ? a.effect.target.className.baseVal
+            : a.effect.target && a.effect.target.className)
+      ),
+    smilPaused: [...document.querySelectorAll('svg.cd-map')].every(s => s.animationsPaused()),
+  }));
+  ok(
+    'hemat daya: diam ±12 dtk → semua hiasan berulang dijeda (tidak ada animasi berjalan)',
+    calmSt.calm && calmSt.running.length === 0 && calmSt.smilPaused,
+    JSON.stringify(calmSt).slice(0, 300)
+  );
+  await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await page.waitForTimeout(150);
+  const woke = await page.evaluate(() => ({
+    calm: document.body.classList.contains('calm'),
+    running: document.getAnimations().filter(a => a.playState === 'running').length,
+  }));
+  ok('hemat daya: sentuhan membangunkan hiasan lagi', !woke.calm && woke.running > 0, JSON.stringify(woke));
+  // Hemat baterai dari Pengaturan: hiasan diam sejak awal, langkah pion tetap beranimasi
+  await page.evaluate(() => window.LoveUI.openSettings());
+  await page.waitForSelector('#modalRoot #sPower [data-v="save"]');
+  await page.$eval('#modalRoot #sPower [data-v="save"]', b => b.click());
+  await page.evaluate(() => window.LoveUI.closeModal(true));
+  await page.waitForTimeout(150);
+  const lowSt = await page.evaluate(() => ({
+    lowp: document.body.classList.contains('lowp'),
+    calm: document.body.classList.contains('calm'),
+    saved: JSON.parse(localStorage.getItem('loveopoly.v1.prefs')).power,
+    loops: document.getAnimations().filter(a => a.playState === 'running' && a.effect.getTiming().iterations === Infinity).length,
+  }));
+  ok(
+    'Hemat baterai: Nyala tersimpan, hiasan berulang diam',
+    lowSt.lowp && lowSt.calm && lowSt.saved === 'save' && lowSt.loops === 0,
+    JSON.stringify(lowSt)
+  );
+  await page.evaluate(() => window.LoveUI.act({ type: 'ROLL', p: 0, dice: [2, 2] }));
+  const hopOk = await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .some(a => a.playState === 'running' && a.effect.target && a.effect.target.closest && a.effect.target.closest('.token.hop')),
+      null,
+      { timeout: 4000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  ok('Hemat baterai: pion tetap melangkah dengan animasi', hopOk);
+  await settle();
+  await page.evaluate(() => {
+    window.LoveUI.App.prefs.power = 'auto';
+    window.LoveUI.savePrefs();
+    window.LoveUI.wakeCalm();
+  });
+
   // Aplikasi terpasang di iPhone (jarak aman atas/bawah): layar game pas satu layar, tidak tergulir, kartu pemain
   // tidak masuk ke bawah header (pernah: dokumen 93 px lebih tinggi dari layar → bisa tergulir)
   {

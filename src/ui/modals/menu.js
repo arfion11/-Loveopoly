@@ -239,6 +239,19 @@ function openSettings() {
         '<div class="toggle-row"><div><b>Bantu kembangkan Loveopoly</b><div class="tiny muted">Kirim statistik pemakaian anonim (Google Analytics) & laporan error. Tanpa nama, pesan, foto, atau kode room.</div></div><button type="button" class="switch" role="switch" id="sStats" aria-checked="' +
         analyticsOn() +
         '" aria-label="Bantu kembangkan Loveopoly"></button></div>' +
+        '<div class="opt"><span class="label">Hemat baterai</span>' +
+        seg(
+          'sPower',
+          [
+            ['auto', 'Otomatis'],
+            ['save', 'Nyala'],
+            ['full', 'Mati'],
+          ],
+          App.prefs.power || 'auto'
+        ) +
+        '<div class="tiny muted opt-note">Hiasan yang terus bergerak (Merpi, bola dunia, latar Kabar Merpi) berhenti supaya HP tidak cepat panas & baterai awet. Langkah pion, dadu & kartu tetap beranimasi. ' +
+        (UI.lowPower() ? 'Di perangkat ini sekarang: nyala.' : 'Di perangkat ini sekarang: mati.') +
+        '</div></div>' +
         '<div class="opt"><span class="label">Kecepatan animasi</span>' +
         seg(
           'sSpeed',
@@ -316,12 +329,14 @@ function openSettings() {
         ['#sSpeed', 'speed'],
         ['#sAi', 'aiSpeed'],
         ['#sTheme', 'theme'],
+        ['#sPower', 'power'],
       ].forEach(([sel, k]) =>
         $$(sel + ' [data-v]', m).forEach(b =>
           b.addEventListener('click', () => {
             App.prefs[k] = b.dataset.v;
             UI.savePrefs();
             UI.applyTheme();
+            UI.wakeCalm();
             refreshModal();
           })
         )

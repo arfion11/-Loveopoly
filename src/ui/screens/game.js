@@ -208,6 +208,8 @@ function enterGame(mode, seat, S) {
   App.shown = S;
   // game baru dengan undian: rahasiakan siapa jalan duluan sejak gambar pertama (sampai undian selesai)
   App.revealing = !S.over && S.seq === 0 && S.log.some(l => /^Undian giliran:/.test(l.text));
+  // Hemat baterai otomatis: ukur kelancaran sekali per sesi setelah papan & undian tenang (power.js)
+  setTimeout(() => UI.probeFps(), 7000);
   App.pending = [];
   App.animating = false;
   App.focus = -1;

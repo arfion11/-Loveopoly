@@ -1166,6 +1166,17 @@ const URL = (await serveDist()).url + '/';
     /4\s*minggu/.test(card) && /Lv\s*2/.test(card) && /Minggu ini aman/.test(card),
     card.slice(0, 200)
   );
+  // bar XP: beranda digambar ulang (banyak interaksi) tanpa perubahan XP → tidak mengisi ulang dari 0
+  await page.evaluate(() => window.LoveUI.renderHome());
+  const bar = await page.evaluate(() => {
+    const i = document.querySelector('#hPass .pc-xp i');
+    return { fill: i.parentElement.classList.contains('fill'), anim: i.getAnimations().length };
+  });
+  ok(
+    'bar XP: beranda digambar ulang tanpa perubahan XP → bar diam (tidak mulai lagi dari 0)',
+    !bar.fill && bar.anim === 0,
+    JSON.stringify(bar)
+  );
   await page.click('#hPass');
   await page.waitForSelector('#passOv .pp-prog', { timeout: 6000 }).catch(() => {});
   const ppTxt = await page.evaluate(() => (document.querySelector('#passOv .pp-prog') || {}).textContent || '');

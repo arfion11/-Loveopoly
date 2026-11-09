@@ -17,11 +17,14 @@
   background: linear-gradient(90deg, #ffd772, #ff9f1c);
   transform-origin: left center;
   transform: scaleX(var(--p, 0));
+}
+/* hanya saat nilainya berubah (xpBar menambah .fill): mengisi dari nilai sebelumnya (--p0) ke nilai baru */
+.xp-bar.fill i {
   animation: xpFill 0.9s cubic-bezier(0.2, 0.8, 0.3, 1) 0.25s backwards;
 }
 @keyframes xpFill {
   from {
-    transform: scaleX(0);
+    transform: scaleX(var(--p0, 0));
   }
 }
 

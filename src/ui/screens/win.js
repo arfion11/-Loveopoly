@@ -55,7 +55,7 @@ function progPanel(r) {
     ' · ' +
     esc(r.to.title) +
     '</span></div>' +
-    xpBar(r.to.pct, 'jt-bar') +
+    xpBar(r.to.pct, 'jt-bar', null, up ? 0 : r.from.pct) +
     '<div class="jt-next">' +
     r.to.cur +
     '/' +

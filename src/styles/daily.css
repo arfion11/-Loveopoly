@@ -14,8 +14,56 @@
     inset 0 0 0 2px var(--violet-soft),
     0 4px 0 color-mix(in srgb, var(--violet) 35%, transparent);
 }
+.daily-card {
+  transition:
+    transform 0.22s cubic-bezier(0.3, 1.5, 0.5, 1),
+    box-shadow 0.22s ease;
+}
+.daily-card .dc-ic,
+.daily-card > .ic {
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.5, 0.5, 1),
+    color 0.18s;
+}
 .daily-card:active {
   transform: translateY(2px);
+  box-shadow:
+    inset 0 0 0 2px var(--violet-soft),
+    0 1px 0 color-mix(in srgb, var(--violet) 35%, transparent);
+  transition-duration: 0.08s;
+}
+/* diarahkan pointer / fokus keyboard: kartu terangkat, amplop miring, panah bergeser (sama seperti kartu mode) */
+.daily-card:focus-visible {
+  transform: translateY(-3px);
+}
+.daily-card:focus-visible .dc-ic {
+  transform: rotate(-8deg) scale(1.08);
+}
+.daily-card:focus-visible > .ic {
+  transform: translateX(5px);
+  color: var(--violet);
+}
+@media (hover: hover) {
+  .daily-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      inset 0 0 0 2px color-mix(in srgb, var(--violet) 45%, transparent),
+      0 8px 0 color-mix(in srgb, var(--violet) 40%, transparent),
+      var(--shadow-lg);
+  }
+  .daily-card:hover:active {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 0 0 2px var(--violet-soft),
+      0 1px 0 color-mix(in srgb, var(--violet) 35%, transparent);
+  }
+  .daily-card:hover .dc-ic {
+    transform: rotate(-8deg) scale(1.08);
+  }
+  .daily-card:hover > .ic {
+    transform: translateX(5px);
+    color: var(--violet);
+  }
 }
 .daily-card .dc-ic {
   display: grid;

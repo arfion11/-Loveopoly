@@ -216,8 +216,31 @@ function addXp(n) {
   return { L0, lv, themes: themesUnlocked(L0, lv.L) };
 }
 // bar XP (dekoratif, teksnya di sebelahnya)
-const xpBar = (pct, cls) =>
-  '<span class="xp-bar ' + (cls || '') + '" aria-hidden="true"><i style="--p:' + Math.max(0, Math.min(100, pct)) / 100 + '"></i></span>';
+// Bar XP (dekoratif, teksnya di sebelahnya). Hanya beranimasi saat nilainya BERUBAH, mengisi dari nilai sebelumnya:
+// beranda digambar ulang di banyak interaksi (tutup dialog, jawab Pertanyaan Hari Ini, kembali dari game) dan dulu
+// barnya selalu mulai lagi dari 0. key = tempat bar (nilai terakhir diingat per sesi; pertama kali dari 0);
+// from = nilai awal eksplisit (layar menang: XP sebelum game).
+const lastBar = {};
+const clampPct = v => Math.max(0, Math.min(100, Number(v) || 0)) / 100;
+function xpBar(pct, cls, key, from) {
+  const p = clampPct(pct);
+  let p0 = 0;
+  if (from != null) p0 = clampPct(from);
+  else if (key) {
+    p0 = key in lastBar ? lastBar[key] : 0;
+    lastBar[key] = p;
+  }
+  return (
+    '<span class="xp-bar ' +
+    (cls || '') +
+    (p0 !== p ? ' fill' : '') +
+    '" aria-hidden="true"><i style="--p:' +
+    p +
+    ';--p0:' +
+    p0 +
+    '"></i></span>'
+  );
+}
 // kisi lencana di halaman paspor: tingkat sekarang + progres ke tingkat berikut
 function badgeGrid(p) {
   const v = badgeValues(p),
@@ -263,7 +286,7 @@ function progressSection(p) {
     ' XP ke Level ' +
     (lv.L + 1) +
     '</small>' +
-    xpBar(lv.pct) +
+    xpBar(lv.pct, '', 'pass') +
     '</span></div>' +
     '<div class="pg-row"><span class="pg-fire s-' +
     sl.v.state +
@@ -720,7 +743,7 @@ function passportCard() {
     '</b> ' +
     esc(lv.title) +
     '</span>' +
-    xpBar(lv.pct, 'pc-xp') +
+    xpBar(lv.pct, 'pc-xp', 'home') +
     '</span><span class="pc-wk">' +
     esc(sl.text) +
     '</span></span>' +

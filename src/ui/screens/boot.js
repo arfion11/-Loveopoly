@@ -6,6 +6,7 @@ import { UI } from '../ns.js';
 import { applyTheme, keepGameTop, show, syncSoundBtn } from './base.js';
 import { openPassport, passport } from './passport.js';
 import { renderHome } from './home.js';
+import { dailyFromHash, openDaily } from './daily.js';
 
 // ---------- boot ----------
 function bindHeader() {
@@ -20,6 +21,17 @@ function bindHeader() {
   };
   $('#hMenu').innerHTML = ic('menu');
   $('.brand-mark').innerHTML = ART.merpi('');
+}
+// buka tautan Pertanyaan Hari Ini (null = tidak ada tautan, false = rusak). true bila dialog dibuka
+function takeLink(link) {
+  if (link === false) {
+    setTimeout(() => toast('Tautan Pertanyaan Hari Ini tidak valid atau sudah kedaluwarsa.', { kind: 'err' }), 400);
+    return false;
+  }
+  if (!link) return false;
+  // permainan sedang berjalan: tetap dibuka di atasnya (dialog), papan tidak berubah
+  setTimeout(() => openDaily(link), UI.reduceMotion() ? 0 : 300);
+  return true;
 }
 function boot() {
   document.documentElement.lang = 'id';
@@ -61,6 +73,10 @@ function boot() {
         }),
       600
     );
+  // tautan Pertanyaan Hari Ini dari pasangan (#tanya=…): didahulukan, paspor tidak muncul otomatis di sesi ini.
+  // Juga saat halaman sudah terbuka & hanya bagian # yang berganti (tautan ditempel di tab yang sama).
+  window.addEventListener('hashchange', () => takeLink(dailyFromHash()));
+  if (takeLink(dailyFromHash())) return;
   const pp = passport();
   if (!pp.name && !pp.skipped)
     setTimeout(

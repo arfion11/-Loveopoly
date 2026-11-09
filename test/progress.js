@@ -2,6 +2,7 @@
 // npm run test:progress
 import * as P from '../src/ui/progress.js';
 import { D } from '../src/engine/data.js';
+import * as Q from '../src/ui/daily.js';
 
 const results = [];
 const ok = (name, cond, detail) => results.push((cond ? 'PASS ' : 'FAIL ') + name + (detail !== undefined ? ' — ' + detail : ''));
@@ -120,6 +121,42 @@ ok('Edisi Emas: Lv 5', P.goldEdition(Object.assign({}, base, { xp: P.levelXp(5) 
 ok('Edisi Emas: rekor Api Cinta 4 minggu', P.goldEdition(Object.assign({}, base, { wk: P.normWeek({ n: 1, best: 4 }) })) === true);
 ok('Edisi Emas: punya lencana Emas', P.goldEdition(Object.assign({}, base, { life: P.normLife({ lm: 50 }) })) === true);
 ok('Edisi Emas: tanpa paspor (tanpa nama) tidak', P.goldEdition(Object.assign({}, base, { name: '', xp: 9999 })) === false);
+
+// --- Pertanyaan Hari Ini ---
+const today = Q.dayNo(at(2026, 11, 9));
+const seen = new Set();
+for (let i = 0; i < D.DAILY_QS.length; i++) seen.add(Q.dailyIndex(today + i));
+ok('harian: semua soal muncul sebelum ada yang berulang', seen.size === D.DAILY_QS.length, seen.size + '/' + D.DAILY_QS.length);
+ok(
+  'harian: tiap soal punya 4 pilihan',
+  D.DAILY_QS.every(x => x.q && x.o.length === 4)
+);
+ok('harian: tengah malam lokal = hari baru', Q.dayNo(at(2026, 11, 9, 0, 0)) === Q.dayNo(at(2026, 11, 8, 23, 59)) + 1);
+ok('harian: nomor urut 1 Jan 2026 = #1', Q.dailyNo(Q.dayNo(at(2026, 1, 1))) === 1);
+const lk = Q.encodeLink({ d: today, n: 'Nadia 💕', a: 2, g: 1 });
+const back = Q.decodeLink(lk, today);
+ok(
+  'tautan: bolak-balik utuh (termasuk emoji)',
+  back && back.n === 'Nadia 💕' && back.a === 2 && back.g === 1 && back.d === today && back.m === undefined,
+  JSON.stringify(back)
+);
+const full = Q.decodeLink(Q.encodeLink({ d: today, n: 'Arfi', a: 0, g: 3, m: 'Nadia', b: 3, h: 0 }), today);
+ok('tautan hasil: memuat jawaban berdua', full && full.m === 'Nadia' && full.b === 3 && full.h === 0);
+const s1 = Q.score(full);
+ok('skor: tebakan berdua benar → 2/2, pilihan beda', s1.n === 2 && s1.g1 && s1.g2 && !s1.same, JSON.stringify(s1));
+const bad = obj => btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+ok(
+  'tautan: isi rusak / di luar batas ditolak',
+  Q.decodeLink('!!!', today) === null &&
+    Q.decodeLink(bad({ v: 1, d: today, n: 'A', a: 5, g: 0 }), today) === null &&
+    Q.decodeLink(bad({ v: 1, d: today - 61, n: 'A', a: 1, g: 0 }), today) === null &&
+    Q.decodeLink(bad({ v: 1, d: today + 3, n: 'A', a: 1, g: 0 }), today) === null &&
+    Q.decodeLink(bad({ v: 2, d: today, n: 'A', a: 1, g: 0 }), today) === null &&
+    Q.decodeLink(bad({ v: 1, d: today, n: '', a: 1, g: 0 }), today) === null &&
+    Q.decodeLink(bad({ v: 1, d: today, n: 'A', a: 1, g: 0, m: 'B', b: 9, h: 0 }), today) === null
+);
+const xss = Q.decodeLink(bad({ v: 1, d: today, n: '<img src=x onerror=alert(1)>', a: 1, g: 0 }), today);
+ok('tautan: tanda < > dibuang dari nama (lapisan kedua selain esc saat tampil)', xss && !/[<>]/.test(xss.n), xss && xss.n);
 
 console.log(results.join('\n'));
 const fails = results.filter(x => x.startsWith('FAIL')).length;

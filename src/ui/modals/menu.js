@@ -424,7 +424,12 @@ function openPrivacy() {
           row(
             'user',
             'Paspor Cinta & simpanan game',
-            'Nama, avatar, warna pion, statistik, cap kota, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser).'
+            'Nama, avatar, warna pion, statistik, cap kota, Jam Terbang, Api Cinta, lencana, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser).'
+          ) +
+          row(
+            'letter',
+            'Pertanyaan Hari Ini',
+            'Jawabanmu tersimpan di perangkat ini. Saat kamu membagikannya, nama & jawabanmu ikut di tautan itu (bagian setelah tanda #, tidak dikirim ke server kami), jadi siapa pun yang menerima tautannya bisa melihatnya. Kirim hanya ke pasanganmu.'
           ) +
           row(
             'globe',

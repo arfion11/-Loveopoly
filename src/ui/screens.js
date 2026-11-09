@@ -10,6 +10,7 @@ import { enterGame, exitToHome, togglePause, afterSettle, onLetter } from './scr
 import { showWin } from './screens/win.js';
 import { endTour, startTour } from './screens/tour.js';
 import { boot } from './screens/boot.js';
+import { openDaily } from './screens/daily.js';
 
 Object.assign(UI, {
   toggleSound,
@@ -34,6 +35,7 @@ Object.assign(UI, {
   boot,
   startTour,
   endTour,
+  openDaily,
 });
 
 export { start } from './screens/boot.js';

@@ -11,6 +11,33 @@
   .hero-scene {
     max-width: 360px;
   }
+  /* pengguna lama: ilustrasi kecil & tanpa label/deskripsi pemasaran (sudah kenal), tombol main naik ke layar pertama */
+  .home.returning .hero-scene {
+    max-width: 240px;
+  }
+  .home.returning .home-sub,
+  .home.returning .eyebrow {
+    display: none;
+  }
+}
+/* HP mendatar: dua kolom (ilustrasi kecil diam di kiri, isi & tombol di kanan), bukan satu layar penuh ilustrasi */
+@media (max-height: 520px) and (orientation: landscape) {
+  .home {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .home-art {
+    order: 0;
+    position: sticky;
+    top: calc(var(--hdr) + 12px);
+  }
+  .hero-scene {
+    max-width: min(260px, calc(100dvh - var(--hdr) - 40px));
+  }
+  .home-title {
+    font-size: 46px;
+  }
 }
 @media (max-width: 860px) {
   .setup-grid,
@@ -49,7 +76,13 @@
     font-size: 15.5px;
   }
   .hero-scene {
-    max-width: 280px;
+    max-width: 250px;
+  }
+  .home.returning .hero-scene {
+    max-width: 170px;
+  }
+  .home.returning .home-title {
+    font-size: 48px;
   }
   .mode-card .mc-art {
     width: 56px;

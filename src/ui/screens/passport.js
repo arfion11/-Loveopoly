@@ -220,6 +220,16 @@ function kangenNote() {
   return kangenMsg;
 }
 const dismissKangen = () => (kangenMsg = '');
+// tambah XP Jam Terbang di luar game (mis. Pertanyaan Hari Ini). null bila belum punya paspor
+function addXp(n) {
+  const p = passport();
+  if (!p.name || !(n > 0)) return null;
+  const L0 = levelInfo(p.xp).L;
+  p.xp += Math.floor(n);
+  savePassport(p);
+  const lv = levelInfo(p.xp);
+  return { L0, lv, themes: themesUnlocked(L0, lv.L) };
+}
 // bar XP (dekoratif, teksnya di sebelahnya)
 const xpBar = (pct, cls) =>
   '<span class="xp-bar ' + (cls || '') + '" aria-hidden="true"><i style="--p:' + Math.max(0, Math.min(100, pct)) / 100 + '"></i></span>';
@@ -721,4 +731,4 @@ function passportCard() {
   );
 }
 
-export { dismissKangen, holderSeat, kangenNote, notePlay, openPassport, passport, passportCard, recordPassport, xpBar };
+export { addXp, dismissKangen, holderSeat, kangenNote, notePlay, openPassport, passport, passportCard, recordPassport, xpBar };

@@ -122,6 +122,24 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await p.waitForSelector('#modalRoot .bt-grid');
       await audit(p, tag + ' pengaturan', '#modalRoot');
       await p.evaluate(() => window.LoveUI.closeModal(true));
+      // Pertanyaan Hari Ini: pilih → kirim → satu HP bergantian → hasil
+      await click(p, '#hDaily');
+      await p.waitForSelector('#modalRoot [data-dqa]');
+      await audit(p, tag + ' pertanyaan hari ini: pilih', '#modalRoot');
+      await click(p, '#modalRoot [data-dqa="0"]');
+      await p.waitForSelector('#modalRoot [data-dqg]');
+      await click(p, '#modalRoot [data-dqg="1"]');
+      await p.waitForSelector('#modalRoot #dqHot');
+      await audit(p, tag + ' pertanyaan hari ini: kirim', '#modalRoot');
+      await click(p, '#modalRoot #dqHot');
+      await p.waitForSelector('#modalRoot #dqP2Go');
+      await click(p, '#modalRoot #dqP2Go');
+      await click(p, '#modalRoot [data-dqa="1"]');
+      await p.waitForSelector('#modalRoot [data-dqg]');
+      await click(p, '#modalRoot [data-dqg="0"]');
+      await p.waitForSelector('#modalRoot .dq-res');
+      await audit(p, tag + ' pertanyaan hari ini: hasil', '#modalRoot');
+      await p.evaluate(() => window.LoveUI.closeModal(true));
       // papan dengan tiap tema (kontras teks petak di atas warna tema)
       for (const th of ['bali', 'paris', 'kyoto']) {
         await p.evaluate(th => {

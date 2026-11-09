@@ -85,7 +85,7 @@ function markWeek(wk, w) {
 }
 
 // ---------- Jam Terbang (XP & level) ----------
-const XP = { game: 20, win: 30, challenge: 5, stamp: 5, week: 10 };
+const XP = { game: 20, win: 30, challenge: 5, stamp: 5, week: 10, daily: 5 };
 const RANKS = [
   'Penumpang Baru',
   'Turis Cinta',

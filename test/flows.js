@@ -1418,6 +1418,98 @@ const URL = (await serveDist()).url + '/';
     await sctx.close();
   }
 
+  // Pertanyaan Hari Ini: dua perangkat lewat tautan (#tanya=…) + satu HP bergantian + tautan rusak
+  {
+    const dev = async name => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const p = await ctx.newPage();
+      p.on('pageerror', e => errors.push(name + ' pageerror: ' + e.message));
+      p.on('console', m => m.type() === 'error' && errors.push(name + ' console: ' + m.text()));
+      await p.addInitScript(n => {
+        if (sessionStorage.getItem('dq')) return;
+        sessionStorage.setItem('dq', '1');
+        localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast' }));
+        localStorage.setItem('loveopoly.v2.tour', '"done"');
+        localStorage.setItem('loveopoly.v1.profile', JSON.stringify(n ? { name: n, xp: 50, seen: Date.now() } : { skipped: true }));
+      }, name);
+      return { ctx, p };
+    };
+    const hrefLink = async (p, sel) => {
+      const href = await p.$eval(sel, a => a.href);
+      return decodeURIComponent(href.split('text=')[1])
+        .split(' ')
+        .pop()
+        .replace(/^https?:\/\/[^/]+\//, URL);
+    };
+    const A = await dev('Arfi'),
+      B = await dev('Nadia');
+    await A.p.goto(URL);
+    await A.p.click('#hDaily');
+    await A.p.click('[data-dqa="1"]');
+    await A.p.click('[data-dqg="2"]');
+    await A.p.waitForSelector('#dqWa');
+    const qLink = await hrefLink(A.p, '#dqWa');
+    const stA = await A.p.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.daily')));
+    ok(
+      'Pertanyaan Hari Ini: jawab & tebak → tersimpan + tautan siap dikirim',
+      stA.a === 1 && stA.g === 2 && /#tanya=/.test(qLink),
+      JSON.stringify(stA)
+    );
+    await B.p.goto(qLink);
+    await B.p.waitForSelector('[data-dqa]', { timeout: 6000 });
+    const bNote = await B.p.textContent('.modal');
+    await B.p.click('[data-dqa="2"]');
+    await B.p.click('[data-dqg="1"]');
+    await B.p.waitForSelector('.dq-res');
+    const bRes = (await B.p.textContent('.modal')).replace(/\s+/g, ' ');
+    ok(
+      'Pertanyaan Hari Ini: pasangan membuka tautan → menjawab → hasil berdua (2/2), alamat dibersihkan',
+      /Arfi sudah menjawab/.test(bNote) && /cocok 2\/2/.test(bRes) && (await B.p.evaluate(() => location.hash === '')),
+      bRes.slice(0, 200)
+    );
+    const rLink = await hrefLink(B.p, '#dqBack');
+    await A.p.goto(rLink); // tab yang sama, hanya bagian # berganti → tetap terbaca (hashchange)
+    await A.p.waitForSelector('.dq-res', { timeout: 6000 });
+    await A.p.evaluate(() => window.LoveUI.closeModal(true));
+    await A.p.evaluate(() => window.LoveUI.renderHome());
+    const aCard = (await A.p.textContent('#hDaily')).replace(/\s+/g, ' ');
+    const xps = [
+      await A.p.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')).xp),
+      await B.p.evaluate(() => JSON.parse(localStorage.getItem('loveopoly.v1.profile')).xp),
+    ];
+    ok(
+      'Pertanyaan Hari Ini: tautan hasil kembali ke pengirim → kartu beranda "cocok 2/2", +5 XP masing-masing',
+      /cocok 2\/2/.test(aCard) && xps[0] === 55 && xps[1] === 55,
+      JSON.stringify({ aCard, xps })
+    );
+    await A.ctx.close();
+    await B.ctx.close();
+    const C = await dev('');
+    await C.p.goto(URL);
+    await C.p.click('#hDaily');
+    await C.p.click('[data-dqa="0"]');
+    const needName = !!(await C.p.$('[data-dqg]'));
+    await C.p.fill('#dqName', 'Dimas');
+    await C.p.click('[data-dqa="0"]');
+    await C.p.click('[data-dqg="3"]');
+    await C.p.click('#dqHot');
+    await C.p.fill('#dqP2', 'Sinta');
+    await C.p.click('#dqP2Go');
+    await C.p.click('[data-dqa="3"]');
+    await C.p.click('[data-dqg="1"]');
+    await C.p.waitForSelector('.dq-res');
+    const cRes = (await C.p.textContent('.modal')).replace(/\s+/g, ' ');
+    ok(
+      'Pertanyaan Hari Ini: tanpa paspor wajib isi nama; satu HP bergantian → hasil (1/2)',
+      !needName && /Dimas pilih/.test(cRes) && /Sinta pilih/.test(cRes) && /cocok 1\/2/.test(cRes),
+      cRes.slice(0, 160)
+    );
+    await C.p.goto(URL + '#tanya=bukan-tautan-asli');
+    await C.p.waitForTimeout(700);
+    ok('Pertanyaan Hari Ini: tautan rusak → pesan jelas, tidak membuka apa pun', /tidak valid/.test(await C.p.textContent('#toasts')));
+    await C.ctx.close();
+  }
+
   console.log(results.join('\n'));
   const fails = results.filter(r => r.startsWith('FAIL')).length;
   console.log(

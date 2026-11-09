@@ -2,10 +2,11 @@
 import { D, ART, TILES, KEYS, esc, ic, $, store } from '../core.js';
 import { UI } from '../ns.js';
 import { validSave } from './base.js';
-import { dismissKangen, kangenNote, openPassport, passportCard } from './passport.js';
+import { dismissKangen, kangenNote, openPassport, passport, passportCard } from './passport.js';
 import { openSetup } from './setup.js';
 import { openOnline } from './online.js';
 import { enterGame } from './game.js';
+import { dailyCard, openDaily } from './daily.js';
 
 // ---------- beranda ----------
 function homeArt() {
@@ -64,8 +65,12 @@ function renderHome() {
       '</span></b><div class="tiny">Sambung ulang ke permainan online terakhir.</div></div><button type="button" class="btn primary sm" id="hRejoin"><span>Masuk</span></button><button type="button" class="icon-btn" id="hForget" aria-label="Lupakan room">' +
       ic('x') +
       '</button></div>';
+  // pengguna lama (punya paspor / simpanan): beranda ringkas, tombol main langsung terlihat di layar pertama HP
+  const returning = !!passport().name || !!resume;
   $('#scrHome').innerHTML =
-    '<div class="home">' +
+    '<div class="home' +
+    (returning ? ' returning' : '') +
+    '">' +
     '<div class="home-art">' +
     homeArt() +
     '</div>' +
@@ -82,6 +87,8 @@ function renderHome() {
     '<p class="home-sub">Keliling dunia berdua: beli kota romantis, bangun sampai landmark, adakan festival, dan rebut kota pasanganmu. Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata!</p>' +
     kangenHTML() +
     passportCard() +
+    // Pertanyaan Hari Ini: pengguna lama di atas (kebiasaan harian), pengguna baru di bawah tombol main
+    (returning ? dailyCard() : '') +
     resume +
     '<div class="home-actions">' +
     // Online = kartu utama (paling atas & paling besar); dua mode lain lebih ringkas di bawahnya
@@ -104,6 +111,7 @@ function renderHome() {
     ic('chevron') +
     '</button>' +
     '</div></div>' +
+    (returning ? '' : dailyCard()) +
     '<div class="home-secondary"><button type="button" class="btn soft" id="hHow">' +
     ic('book') +
     '<span>Buku Panduan</span></button><button type="button" class="btn ghost sm" id="hPrivacy">' +
@@ -129,6 +137,7 @@ function renderHome() {
   on('hOnline', openOnline);
   on('hHow', () => UI.openGuide());
   on('hPass', () => openPassport());
+  on('hDaily', () => openDaily());
   on('hKangenX', () => {
     dismissKangen();
     const n = $('#scrHome .merpi-note');

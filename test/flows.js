@@ -1272,9 +1272,10 @@ const URL = (await serveDist()).url + '/';
   await page.waitForSelector('#memOv', { state: 'detached', timeout: 5000 }).catch(() => {});
   await page.evaluate(() => window.LoveUI.exitToHome(true));
 
-  // Hemat daya: saat diam ±12 dtk semua hiasan berulang dijeda (tidak ada animasi berjalan = HP tidak terus
-  // menggambar ulang & panas), sentuhan membangunkan. Hiasan berulang baru wajib masuk src/styles/power.css.
-  await newGame('');
+  // Hemat daya: saat diam ±12 dtk semua hiasan berulang dijeda (HP tidak terus menggambar ulang & panas), kecuali
+  // latar Kabar Merpi (.sky-fx, penanda acara, hanya GPU); sentuhan membangunkan. Hiasan berulang baru wajib masuk
+  // src/styles/power.css.
+  await newGame("S.round = 3; S.news = { id: 'bonus', side: 'top', from: 3, to: 6 };");
   await page.waitForTimeout(12800);
   const calmSt = await page.evaluate(() => ({
     calm: document.body.classList.contains('calm'),
@@ -1292,8 +1293,8 @@ const URL = (await serveDist()).url + '/';
     smilPaused: [...document.querySelectorAll('svg.cd-map')].every(s => s.animationsPaused()),
   }));
   ok(
-    'hemat daya: diam ±12 dtk → semua hiasan berulang dijeda (tidak ada animasi berjalan)',
-    calmSt.calm && calmSt.running.length === 0 && calmSt.smilPaused,
+    'hemat daya: diam ±12 dtk → semua hiasan dijeda, hanya latar Kabar Merpi yang tetap bergerak',
+    calmSt.calm && calmSt.running.length > 0 && calmSt.running.every(x => /sky-fx/.test(x)) && calmSt.smilPaused,
     JSON.stringify(calmSt).slice(0, 300)
   );
   await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
@@ -1313,10 +1314,18 @@ const URL = (await serveDist()).url + '/';
     lowp: document.body.classList.contains('lowp'),
     calm: document.body.classList.contains('calm'),
     saved: JSON.parse(localStorage.getItem('loveopoly.v1.prefs')).power,
-    loops: document.getAnimations().filter(a => a.playState === 'running' && a.effect.getTiming().iterations === Infinity).length,
+    // hiasan berulang selain latar Kabar Merpi (.sky-fx, sengaja tetap bergerak pelan)
+    loops: document
+      .getAnimations()
+      .filter(
+        a =>
+          a.playState === 'running' &&
+          a.effect.getTiming().iterations === Infinity &&
+          !(a.effect.target && a.effect.target.closest && a.effect.target.closest('.sky-fx'))
+      ).length,
   }));
   ok(
-    'Hemat baterai: Nyala tersimpan, hiasan berulang diam',
+    'Hemat baterai: Nyala tersimpan, hiasan berulang diam (kecuali latar Kabar Merpi yang pelan)',
     lowSt.lowp && lowSt.calm && lowSt.saved === 'save' && lowSt.loops === 0,
     JSON.stringify(lowSt)
   );
@@ -1334,11 +1343,30 @@ const URL = (await serveDist()).url + '/';
     .catch(() => false);
   ok('Hemat baterai: pion tetap melangkah dengan animasi', hopOk);
   await settle();
+  await newGame("S.round = 3; S.news = { id: 'bonus', side: 'top', from: 3, to: 6 };");
+  const skyLow = await page.evaluate(() => {
+    const cs = getComputedStyle(document.querySelector('.sky-a'));
+    return { lowp: document.body.classList.contains('lowp'), dur: cs.animationDuration, play: cs.animationPlayState };
+  });
+  ok(
+    'Hemat baterai: latar Kabar Merpi tetap bergerak, 3× lebih pelan (6 dtk → 18 dtk)',
+    skyLow.lowp && skyLow.dur === '18s' && skyLow.play === 'running',
+    JSON.stringify(skyLow)
+  );
   await page.evaluate(() => {
     window.LoveUI.App.prefs.power = 'auto';
     window.LoveUI.savePrefs();
     window.LoveUI.wakeCalm();
   });
+  ok(
+    'Hemat baterai otomatis: tanda "HP berat" lama (prefs.powerSlow) tidak dipakai lagi, diukur ulang tiap sesi',
+    await page.evaluate(() => {
+      window.LoveUI.App.prefs.powerSlow = true;
+      const r = window.LoveUI.lowPower();
+      delete window.LoveUI.App.prefs.powerSlow;
+      return r === false;
+    })
+  );
 
   // Aplikasi terpasang di iPhone (jarak aman atas/bawah): layar game pas satu layar, tidak tergulir, kartu pemain
   // tidak masuk ke bawah header (pernah: dokumen 93 px lebih tinggi dari layar → bisa tergulir)

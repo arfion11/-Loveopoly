@@ -10,10 +10,13 @@ import { toast } from './notify.js';
 
 const CALM_MS = 12000;
 let calmT = 0,
-  probed = false;
+  probed = false,
+  // hasil ukur "HP sedang berat" untuk sesi ini saja, TIDAK disimpan: Mode Daya Rendah iPhone / penghemat baterai
+  // Android membatasi layar ke 30 fps sementara; kalau disimpan, Hemat baterai menyala selamanya walau HP sudah normal
+  slowNow = false;
 
 // Otomatis = nyala bila Hemat Data aktif, Android ber-RAM ≤ 4 GB (navigator.deviceMemory sudah dibulatkan ke bawah),
-// atau perangkat ini pernah terukur patah-patah (prefs.powerSlow, lihat probeFps)
+// atau perangkat ini terukur patah-patah di sesi ini (slowNow, lihat probeFps)
 function weakDevice() {
   const n = /** @type {any} */ (navigator);
   if (n.connection && n.connection.saveData) return true;
@@ -23,7 +26,7 @@ function lowPower() {
   const v = App.prefs.power;
   if (v === 'save') return true;
   if (v === 'full') return false;
-  return !!App.prefs.powerSlow || weakDevice();
+  return slowNow || weakDevice();
 }
 // Pesawat kecil di peta tengah papan = animasi SVG (SMIL <animateMotion>): tidak ikut animation-play-state CSS dan
 // tetap menggambar ulang walau petanya disembunyikan. Dijeda lewat pauseAnimations() saat tenang, atau saat peta
@@ -60,12 +63,18 @@ function wakeCalm() {
   syncSmil();
 }
 function initPower() {
+  // versi lama menyimpan hasil ukur permanen (prefs.powerSlow): dibuang supaya perangkat diukur ulang
+  if ('powerSlow' in App.prefs) {
+    delete App.prefs.powerSlow;
+    store.set(KEYS.prefs, App.prefs);
+  }
   const opt = { capture: true, passive: true };
   ['pointerdown', 'keydown', 'wheel'].forEach(ev => document.addEventListener(ev, wakeCalm, opt));
   wakeCalm();
 }
-// Mode Otomatis: ukur kelancaran sekali per sesi saat game berjalan. Rata-rata < 40 fps = HP ini berat →
-// Hemat baterai nyala (diingat di prefs.powerSlow) + kabar sekali. Tidak saat uji otomatis (navigator.webdriver).
+// Mode Otomatis: ukur kelancaran sekali per sesi saat game berjalan. Rata-rata < 40 fps = HP sedang berat →
+// Hemat baterai nyala untuk sesi ini saja (dibuka lagi = diukur ulang) + kabar sekali per perangkat (prefs.powerTold).
+// Tidak saat uji otomatis (navigator.webdriver).
 function probeFps() {
   if (probed || navigator.webdriver || reduceMotion() || lowPower() || (App.prefs.power && App.prefs.power !== 'auto')) return;
   if (document.hidden || !document.body.classList.contains('in-game')) return;
@@ -78,15 +87,14 @@ function probeFps() {
     n++;
     if (t - t0 < 3000) return void requestAnimationFrame(step);
     if (((n - 1) * 1000) / (t - t0) >= 40) return;
-    App.prefs.powerSlow = true;
-    store.set(KEYS.prefs, App.prefs);
+    slowNow = true;
     wakeCalm();
+    if (App.prefs.powerTold) return;
+    App.prefs.powerTold = true;
+    store.set(KEYS.prefs, App.prefs);
     toast(
-      'HP-mu terasa agak berat, jadi Hemat baterai dinyalakan: hiasan berhenti bergerak supaya HP tidak cepat panas. Bisa diubah di Pengaturan.',
-      {
-        title: 'Hemat baterai',
-        ms: 7000,
-      }
+      'HP-mu sedang terasa agak berat, jadi Hemat baterai menyala untuk sesi ini: hiasan diam & latar Kabar Merpi bergerak pelan. Saat dibuka lagi diukur ulang. Bisa diubah di Pengaturan.',
+      { title: 'Hemat baterai', ms: 7000 }
     );
   };
   requestAnimationFrame(step);

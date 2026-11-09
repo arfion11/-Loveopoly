@@ -24,16 +24,16 @@ body.calm .mascot.sleep .ms-emote,
 body.calm .mascot.sleep .ms-emote *,
 body.calm .ms-fx *,
 body.calm .ms-orbit,
-body.calm .ms-peak,
-body.calm .sky-fx {
+body.calm .ms-peak {
   animation-play-state: paused !important;
 }
 /* logo Merpi di header cukup diam selama main (bagian SVG-nya yang bergerak memaksa header dicat ulang tiap frame) */
 body.in-game .brand-mark .merpi * {
   animation-play-state: paused !important;
 }
-/* Hemat baterai: pola suasana Kabar Merpi tetap tampil tapi diam, tanpa lapisan GPU bergerak seukuran layar */
-body.lowp .sky-fx {
-  animation: none !important;
-  will-change: auto;
+/* Latar Kabar Merpi / Musim Puncak (.sky-fx) = penanda acara, bukan sekadar hiasan: TIDAK ikut dijeda saat tenang.
+   Hanya transform/filter di lapisan GPU (main thread tetap ±0). Hemat baterai: bergerak 3× lebih pelan (--sky-slow,
+   dipakai durasi animasi di ambience.css). Gerak dikurangi tetap diam. */
+body.lowp {
+  --sky-slow: 3;
 }

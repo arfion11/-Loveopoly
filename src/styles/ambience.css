@@ -257,7 +257,7 @@ body[data-amb='rain'] .sky-a {
   inset: -90px 0 0 0;
   background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2290%22 height=%2290%22%3E%3Cg stroke=%22%237FA8E0%22 stroke-width=%222.4%22 stroke-linecap=%22round%22 opacity=%22.55%22%3E%3Cpath d=%22M14 8l-5 14%22/%3E%3Cpath d=%22M58 30l-5 14%22/%3E%3Cpath d=%22M34 60l-5 14%22/%3E%3Cpath d=%22M80 66l-5 14%22/%3E%3C/g%3E%3C/svg%3E');
   background-size: 90px 90px;
-  animation: skyRain 0.75s linear infinite;
+  animation: skyRain calc(0.75s * var(--sky-slow, 1)) linear infinite;
 }
 @keyframes skyRain {
   to {
@@ -269,7 +269,7 @@ body[data-amb='rain'] .sky-b {
   height: 220px;
   background: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22520%22 height=%22160%22%3E%3Cg fill=%22%23C9D3E6%22 opacity=%22.55%22%3E%3Cpath d=%22M60 140c-30 0-50-18-50-40s20-40 46-40c6-30 32-48 62-48 30 0 54 16 64 40 10-6 20-8 30-8 30 0 50 20 50 46h4c24 0 40 14 40 28s-16 22-40 22z%22/%3E%3Cpath d=%22M380 100c-20 0-34-12-34-26s14-26 30-26c4-20 22-32 42-32 20 0 36 10 42 26 7-4 14-6 20-6 20 0 34 14 34 30v34z%22/%3E%3C/g%3E%3C/svg%3E')
     50% 0 / min(900px, 140vw) auto no-repeat;
-  animation: skyDrift 14s ease-in-out infinite alternate;
+  animation: skyDrift calc(14s * var(--sky-slow, 1)) ease-in-out infinite alternate;
 }
 @keyframes skyDrift {
   from {
@@ -288,7 +288,7 @@ body[data-amb='holiday'] .sky-a {
   height: 520px;
   background: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22420%22 height=%22420%22 viewBox=%220 0 420 420%22%3E%3Cg stroke=%22%23FFC93C%22 stroke-width=%2210%22 stroke-linecap=%22round%22 opacity=%22.45%22%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(0 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(30 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(60 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(90 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(120 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(150 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(180 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(210 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(240 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(270 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(300 210 210)%22/%3E%3Cpath d=%22M210 40v40%22 transform=%22rotate(330 210 210)%22/%3E%3C/g%3E%3Ccircle cx=%22210%22 cy=%22210%22 r=%2296%22 fill=%22%23FFD54A%22 opacity=%22.55%22/%3E%3C/svg%3E')
     center / contain no-repeat;
-  animation: skySpin 40s linear infinite;
+  animation: skySpin calc(40s * var(--sky-slow, 1)) linear infinite;
 }
 @keyframes skySpin {
   to {
@@ -303,7 +303,7 @@ body[data-amb='sale'] .sky-a {
   inset: 0 0 -110px 0;
   background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22110%22 height=%22110%22%3E%3Cg fill=%22%2316C2A3%22 opacity=%22.32%22 font-family=%22sans-serif%22 font-weight=%22700%22%3E%3Ctext x=%2212%22 y=%2234%22 font-size=%2222%22%3E%25%3C/text%3E%3Ctext x=%2266%22 y=%2288%22 font-size=%2216%22%3E%25%3C/text%3E%3C/g%3E%3C/svg%3E');
   background-size: 110px 110px;
-  animation: skyUp110 9s linear infinite;
+  animation: skyUp110 calc(9s * var(--sky-slow, 1)) linear infinite;
 }
 @keyframes skyUp110 {
   to {
@@ -315,7 +315,7 @@ body[data-amb='promo'] .sky-a {
   inset: 0 0 -120px -160px;
   background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22120%22%3E%3Cpath d=%22M10 100C50 60 100 40 150 30%22 fill=%22none%22 stroke=%22%235BB8FF%22 stroke-width=%222.5%22 stroke-dasharray=%222 9%22 stroke-linecap=%22round%22 opacity=%22.6%22/%3E%3Cg transform=%22translate(120 34) rotate(-18)%22 opacity=%22.55%22%3E%3Cpath d=%22M-12 0c0-2 2-3 4-3h14c4 0 8 1.4 8 3s-4 3-8 3H-8c-2 0-4-1-4-3z%22 fill=%22%23fff%22 stroke=%22%233A2B4A%22 stroke-width=%221.6%22/%3E%3Cpath d=%22M0-3-6-12h4l7 9zM0 3l-6 9h4l7-9z%22 fill=%22%23FF4F8B%22 stroke=%22%233A2B4A%22 stroke-width=%221.6%22 stroke-linejoin=%22round%22/%3E%3C/g%3E%3C/svg%3E');
   background-size: 160px 120px;
-  animation: skyFly 7s linear infinite;
+  animation: skyFly calc(7s * var(--sky-slow, 1)) linear infinite;
 }
 @keyframes skyFly {
   to {
@@ -327,7 +327,7 @@ body[data-amb='bonus'] .sky-a {
   inset: -120px 0 0 0;
   background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg opacity=%22.45%22%3E%3Ccircle cx=%2226%22 cy=%2230%22 r=%229%22 fill=%22%23FFD54A%22 stroke=%22%23C98D06%22 stroke-width=%222%22/%3E%3Ccircle cx=%2288%22 cy=%2286%22 r=%227%22 fill=%22%23FFD54A%22 stroke=%22%23C98D06%22 stroke-width=%222%22/%3E%3Cpath d=%22M60 52l2 5 5 2-5 2-2 5-2-5-5-2 5-2z%22 fill=%22%23FFC93C%22/%3E%3C/g%3E%3C/svg%3E');
   background-size: 120px 120px;
-  animation: skyDown120 6s linear infinite;
+  animation: skyDown120 calc(6s * var(--sky-slow, 1)) linear infinite;
 }
 @keyframes skyDown120 {
   to {
@@ -339,14 +339,14 @@ body[data-amb='love'] .sky-a {
   inset: 0 0 -120px 0;
   background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E');
   background-size: 120px 120px;
-  animation: skyUp120 8s linear infinite;
+  animation: skyUp120 calc(8s * var(--sky-slow, 1)) linear infinite;
 }
 body[data-amb='love'] .sky-b {
   inset: 0 0 -80px 0;
   background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22%3E%3Cfilter id=%22b%22%3E%3CfeGaussianBlur stdDeviation=%22.7%22/%3E%3C/filter%3E%3Cg fill=%22%23FF4F8B%22 opacity=%22.32%22 filter=%22url(%23b)%22%3E%3Cpath d=%22M24 40c-8-6-13-10-13-15a6.5 6.5 0 0 1 13-2.6A6.5 6.5 0 0 1 37 25c0 5-5 9-13 15z%22/%3E%3Cpath d=%22M84 96c-6-4.5-10-8-10-11.5a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 3.5-4 7-10 11.5z%22/%3E%3C/g%3E%3C/svg%3E');
   background-size: 80px 80px;
   background-position: 40px 30px;
-  animation: skyUp80 11s linear infinite;
+  animation: skyUp80 calc(11s * var(--sky-slow, 1)) linear infinite;
 }
 @keyframes skyUp120 {
   to {
@@ -361,7 +361,7 @@ body[data-amb='love'] .sky-b {
 /* musim puncak: cahaya senja berdenyut */
 body[data-amb='peak'] .sky-a {
   background: radial-gradient(90% 55% at 50% 105%, color-mix(in srgb, #ff8a3d 45%, transparent), transparent 70%);
-  animation: skyGlow 3.2s ease-in-out infinite alternate;
+  animation: skyGlow calc(3.2s * var(--sky-slow, 1)) ease-in-out infinite alternate;
 }
 @keyframes skyGlow {
   from {

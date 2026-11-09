@@ -288,7 +288,7 @@ function openSettings() {
           ],
           App.prefs.power || 'auto'
         ) +
-        '<div class="tiny muted opt-note">Hiasan yang terus bergerak (Merpi, bola dunia, latar Kabar Merpi) berhenti supaya HP tidak cepat panas & baterai awet. Langkah pion, dadu & kartu tetap beranimasi. ' +
+        '<div class="tiny muted opt-note">Hiasan yang terus bergerak (Merpi, bola dunia) diam & latar Kabar Merpi bergerak pelan supaya HP tidak cepat panas & baterai awet. Langkah pion, dadu & kartu tetap beranimasi. Otomatis: nyala di HP yang lebih ringan atau saat HP sedang berat (diukur ulang tiap kali dibuka). ' +
         (UI.lowPower() ? 'Di perangkat ini sekarang: nyala.' : 'Di perangkat ini sekarang: mati.') +
         '</div></div>' +
         '<div class="opt"><span class="label">Kecepatan animasi</span>' +

@@ -140,11 +140,14 @@ function openDaily(link) {
   }
   const day = (ui.res && ui.res.d) || st.d;
   const q = dailyQ(day);
-  if (!myName(st)) ui.needName = true;
   const partnerName = () => (ui.from ? ui.from.n : st.p ? st.p.n : ui.p2.n || 'pasanganmu');
 
-  const opts = (sel, attr) =>
-    '<div class="dq-opts" role="group" aria-label="Pilihan jawaban">' +
+  const opts = (sel, attr, label) =>
+    '<div class="dq-opts' +
+    (attr === 'data-dqg' ? ' guess' : '') +
+    '" role="group" aria-label="' +
+    esc(label) +
+    '">' +
     q.o
       .map(
         (o, i) =>
@@ -168,6 +171,13 @@ function openDaily(link) {
     if (ui.from) return { d: day, A: ui.from.n, a: ui.from.a, g: ui.from.g, B: A, b: st.a, h: st.g };
     return { d: day, A, a: st.a, g: st.g, B: st.p.n, b: st.p.a, h: st.p.g };
   };
+  // kolom nama (hanya bila belum punya paspor & belum mengisi): nama ikut di tautan supaya pasangan tahu siapa
+  const nameField = () =>
+    myName(st)
+      ? ''
+      : '<label class="label" for="dqName">Namamu (terlihat oleh pasangan)</label><input class="input" id="dqName" maxlength="16" autocomplete="nickname" value="' +
+        esc(st.n || '') +
+        '">';
   const shareTextQ = () => 'Pertanyaan Hari Ini #' + dailyNo(day) + ' 💌 Aku sudah jawab & menebak pilihanmu. Giliranmu!';
 
   UI.showModal({
@@ -175,7 +185,8 @@ function openDaily(link) {
     size: 'mid',
     build: () => {
       const v = ui.view;
-      const kicker = ic('letter') + 'Pertanyaan Hari Ini #' + dailyNo(day);
+      const step = v === 'pick' || v === 'p2pick' ? ' · Langkah 1 dari 2' : v === 'guess' || v === 'p2guess' ? ' · Langkah 2 dari 2' : '';
+      const kicker = ic('letter') + 'Pertanyaan Hari Ini #' + dailyNo(day) + step;
       let body = '<p class="dq-q">' + esc(q.q) + '</p>',
         foot = '',
         title = 'Pilihanmu';
@@ -190,17 +201,24 @@ function openDaily(link) {
             esc(ui.from.n) +
             ' sudah menjawab. Sekarang giliranmu, nanti hasilnya terbuka untuk kalian berdua.</span></p>' +
             body;
-        if (!p2 && ui.needName)
-          body +=
-            '<label class="label" for="dqName">Namamu (terlihat oleh pasangan)</label><input class="input" id="dqName" maxlength="16" autocomplete="nickname" value="' +
-            esc(ui.name) +
-            '">';
-        body += opts(p2 ? ui.p2.a : ui.tmp, 'data-dqa');
+        body += opts(p2 ? ui.p2.a : ui.tmp, 'data-dqa', 'Pilihanmu');
       } else if (v === 'guess' || v === 'p2guess') {
         const p2 = v === 'p2guess';
         const who = p2 ? myName(st) || 'pasanganmu' : partnerName();
         title = 'Tebak pilihan ' + who;
-        body += '<p class="muted dq-hint">Menurutmu, ' + esc(who) + ' pilih yang mana?</p>' + opts(p2 ? ui.p2.g : ui.tmp, 'data-dqg');
+        // ringkasan langkah 1 + warna berbeda: jelas ini tebakan tentang pasangan, bukan memilih ulang
+        body +=
+          '<p class="dq-mine">' +
+          ic('check') +
+          '<span>' +
+          (p2 ? 'Pilihan ' + esc(ui.p2.n || 'pasangan') : 'Pilihanmu') +
+          ': <b>' +
+          esc(q.o[p2 ? ui.p2.a : st.a]) +
+          '</b></span></p>' +
+          '<p class="dq-hint">Sekarang tebak: menurutmu, <b>' +
+          esc(who) +
+          '</b> pilih yang mana?</p>' +
+          opts(p2 ? ui.p2.g : ui.tmp, 'data-dqg', 'Tebakanmu tentang ' + who);
       } else if (v === 'send') {
         title = 'Kirim ke pasanganmu';
         body +=
@@ -212,6 +230,7 @@ function openDaily(link) {
           esc(q.o[st.g]) +
           '</b></span></p>' +
           '<p class="muted">Kirim tautan ini. Setelah pasanganmu menjawab, hasilnya terbuka untuk kalian berdua. Jawabanmu hanya ada di tautan, tidak dikirim ke server.</p>' +
+          nameField() +
           '<div class="dq-share"><button type="button" class="btn primary" id="dqShare">' +
           ic('share') +
           '<span>Bagikan</span></button><a class="btn soft" id="dqWa" target="_blank" rel="noopener" href="' +
@@ -263,6 +282,7 @@ function openDaily(link) {
         // yang menjawab tautan pasangan bisa mengirim hasil balik; selain itu bagikan skor tanpa bocoran
         const back = ui.from ? linkFor({ d: r.d, n: r.A, a: r.a, g: r.g, m: r.B, b: r.b, h: r.h }) : '';
         body +=
+          (back ? nameField() : '') +
           '<div class="dq-share">' +
           (back
             ? '<a class="btn primary" id="dqBack" target="_blank" rel="noopener" href="' +
@@ -279,16 +299,40 @@ function openDaily(link) {
           ic('share') +
           '<span>Bagikan skor</span></button></div>';
         ui.shareScore = () => share(resText, site);
-        ui.copyBack = back;
       }
       return { kicker, title, body, foot };
     },
     mount: m => {
+      // nama diketik → tersimpan & tautan WhatsApp / kirim hasil diperbarui langsung
+      const links = () => {
+        const wa = $('#dqWa', m);
+        if (wa) wa.href = waHref(shareTextQ(), linkFor({ d: day, n: myName(st), a: st.a, g: st.g }));
+        const bk = $('#dqBack', m);
+        if (bk && ui.from)
+          bk.href = waHref(
+            'Hasil Pertanyaan Hari Ini kita sudah keluar 💌',
+            linkFor({ d: day, n: ui.from.n, a: ui.from.a, g: ui.from.g, m: myName(st), b: st.a, h: st.g })
+          );
+      };
       const n = $('#dqName', m);
       if (n)
         n.addEventListener('input', () => {
-          ui.name = n.value;
+          st.n = n.value.trim().slice(0, 16);
+          saveState(st);
+          links();
         });
+      // tanpa nama, tautan belum boleh dikirim
+      const needName = e => {
+        if (myName(st)) return false;
+        if (e) e.preventDefault();
+        toast('Isi namamu dulu ya, supaya pasanganmu tahu siapa yang menjawab.', { kind: 'err' });
+        if (n) n.focus();
+        return true;
+      };
+      ['#dqWa', '#dqBack'].forEach(sel => {
+        const a = $(sel, m);
+        if (a) a.addEventListener('click', e => needName(e));
+      });
       $$('[data-dqa]', m).forEach(b =>
         b.addEventListener('click', () => {
           const i = Number(b.dataset.dqa);
@@ -296,19 +340,6 @@ function openDaily(link) {
             ui.p2.a = i;
             ui.view = 'p2guess';
           } else {
-            if (ui.needName) {
-              const nm = String(ui.name || '')
-                .trim()
-                .slice(0, 16);
-              if (!nm) {
-                toast('Isi namamu dulu ya, supaya pasanganmu tahu siapa yang menjawab.', { kind: 'err' });
-                const f = $('#dqName', m);
-                if (f) f.focus();
-                return;
-              }
-              st.n = nm;
-              ui.needName = false;
-            }
             ui.tmp = null;
             st.a = i;
             ui.view = 'guess';
@@ -339,7 +370,10 @@ function openDaily(link) {
         })
       );
       const sh = $('#dqShare', m);
-      if (sh) sh.onclick = () => share(shareTextQ(), linkFor({ d: day, n: myName(st), a: st.a, g: st.g }));
+      if (sh)
+        sh.onclick = () => {
+          if (!needName()) share(shareTextQ(), linkFor({ d: day, n: myName(st), a: st.a, g: st.g }));
+        };
       const hot = $('#dqHot', m);
       if (hot)
         hot.onclick = () => {

@@ -1293,8 +1293,8 @@ const URL = (await serveDist()).url + '/';
     smilPaused: [...document.querySelectorAll('svg.cd-map')].every(s => s.animationsPaused()),
   }));
   ok(
-    'hemat daya: diam ±12 dtk → semua hiasan dijeda, hanya latar Kabar Merpi yang tetap bergerak',
-    calmSt.calm && calmSt.running.length > 0 && calmSt.running.every(x => /sky-fx/.test(x)) && calmSt.smilPaused,
+    'hemat daya: diam ±12 dtk → hiasan dijeda, hanya latar & properti acara Kabar Merpi yang tetap bergerak',
+    calmSt.calm && calmSt.running.length > 0 && calmSt.running.every(x => /sky-fx|fx-|ms-orbit|ms-peak/.test(x)) && calmSt.smilPaused,
     JSON.stringify(calmSt).slice(0, 300)
   );
   await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
@@ -1515,11 +1515,23 @@ const URL = (await serveDist()).url + '/';
     const C = await dev('');
     await C.p.goto(URL);
     await C.p.click('#hDaily');
+    // tanpa paspor: pilihan langsung tercatat (dulu harus isi nama dulu → terasa "pilih dua kali"), langkah 2
+    // jelas berbeda (ringkasan pilihan + tebakan), nama baru ditanya saat mengirim tautan
     await C.p.click('[data-dqa="0"]');
-    const needName = !!(await C.p.$('[data-dqg]'));
-    await C.p.fill('#dqName', 'Dimas');
-    await C.p.click('[data-dqa="0"]');
+    await C.p.waitForSelector('.dq-opts.guess [data-dqg]', { timeout: 3000 });
+    const step2 = (await C.p.textContent('.modal')).replace(/\s+/g, ' ');
     await C.p.click('[data-dqg="3"]');
+    await C.p.waitForSelector('#dqName');
+    await C.p.$eval('#dqShare', b => b.click());
+    await C.p.waitForTimeout(200);
+    const blocked = /Isi namamu/.test(await C.p.textContent('#toasts'));
+    await C.p.fill('#dqName', 'Dimas');
+    const waName = decodeURIComponent((await C.p.$eval('#dqWa', a => a.href)).split('text=')[1]);
+    ok(
+      'Pertanyaan Hari Ini: sekali ketuk per langkah (langkah 2 = tebakan, ringkasan pilihan), nama ditanya saat kirim',
+      /Langkah 2 dari 2/.test(step2) && /Pilihanmu: Semua terjadwal/.test(step2) && blocked && /#tanya=/.test(waName),
+      step2.slice(0, 160)
+    );
     await C.p.click('#dqHot');
     await C.p.fill('#dqP2', 'Sinta');
     await C.p.click('#dqP2Go');
@@ -1528,8 +1540,8 @@ const URL = (await serveDist()).url + '/';
     await C.p.waitForSelector('.dq-res');
     const cRes = (await C.p.textContent('.modal')).replace(/\s+/g, ' ');
     ok(
-      'Pertanyaan Hari Ini: tanpa paspor wajib isi nama; satu HP bergantian → hasil (1/2)',
-      !needName && /Dimas pilih/.test(cRes) && /Sinta pilih/.test(cRes) && /cocok 1\/2/.test(cRes),
+      'Pertanyaan Hari Ini: satu HP bergantian → hasil (1/2) dengan nama yang diisi',
+      /Dimas pilih/.test(cRes) && /Sinta pilih/.test(cRes) && /cocok 1\/2/.test(cRes),
       cRes.slice(0, 160)
     );
     await C.p.goto(URL + '#tanya=bukan-tautan-asli');

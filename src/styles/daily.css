@@ -63,7 +63,22 @@
   font: 700 19px/1.35 var(--fd);
 }
 .dq-hint {
-  margin: -4px 0 10px;
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.dq-hint b {
+  color: var(--ink);
+}
+/* langkah 2 (tebakan) berwarna emas, beda dari langkah 1: jelas bukan memilih ulang */
+.dq-opts.guess .dq-l {
+  color: var(--gold-ink);
+  background: var(--gold-soft);
+}
+.dq-opts.guess .dq-opt[aria-pressed='true'] {
+  box-shadow:
+    inset 0 0 0 2.5px var(--gold-d),
+    0 3px 0 var(--gold-d);
 }
 .dq-opts {
   display: grid;
@@ -187,4 +202,8 @@
 }
 #dqName {
   margin: 6px 0 4px;
+}
+.dq-share + #dqName,
+#dqName + .dq-share {
+  margin-top: 10px;
 }

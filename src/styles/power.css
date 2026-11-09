@@ -21,10 +21,14 @@ body.calm .ms-land,
 body.calm .ms-clouds,
 body.calm .ms-ring,
 body.calm .mascot.sleep .ms-emote,
-body.calm .mascot.sleep .ms-emote *,
-body.calm .ms-fx *,
-body.calm .ms-orbit,
-body.calm .ms-peak {
+body.calm .mascot.sleep .ms-emote * {
+  animation-play-state: paused !important;
+}
+/* properti acara Kabar Merpi / Musim Puncak di dekat Merpi (payung, tetesan, koin, hati, label, pesawat, cincin emas)
+   = penanda acara: tetap bergerak saat tenang (semua transform/opacity di GPU, ±0,3% main thread); diam di Hemat baterai */
+body.lowp .ms-fx *,
+body.lowp .ms-orbit,
+body.lowp .ms-peak {
   animation-play-state: paused !important;
 }
 /* logo Merpi di header cukup diam selama main (bagian SVG-nya yang bergerak memaksa header dicat ulang tiap frame) */

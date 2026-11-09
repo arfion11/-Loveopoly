@@ -64,6 +64,9 @@ body[data-amb]:not(.amb-leave) .ms-fx {
 .ms-peak {
   opacity: 0;
   transition: opacity 1.2s ease;
+  /* denyut lewat transform (dikerjakan GPU); stroke-opacity dulu mengecat ulang globe tiap frame (±30% main thread) */
+  transform-box: fill-box;
+  transform-origin: center;
 }
 body[data-amb='rain'] .fx-rain,
 body[data-amb='sale'] .fx-sale,
@@ -212,7 +215,7 @@ body.amb-peak .ms-peak {
 }
 @keyframes fxPulse {
   50% {
-    stroke-opacity: 0.35;
+    transform: scale(1.035);
   }
 }
 @media (prefers-reduced-motion: reduce) {

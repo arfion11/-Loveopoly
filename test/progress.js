@@ -95,6 +95,32 @@ ok(
 const up = P.tierUps(t1, Object.assign({}, t1, { wins: 1, landmarks: 2 }));
 ok('lencana: hanya yang naik tingkat dilaporkan', up.length === 1 && up[0].id === 'wins' && up[0].tier === 1, JSON.stringify(up));
 
+// --- hadiah kosmetik: tema papan & Edisi Emas ---
+ok(
+  'tema: Klasik selalu terbuka, Senja Bali di Lv 3',
+  P.themeFor('klasik', 1) === 'klasik' && P.themeFor('bali', 2) === 'klasik' && P.themeFor('bali', 3) === 'bali'
+);
+ok(
+  'tema: pilihan tak dikenal / level aneh → Klasik',
+  P.themeFor('xx', 9) === 'klasik' && P.themeFor('paris', 'abc') === 'klasik' && P.themeFor('paris', 5) === 'paris'
+);
+ok(
+  'tema: yang baru terbuka saat naik Lv 2 → 5 = Senja Bali & Paris Malam',
+  P.themesUnlocked(2, 5)
+    .map(t => t.id)
+    .join(',') === 'bali,paris' && P.themesUnlocked(5, 5).length === 0
+);
+ok(
+  'tema: level tiap tema naik berurutan',
+  P.BOARD_THEMES.every((t, i) => !i || t.lv > P.BOARD_THEMES[i - 1].lv)
+);
+const base = { name: 'Arfi', games: 1, wins: 0, stamps: [], xp: 0, life: P.normLife({}), wk: P.normWeek({}) };
+ok('Edisi Emas: pemula belum', P.goldEdition(base) === false && P.goldEdition(null) === false);
+ok('Edisi Emas: Lv 5', P.goldEdition(Object.assign({}, base, { xp: P.levelXp(5) })) === true);
+ok('Edisi Emas: rekor Api Cinta 4 minggu', P.goldEdition(Object.assign({}, base, { wk: P.normWeek({ n: 1, best: 4 }) })) === true);
+ok('Edisi Emas: punya lencana Emas', P.goldEdition(Object.assign({}, base, { life: P.normLife({ lm: 50 }) })) === true);
+ok('Edisi Emas: tanpa paspor (tanpa nama) tidak', P.goldEdition(Object.assign({}, base, { name: '', xp: 9999 })) === false);
+
 console.log(results.join('\n'));
 const fails = results.filter(x => x.startsWith('FAIL')).length;
 console.log('\n' + (results.length - fails) + '/' + results.length + ' lulus');

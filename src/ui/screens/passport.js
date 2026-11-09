@@ -17,6 +17,7 @@ import {
   normLife,
   normWeek,
   streakView,
+  themesUnlocked,
   tierUps,
   weekNo,
 } from '../progress.js';
@@ -109,6 +110,7 @@ function recordPassport(S) {
     week,
     streak: streakView(p.wk, weekNo(now)),
     badges: tierUps(before.tiers, badgeTiers(p)),
+    themes: themesUnlocked(levelInfo(before.xp).L, levelInfo(p.xp).L),
     fresh,
   };
   lastRec = { key, res };
@@ -131,12 +133,22 @@ function notePlay(S) {
   p.seen = now;
   savePassport(p);
   const lv = levelInfo(p.xp);
-  toast(weekText(ev) + ' +' + XP.week + ' XP Jam Terbang.' + (lv.L > L0 ? ' Naik ke Level ' + lv.L + ': ' + lv.title + '!' : ''), {
-    kind: 'good',
-    icon: ev.kind === 'saved' ? 'umbrella' : 'flame',
-    title: weekTitle(ev),
-    ms: 5200,
-  });
+  toast(
+    weekText(ev) +
+      ' +' +
+      XP.week +
+      ' XP Jam Terbang.' +
+      (lv.L > L0 ? ' Naik ke Level ' + lv.L + ': ' + lv.title + '!' : '') +
+      themesUnlocked(L0, lv.L)
+        .map(t => ' Tema papan ' + t.name + ' terbuka (pilih di Pengaturan).')
+        .join(''),
+    {
+      kind: 'good',
+      icon: ev.kind === 'saved' ? 'umbrella' : 'flame',
+      title: weekTitle(ev),
+      ms: 5200,
+    }
+  );
   SND.play('ding');
 }
 function weekTitle(ev) {
@@ -709,4 +721,4 @@ function passportCard() {
   );
 }
 
-export { dismissKangen, kangenNote, notePlay, openPassport, passport, passportCard, recordPassport, xpBar };
+export { dismissKangen, holderSeat, kangenNote, notePlay, openPassport, passport, passportCard, recordPassport, xpBar };

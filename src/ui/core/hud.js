@@ -5,6 +5,7 @@ import { D } from '../../engine/data.js';
 import { E } from '../../engine/engine.js';
 import { UI } from '../ns.js';
 import { wakeCalm } from './power.js';
+import { buzz } from './haptics.js';
 import {
   $,
   $$,
@@ -502,7 +503,10 @@ function renderStage(S) {
       }
       const roll = () => {
         const aim = App.aim;
-        if (act(aim ? { type: 'ROLL', p: a, aim } : { type: 'ROLL', p: a })) App.aim = null;
+        if (act(aim ? { type: 'ROLL', p: a, aim } : { type: 'ROLL', p: a })) {
+          App.aim = null;
+          buzz('dice');
+        }
       };
       binds.push(
         ['cRoll', roll],

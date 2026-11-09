@@ -1,7 +1,7 @@
 /* LOVEOPOLY — layar › layar menang (dikumpulkan lewat src/ui/screens.js) */
 import { Icons } from '../../assets/icons.js';
 import { Net } from '../../net/net.js';
-import { App, D, E, SND, ART, fmt, esc, ic, $, coin, avatarHTML } from '../core.js';
+import { App, D, E, SND, ART, fmt, esc, ic, $, coin, avatarHTML, buzz } from '../core.js';
 import { UI } from '../ns.js';
 import { passport, recordPassport, xpBar } from './passport.js';
 import { TIER_NAMES } from '../progress.js';
@@ -38,6 +38,7 @@ function progPanel(r) {
   );
   if (w && w.earned) chips.push(chip('umbrella', 'Dapat Payung Rindu'));
   r.badges.forEach(b => chips.push(chip('medal', 'Lencana ' + b.name + ' · ' + TIER_NAMES[b.tier - 1], 'gold')));
+  (r.themes || []).forEach(t => chips.push(chip('sparkle', 'Tema papan ' + t.name + ' terbuka', 'gold')));
   if (r.fresh) chips.push(chip('map', r.fresh + ' cap kota baru'));
   return (
     '<div class="panel jt"><h3>' +
@@ -98,6 +99,9 @@ function celebrate(r) {
         esc(r.to.title) +
         '</div>'
       : '<div class="cb-k">Lencana baru!</div>') +
+    ((r.themes || []).length
+      ? '<p class="cb-gift">' + ic('sparkle') + '<span>Hadiah: tema papan ' + esc(r.themes.map(t => t.name).join(' & ')) + '</span></p>'
+      : '') +
     (r.badges.length
       ? '<ul class="cb-badges">' +
         r.badges
@@ -108,6 +112,7 @@ function celebrate(r) {
     '<span class="cb-skip">Ketuk untuk lanjut</span></div>';
   document.body.appendChild(el);
   SND.play('achieve');
+  buzz('level');
   let done = false;
   const close = () => {
     if (done) return;
@@ -441,6 +446,7 @@ function showWin() {
     '</div>';
   root.appendChild(el);
   SND.play('win');
+  buzz('win');
   confettiStop = confetti($('#confetti'));
   if (prog) setTimeout(() => celebrate(prog), UI.reduceMotion() ? 200 : 1100);
   $('#wShare').onclick = () => openMemoryCard(S, { reason, msg, author });

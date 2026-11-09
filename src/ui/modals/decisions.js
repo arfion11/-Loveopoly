@@ -1,5 +1,5 @@
 /* LOVEOPOLY — dialog permainan › dialog keputusan (beli, bangun, tol, rebut, pajak, kartu, utang) & sinkronisasi dengan state (dikumpulkan lewat src/ui/modals.js) */
-import { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $$, controls, pname, act, coin } from '../core.js';
+import { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $$, controls, pname, act, coin, buzz } from '../core.js';
 import { UI } from '../ns.js';
 import {
   btn,
@@ -119,7 +119,9 @@ function dBuy(key) {
           refreshModal();
         })
       );
-      on(m, '#bBuy', () => act({ type: 'BUY', p: it.p, level: sel || 0 }));
+      on(m, '#bBuy', () => {
+        if (act({ type: 'BUY', p: it.p, level: sel || 0 })) buzz('buy');
+      });
       on(m, '#bSkip', () => act({ type: 'BUY_SKIP', p: it.p }));
     },
   });

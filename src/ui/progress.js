@@ -169,7 +169,34 @@ function tierUps(before, after) {
   }));
 }
 
+// ---------- hadiah kosmetik (hanya tampilan di perangkat ini, tidak memengaruhi permainan) ----------
+// tema papan yang terbuka lewat level Jam Terbang (warna di src/styles/themes.css)
+const BOARD_THEMES = [
+  { id: 'klasik', name: 'Klasik', lv: 1 },
+  { id: 'bali', name: 'Senja Bali', lv: 3 },
+  { id: 'paris', name: 'Paris Malam', lv: 5 },
+  { id: 'kyoto', name: 'Sakura Kyoto', lv: 7 },
+];
+// tema yang dipakai: pilihan tersimpan bila sudah terbuka di level L, selain itu Klasik
+function themeFor(id, L) {
+  const t = BOARD_THEMES.find(x => x.id === id);
+  return t && levelGate(L) >= t.lv ? t.id : 'klasik';
+}
+const levelGate = L => (Number.isFinite(+L) ? +L : 1);
+// tema yang baru terbuka saat naik dari level L0 ke L1
+const themesUnlocked = (L0, L1) => BOARD_THEMES.filter(t => t.lv > L0 && t.lv <= L1);
+// Kartu Kenangan Edisi Emas: Lv 5+, punya lencana Emas, atau rekor Api Cinta ≥ 4 minggu (p dinormalkan passport())
+function goldEdition(p) {
+  if (!p || !p.name) return false;
+  const t = badgeTiers(p);
+  return levelOf(p.xp) >= 5 || p.wk.best >= 4 || Object.keys(t).some(k => t[k] >= 3);
+}
+
 export {
+  BOARD_THEMES,
+  goldEdition,
+  themeFor,
+  themesUnlocked,
   BADGES,
   RANKS,
   TIER_NAMES,

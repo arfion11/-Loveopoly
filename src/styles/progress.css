@@ -444,3 +444,39 @@
     transform: scale(0.4);
   }
 }
+/* hadiah tema papan di layar perayaan */
+.cb-gift {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 6px 12px;
+  border-radius: 99px;
+  font: 700 14px var(--fd);
+  color: var(--gold-ink);
+  background: var(--gold-soft);
+}
+.cb-gift .ic {
+  width: 17px;
+  height: 17px;
+}
+/* penanda Kartu Kenangan Edisi Emas di dialog pratinjau */
+.mem-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  vertical-align: middle;
+  font: 700 12.5px var(--fd);
+  color: var(--gold-ink);
+  background: var(--gold-soft);
+}
+.mem-gold[hidden] {
+  display: none;
+}
+.mem-gold .ic {
+  width: 14px;
+  height: 14px;
+}

@@ -1,5 +1,6 @@
 /* LOVEOPOLY — dialog permainan › menu, keluar, pengaturan, privasi (dikumpulkan lewat src/ui/modals.js) */
-import { App, SND, esc, ic, $, $$, toast, controls, viewer, act } from '../core.js';
+import { App, SND, esc, ic, $, $$, toast, controls, viewer, act, canBuzz } from '../core.js';
+import { BOARD_THEMES, levelOf, themeFor } from '../progress.js';
 import { UI } from '../ns.js';
 import { btn, closeModal, on, refreshModal, showModal } from './base.js';
 import { openHistory, openPortfolio } from './info.js';
@@ -215,6 +216,38 @@ function seg(id, opts, val) {
     '</div>'
   );
 }
+// pilihan tema papan: yang belum terbuka tampil terkunci dengan level syaratnya (hadiah Jam Terbang di Paspor Cinta)
+function boardThemeOpt() {
+  const pp = UI.passport();
+  const L = pp.name ? levelOf(pp.xp) : 1;
+  const cur = themeFor(App.prefs.board, L);
+  return (
+    '<div class="opt"><span class="label" id="sBoardL">Tema papan</span><div class="bt-grid" role="group" aria-labelledby="sBoardL">' +
+    BOARD_THEMES.map(t => {
+      const open = L >= t.lv;
+      return (
+        '<button type="button" class="bt" data-board="' +
+        t.id +
+        '" aria-pressed="' +
+        (cur === t.id) +
+        '"' +
+        (open ? '' : ' disabled') +
+        '><span class="bt-sw" data-b="' +
+        t.id +
+        '" aria-hidden="true"></span><b>' +
+        esc(t.name) +
+        '</b><small>' +
+        (open ? (cur === t.id ? ic('check') + 'Dipakai' : 'Terbuka') : ic('lock') + 'Terbuka di Lv ' + t.lv) +
+        '</small></button>'
+      );
+    }).join('') +
+    '</div><div class="tiny muted">' +
+    (pp.name
+      ? 'Tema baru terbuka lewat Jam Terbang di Paspor Cinta (kamu sekarang Lv ' + L + '). Hanya mengubah warna papan di perangkat ini.'
+      : 'Buat Paspor Cinta untuk membuka tema papan lewat Jam Terbang.') +
+    '</div></div>'
+  );
+}
 function openSettings() {
   showModal({
     key: 'settings',
@@ -230,6 +263,11 @@ function openSettings() {
         '<div class="toggle-row"><div><b>Papan 3D</b><div class="tiny muted">Papan miring dengan ilustrasi berdiri seperti pop-up. Matikan untuk papan datar.</div></div><button type="button" class="switch" role="switch" id="sView3d" aria-checked="' +
         (App.prefs.view3d !== false) +
         '" aria-label="Papan 3D"></button></div>' +
+        (canBuzz()
+          ? '<div class="toggle-row"><div><b>Getar halus</b><div class="tiny muted">Getaran singkat saat kamu melempar dadu, membeli kota, menang & naik level. Mati otomatis saat Hemat baterai.</div></div><button type="button" class="switch" role="switch" id="sHaptic" aria-checked="' +
+            (App.prefs.haptics !== false) +
+            '" aria-label="Getar halus"></button></div>'
+          : '') +
         '<div class="toggle-row"><div><b>Sorot langkah (HP)</b><div class="tiny muted">Saat pion berjalan, papan mendekat mengikuti pion supaya nama & gambar petak besar, lalu kembali menampilkan seluruh papan.</div></div><button type="button" class="switch" role="switch" id="sWalkCam" aria-checked="' +
         (App.prefs.walkCam !== false) +
         '" aria-label="Sorot langkah (HP)"></button></div>' +
@@ -239,6 +277,7 @@ function openSettings() {
         '<div class="toggle-row"><div><b>Bantu kembangkan Loveopoly</b><div class="tiny muted">Kirim statistik pemakaian anonim (Google Analytics) & laporan error. Tanpa nama, pesan, foto, atau kode room.</div></div><button type="button" class="switch" role="switch" id="sStats" aria-checked="' +
         analyticsOn() +
         '" aria-label="Bantu kembangkan Loveopoly"></button></div>' +
+        boardThemeOpt() +
         '<div class="opt"><span class="label">Hemat baterai</span>' +
         seg(
           'sPower',
@@ -304,6 +343,22 @@ function openSettings() {
         setAnalytics(App.prefs.analytics);
         refreshModal();
       });
+      on(m, '#sHaptic', () => {
+        App.prefs.haptics = App.prefs.haptics === false;
+        UI.savePrefs();
+        if (App.prefs.haptics) UI.buzz('dice');
+        refreshModal();
+      });
+      $$('[data-board]', m).forEach(b =>
+        b.addEventListener('click', () => {
+          if (b.disabled) return;
+          App.prefs.board = b.dataset.board;
+          UI.savePrefs();
+          UI.applyTheme();
+          SND.play('click');
+          refreshModal();
+        })
+      );
       on(m, '#sAutoEnd', () => {
         App.prefs.autoEnd = App.prefs.autoEnd === false;
         UI.savePrefs();

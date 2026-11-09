@@ -117,6 +117,33 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await audit(p, tag + ' paspor: Jam Terbang & lencana', '#passOv');
       await click(p, '#ppCancel');
       await p.waitForSelector('#passOv', { state: 'detached' });
+      // Pengaturan: tema papan (Lv 3: Klasik & Senja Bali terbuka, sisanya terkunci)
+      await p.evaluate(() => window.LoveUI.openSettings());
+      await p.waitForSelector('#modalRoot .bt-grid');
+      await audit(p, tag + ' pengaturan', '#modalRoot');
+      await p.evaluate(() => window.LoveUI.closeModal(true));
+      // papan dengan tiap tema (kontras teks petak di atas warna tema)
+      for (const th of ['bali', 'paris', 'kyoto']) {
+        await p.evaluate(th => {
+          const pr = JSON.parse(localStorage.getItem('loveopoly.v1.profile'));
+          pr.xp = 2000;
+          localStorage.setItem('loveopoly.v1.profile', JSON.stringify(pr));
+          window.LoveUI.App.prefs.board = th;
+          window.LoveUI.applyTheme();
+        }, th);
+        await newGame(p, '[1, 2].forEach(t => { S.tiles[t].owner = 1; S.tiles[t].level = 2; });');
+        await settle(p);
+        await audit(p, tag + ' papan tema ' + th, '#game');
+      }
+      await p.evaluate(() => {
+        const pr = JSON.parse(localStorage.getItem('loveopoly.v1.profile'));
+        pr.xp = 250;
+        localStorage.setItem('loveopoly.v1.profile', JSON.stringify(pr));
+        window.LoveUI.App.prefs.board = 'klasik';
+        window.LoveUI.applyTheme();
+        window.LoveUI.exitToHome(true);
+      });
+      await p.waitForSelector('#hAI');
       await click(p, '#hAI');
       await p.waitForSelector('#pn0');
       await audit(p, tag + ' setup lawan AI');

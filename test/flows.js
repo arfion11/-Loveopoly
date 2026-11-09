@@ -1197,6 +1197,81 @@ const URL = (await serveDist()).url + '/';
   await page.waitForTimeout(350);
   ok('Merpi kangen: bisa ditutup', !(await page.$('#scrHome .merpi-note')));
 
+  // Tema papan (hadiah Jam Terbang): terkunci sesuai level, hanya mewarnai area permainan, tersimpan
+  const setXp = xp =>
+    page.evaluate(xp => {
+      const p = JSON.parse(localStorage.getItem('loveopoly.v1.profile'));
+      p.xp = xp;
+      localStorage.setItem('loveopoly.v1.profile', JSON.stringify(p));
+    }, xp);
+  await setXp(600); // Lv 5
+  await page.evaluate(() => window.LoveUI.openSettings());
+  await page.waitForSelector('#modalRoot .bt-grid');
+  const bts = await page.evaluate(() =>
+    [...document.querySelectorAll('#modalRoot [data-board]')].map(b => b.dataset.board + ':' + (b.disabled ? 'kunci' : 'buka')).join(',')
+  );
+  ok(
+    'tema papan: di Lv 5 Klasik, Senja Bali & Paris Malam terbuka, Sakura Kyoto terkunci',
+    bts === 'klasik:buka,bali:buka,paris:buka,kyoto:kunci',
+    bts
+  );
+  await page.$eval('#modalRoot [data-board="paris"]', b => b.click());
+  await page.evaluate(() => window.LoveUI.closeModal(true));
+  await newGame('');
+  const thm = await page.evaluate(() => ({
+    attr: document.documentElement.dataset.board,
+    game: getComputedStyle(document.getElementById('game')).getPropertyValue('--board').trim(),
+    root: getComputedStyle(document.documentElement).getPropertyValue('--board').trim(),
+    saved: JSON.parse(localStorage.getItem('loveopoly.v1.prefs')).board,
+  }));
+  ok(
+    'tema papan: Paris Malam terpasang di papan saja (token di .game, bukan root/dialog) & tersimpan',
+    thm.attr === 'paris' && thm.saved === 'paris' && thm.game.toLowerCase() === '#e4e8f6' && thm.game !== thm.root,
+    JSON.stringify(thm)
+  );
+  await setXp(0);
+  await page.evaluate(() => window.LoveUI.applyTheme());
+  ok(
+    'tema papan: tema yang belum terbuka di level sekarang tidak dipakai (kembali Klasik)',
+    await page.evaluate(() => !document.documentElement.dataset.board)
+  );
+  // Kartu Kenangan Edisi Emas: kartu pemegang paspor Lv 5+ berbingkai emas; kartu pemain lain di HP yang sama tidak
+  await setXp(700);
+  await page.evaluate(() => {
+    window.LoveUI.App.prefs.board = 'klasik';
+    window.LoveUI.applyTheme();
+    const E = window.LoveEngine;
+    const S = E.create({
+      players: [
+        { name: 'Arfi', avatar: '🦊' },
+        { name: 'Nadia', avatar: '🐰' },
+      ],
+      settings: { debug: true },
+      seed: 93,
+    });
+    S.tiles[1].owner = 0;
+    window.LoveUI.enterGame('local', -1, S);
+    window.LoveUI.act({ type: 'FINISH_NOW', p: 0 });
+  });
+  await page.waitForSelector('#winOv #wShare', { timeout: 8000 });
+  await page.waitForSelector('#celebOv', { state: 'detached', timeout: 6000 }).catch(() => {});
+  await page.$eval('#wShare', b => b.click());
+  await page.waitForSelector('#memOv .mem-prev img', { timeout: 15000 });
+  const goldMe = await page.evaluate(() => !document.getElementById('memGold').hidden);
+  await page.$eval('#memOv [data-mp="1"]', b => b.click());
+  await page.waitForFunction(() => /Nadia/.test((document.querySelector('#memOv .mem-prev img') || {}).alt || ''), null, {
+    timeout: 15000,
+  });
+  const goldOther = await page.evaluate(() => !document.getElementById('memGold').hidden);
+  ok(
+    'Kartu Kenangan Edisi Emas: kartu pemegang paspor Lv 5+ emas, kartu pasangan biasa',
+    goldMe && !goldOther,
+    JSON.stringify({ goldMe, goldOther })
+  );
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('#memOv', { state: 'detached', timeout: 5000 }).catch(() => {});
+  await page.evaluate(() => window.LoveUI.exitToHome(true));
+
   // Hemat daya: saat diam ±12 dtk semua hiasan berulang dijeda (tidak ada animasi berjalan = HP tidak terus
   // menggambar ulang & panas), sentuhan membangunkan. Hiasan berulang baru wajib masuk src/styles/power.css.
   await newGame('');
@@ -1313,6 +1388,32 @@ const URL = (await serveDist()).url + '/';
       'iPhone terpasang: layar game tidak tergulir, kartu pemain di bawah header',
       insetOk && lay.inset === '59px' && lay.extra <= 0 && lay.scrollY === 0 && lay.card !== null && lay.card >= lay.hdr,
       JSON.stringify(lay)
+    );
+    // Getar halus: hanya aksi pemain sendiri di layar sentuh (navigator.vibrate dipantau), mati di Hemat baterai
+    await sp.evaluate(() => {
+      window.__vib = [];
+      Object.defineProperty(navigator, 'vibrate', {
+        configurable: true,
+        value: p => {
+          window.__vib.push(p);
+          return true;
+        },
+      });
+    });
+    await sp.$eval('#cRoll', b => b.click());
+    await sp.waitForTimeout(200);
+    const vib1 = await sp.evaluate(() => window.__vib.slice());
+    await sp.evaluate(() => {
+      window.__vib = [];
+      window.LoveUI.App.prefs.power = 'save';
+      window.LoveUI.wakeCalm();
+      window.LoveUI.buzz('dice');
+    });
+    const vib2 = await sp.evaluate(() => window.__vib.length);
+    ok(
+      'getar halus: lempar dadu sendiri → getar singkat, Hemat baterai → tidak',
+      vib1.length === 1 && vib1[0] === 14 && vib2 === 0,
+      JSON.stringify({ vib1, vib2 })
     );
     await sctx.close();
   }

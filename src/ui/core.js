@@ -44,6 +44,7 @@ import { renderPlayers, renderHeader, renderStage, renderTicker, renderAll, desc
 import { startPick, renderPick, endPick } from './core/pick.js';
 import { commit, cleanState, act, persist, scheduleAI, scheduleAutoEnd, cancelAutoEnd, fallbackAction, flyCard } from './core/flow.js';
 import { initPower, lowPower, probeFps, wakeCalm } from './core/power.js';
+import { buzz, canBuzz } from './core/haptics.js';
 import { UI } from './ns.js';
 
 Object.assign(UI, {
@@ -128,6 +129,8 @@ Object.assign(UI, {
   lowPower,
   probeFps,
   wakeCalm,
+  buzz,
+  canBuzz,
 });
 
 export {
@@ -212,4 +215,6 @@ export {
   lowPower,
   probeFps,
   wakeCalm,
+  buzz,
+  canBuzz,
 };

@@ -3,7 +3,8 @@
    sendiri; satu HP: bisa dipilih), juara bermahkota, yang lain dengan peringkat & statistiknya sendiri. */
 import { Icons } from '../../assets/icons.js';
 import { App, ART, TILES, fmt, esc, ic, $, $$, toast, safeImg, reduceMotion, avatarHTML } from '../core.js';
-import { passport } from './passport.js';
+import { holderSeat, passport } from './passport.js';
+import { goldEdition, levelInfo } from '../progress.js';
 import { UI } from '../ns.js';
 import { track } from '../../analytics.js';
 
@@ -141,8 +142,73 @@ function defaultViewer(S) {
   return (holder || humans[0] || S.players[S.over.winner]).i;
 }
 
+// Edisi Emas: hanya kartu milik pemegang paspor perangkat ini yang sudah Lv 5+, punya lencana Emas, atau rekor
+// Api Cinta ≥ 4 minggu (progress.js goldEdition). Digambar sekali saat kartu dibuat: tanpa beban selama main.
+function goldFor(S, pi) {
+  const pp = passport();
+  if (pi !== holderSeat(S, pp) || !goldEdition(pp)) return null;
+  const lv = levelInfo(pp.xp);
+  return { L: lv.L, title: lv.title };
+}
+// bingkai foil (di BAWAH isi kartu) — kaki kartu Edisi Emas naik 16 px supaya tombol ajakan tidak menabrak bingkai
+function goldBorder(x) {
+  const g = x.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, '#FFF3C4');
+  g.addColorStop(0.22, '#E0A93A');
+  g.addColorStop(0.45, '#FFF0B0');
+  g.addColorStop(0.7, '#C48A10');
+  g.addColorStop(1, '#FFE08A');
+  x.save();
+  x.strokeStyle = g;
+  x.lineWidth = 18;
+  x.beginPath();
+  x.roundRect(26, 26, W - 52, H - 52, 58);
+  x.stroke();
+  x.lineWidth = 3;
+  x.globalAlpha = 0.85;
+  x.beginPath();
+  x.roundRect(52, 52, W - 104, H - 104, 40);
+  x.stroke();
+  x.globalAlpha = 1;
+  // kilau bintang di ruang kosong (bukan di dekat kaki/tombol ajakan)
+  x.fillStyle = '#F7D47A';
+  [
+    [80, 80, 16],
+    [150, 62, 8],
+    [40, 760, 12],
+    [W - 40, 1180, 12],
+  ].forEach(([cx, cy, r]) => {
+    x.beginPath();
+    x.moveTo(cx, cy - r);
+    x.quadraticCurveTo(cx, cy, cx + r, cy);
+    x.quadraticCurveTo(cx, cy, cx, cy + r);
+    x.quadraticCurveTo(cx, cy, cx - r, cy);
+    x.quadraticCurveTo(cx, cy, cx, cy - r);
+    x.fill();
+  });
+  x.restore();
+}
+// pita "EDISI EMAS" di sudut kanan atas (di ATAS isi kartu)
+function goldRibbon(x) {
+  x.save();
+  x.translate(W - 150, 150);
+  x.rotate(Math.PI / 4);
+  const rb = x.createLinearGradient(-200, 0, 200, 0);
+  rb.addColorStop(0, '#C48A10');
+  rb.addColorStop(0.5, '#FFE08A');
+  rb.addColorStop(1, '#C48A10');
+  x.fillStyle = rb;
+  x.fillRect(-200, -30, 400, 60);
+  x.fillStyle = '#5A3A00';
+  x.font = '800 26px ' + FB;
+  x.textAlign = 'center';
+  x.fillText('EDISI EMAS', 0, 9);
+  x.restore();
+}
+
 async function drawCard(S, info, pi) {
   const d = cardData(S, info, pi == null ? defaultViewer(S) : pi);
+  d.gold = goldFor(S, d.pi);
   const fonts = ['700 64px Fredoka', '600 84px Fredoka', '800 40px Nunito', 'italic 600 42px Nunito', '700 32px Nunito'];
   await Promise.all(fonts.map(f => document.fonts.load(f).catch(() => null)));
   const cv = document.createElement('canvas');
@@ -158,6 +224,7 @@ async function drawCard(S, info, pi) {
   bg.addColorStop(1, '#EFE4FF');
   x.fillStyle = bg;
   x.fillRect(0, 0, W, H);
+  const fy = d.gold ? 16 : 0;
   [
     [930, 300, 260, 'rgba(255, 158, 196, 0.22)'],
     [120, 1250, 300, 'rgba(183, 156, 255, 0.18)'],
@@ -168,6 +235,7 @@ async function drawCard(S, info, pi) {
     x.arc(cx, cy, r, 0, Math.PI * 2);
     x.fill();
   });
+  if (d.gold) goldBorder(x);
 
   // merek
   const [logo, merpi] = await Promise.all([
@@ -182,9 +250,9 @@ async function drawCard(S, info, pi) {
   x.textAlign = 'left';
   x.fillText('Loveopoly', bx + 96, 142);
   x.textAlign = 'center';
-  x.fillStyle = C.ink2;
+  x.fillStyle = d.gold ? '#9A6A00' : C.ink2;
   x.font = '800 30px ' + FB;
-  x.fillText('KENANGAN KELILING DUNIA', W / 2, 206);
+  x.fillText(d.gold ? 'EDISI EMAS · LV ' + d.gold.L + ' ' + d.gold.title.toUpperCase() : 'KENANGAN KELILING DUNIA', W / 2, 206);
 
   // tata letak vertikal: hitung tinggi isi dulu (bagian bawah gugur bila tidak muat: foto > kota > peringkat),
   // lalu letakkan di tengah ruang antara judul & kaki supaya tidak ada ruang kosong besar
@@ -387,16 +455,18 @@ async function drawCard(S, info, pi) {
   x.fillStyle = C.ink2;
   x.font = '700 30px ' + FB;
   const date = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  x.fillText(d.o.round + ' ronde · ' + date, W / 2, H - 150);
+  x.fillText(d.o.round + ' ronde · ' + date, W / 2, H - 150 - fy);
   const cta = 'Main gratis bareng pasangan & teman · ' + SITE;
   x.font = '800 30px ' + FB;
   const cw = x.measureText(cta).width + 80;
   x.fillStyle = C.brand;
   x.beginPath();
-  x.roundRect((W - cw) / 2, H - 112, cw, 70, 35);
+  x.roundRect((W - cw) / 2, H - 112 - fy, cw, 70, 35);
   x.fill();
   x.fillStyle = '#FFFFFF';
-  x.fillText(cta, W / 2, H - 66);
+  x.fillText(cta, W / 2, H - 66 - fy);
+
+  if (d.gold) goldRibbon(x);
 
   const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92));
   if (!blob) throw new Error('canvas kosong');
@@ -437,7 +507,9 @@ async function openMemoryCard(S, info) {
   ov.innerHTML =
     '<div class="mem-card"><div class="mem-head"><h2 id="memT">' +
     ic('polaroid') +
-    'Kartu Kenangan</h2><button type="button" class="icon-btn" id="memClose" aria-label="Tutup">' +
+    'Kartu Kenangan <span class="mem-gold" id="memGold" hidden>' +
+    ic('sparkle') +
+    'Edisi Emas</span></h2><button type="button" class="icon-btn" id="memClose" aria-label="Tutup">' +
     ic('x') +
     '</button></div>' +
     picker +
@@ -521,6 +593,8 @@ async function openMemoryCard(S, info) {
     file = new File([res.blob], name, { type: 'image/jpeg' });
     const d = res.data;
     prev.removeAttribute('aria-busy');
+    const gb = $('#memGold', ov);
+    if (gb) gb.hidden = !d.gold;
     prev.innerHTML =
       '<img src="' +
       url +

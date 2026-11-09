@@ -1,6 +1,7 @@
 /* LOVEOPOLY — layar › util layar: pindah layar, tema, suara (dikumpulkan lewat src/ui/screens.js) */
 import { App, SND, TILES, KEYS, esc, $$, store, wakeCalm } from '../core.js';
 import { UI } from '../ns.js';
+import { levelOf, themeFor } from '../progress.js';
 
 // ---------- util layar ----------
 function show(id) {
@@ -38,6 +39,11 @@ function applyTheme() {
   const t = App.prefs.theme;
   if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
   else document.documentElement.removeAttribute('data-theme');
+  // tema papan (hadiah Jam Terbang): hanya bila sudah terbuka di level paspor perangkat ini
+  const prof = store.get('loveopoly.v1.profile', null) || {};
+  const b = themeFor(App.prefs.board, prof.name ? levelOf(prof.xp) : 1);
+  if (b === 'klasik') document.documentElement.removeAttribute('data-board');
+  else document.documentElement.setAttribute('data-board', b);
 }
 // suara diatur dari Menu (sakelar Suara); fungsi ini hanya menyelaraskan menu yang sedang terbuka
 function syncSoundBtn() {

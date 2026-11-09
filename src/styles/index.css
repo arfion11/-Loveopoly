@@ -22,5 +22,6 @@
 @import './passport-cover.css'; /* sampul & bagian dalam paspor */
 @import './globe.css'; /* globe & Merpi hidup */
 @import './ambience.css'; /* suasana Kabar Merpi & Musim Puncak */
+@import './themes.css'; /* tema papan hadiah Jam Terbang (token warna di .game) */
 @import './progress.css'; /* Jam Terbang, Api Cinta, lencana, Merpi kangen, layar perayaan */
 @import './power.css'; /* hemat daya: hiasan berulang dijeda saat tenang / Hemat baterai (paling akhir) */

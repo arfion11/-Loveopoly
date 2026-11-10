@@ -125,9 +125,58 @@ ok('Edisi Emas: tanpa paspor (tanpa nama) tidak', P.goldEdition(Object.assign({}
 
 // --- Pertanyaan Hari Ini ---
 const today = Q.dayNo(at(2026, 11, 9));
-const seen = new Set();
-for (let i = 0; i < D.DAILY_QS.length; i++) seen.add(Q.dailyIndex(today + i));
-ok('harian: semua soal muncul sebelum ada yang berulang', seen.size === D.DAILY_QS.length, seen.size + '/' + D.DAILY_QS.length);
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+const NQ = D.DAILY_QS.length;
+ok(
+  'bank harian: 365 soal biasa + edisi khusus, soal tidak kembar',
+  NQ === 365 && new Set(Q.DAILY_ALL.map(x => x.q)).size === Q.DAILY_ALL.length,
+  NQ + ' + ' + D.DAILY_SPECIAL.length
+);
+ok(
+  'bank harian: tiap soal 4 pilihan berbeda, maks 30 karakter; edisi khusus bertanggal & berlabel unik',
+  Q.DAILY_ALL.every(x => x.o.length === 4 && new Set(x.o).size === 4 && x.o.every(o => o.length > 0 && o.length <= 30)) &&
+    D.DAILY_SPECIAL.every(x => /^\d\d-\d\d$/.test(x.md) && x.tag) &&
+    new Set(D.DAILY_SPECIAL.map(x => x.md)).size === D.DAILY_SPECIAL.length
+);
+ok(
+  'urutan harian: pengali 37 saling prima dengan 60 & jumlah soal baru',
+  gcd(37, Q.OLD_N) === 1 && gcd(37, NQ - Q.OLD_N) === 1,
+  NQ - Q.OLD_N
+);
+// sebelum peralihan (11 Nov 2026): urutan lama persis seperti dulu → tautan & jawaban lama tetap menunjuk soal yang sama
+let same = true;
+for (let d = Q.SWITCH - 400; d < Q.SWITCH; d++) if (Q.dailyIndex(d) !== (((d * 37) % 60) + 60) % 60) same = false;
+ok(
+  'urutan harian: hari sebelum 11 Nov 2026 tidak berubah (soal #313 & #314 tetap)',
+  same && Q.dailyQ(20766).q === 'Gaya liburan kita?' && Q.dailyQ(20767).q === 'Hal paling romantis menurutmu?'
+);
+ok('urutan harian: hari peralihan = 11 Nov 2026 WIB', Q.mdOf(Q.SWITCH) === '11-11' && Q.dailyNo(Q.SWITCH) === 315);
+// mulai peralihan: satu siklus tanpa soal berulang; 305 soal baru keluar dulu; tanggal khusus = edisi khusus
+const regSeen = new Set();
+let repeat = false,
+  specials = 0,
+  oldEarly = false;
+for (let i = 0; i < NQ; i++) {
+  const qi = Q.dailyIndex(Q.SWITCH + i);
+  if (qi >= NQ) {
+    specials++;
+    continue;
+  }
+  if (regSeen.has(qi)) repeat = true;
+  regSeen.add(qi);
+  if (i < NQ - Q.OLD_N && qi < Q.OLD_N) oldEarly = true;
+}
+ok(
+  'urutan harian: satu siklus 365 hari tanpa soal berulang, soal baru dulu baru soal lama',
+  !repeat && !oldEarly && regSeen.size + specials === NQ && specials === D.DAILY_SPECIAL.length,
+  regSeen.size + ' biasa + ' + specials + ' khusus'
+);
+const val = Q.dayNo(Date.UTC(2027, 1, 13, 17, 0)); // 14 Feb 2027 00.00 WIB
+ok(
+  'edisi khusus: 14 Feb 2027 = Valentine; 14 Feb 2026 (sebelum peralihan) soal biasa',
+  Q.dailyQ(val).tag === 'Edisi Valentine' && !Q.dailyQ(Q.dayNo(Date.UTC(2026, 1, 13, 17, 0))).tag,
+  Q.dailyQ(val).q
+);
 ok(
   'harian: tiap soal punya 4 pilihan',
   D.DAILY_QS.every(x => x.q && x.o.length === 4)
@@ -142,6 +191,18 @@ ok(
   Q.dailyNo(Q.dayNo(Date.UTC(2025, 11, 31, 17, 0))) === 1 && Q.dailyNo(Q.dayNo(Date.UTC(2025, 11, 31, 16, 59))) === 0
 );
 const lk = Q.encodeLink({ d: today, n: 'Nadia 💕', a: 2, g: 1 });
+const lkQ = Q.decodeLink(Q.encodeLink({ d: today, q: 300, n: 'A', a: 0, g: 1 }), today);
+ok(
+  'tautan: nomor soal ikut & dipakai (soal sama walau urutan hari berubah)',
+  lkQ && lkQ.q === 300 && Q.dailyQ(today, lkQ.q) === Q.DAILY_ALL[300]
+);
+const bq = o => btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+ok(
+  'tautan: nomor soal tak sah ditolak; tautan lama tanpa nomor soal tetap diterima',
+  Q.decodeLink(bq({ v: 1, d: today, q: 99999, n: 'A', a: 1, g: 0 }), today) === null &&
+    Q.decodeLink(bq({ v: 1, d: today, q: -1, n: 'A', a: 1, g: 0 }), today) === null &&
+    Q.decodeLink(bq({ v: 1, d: today, n: 'A', a: 1, g: 0 }), today).q === Q.dailyIndex(today)
+);
 const back = Q.decodeLink(lk, today);
 ok(
   'tautan: bolak-balik utuh (termasuk emoji)',

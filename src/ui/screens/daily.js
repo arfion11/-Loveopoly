@@ -4,7 +4,7 @@
    di perangkat (loveopoly.v1.daily). Nama & jawaban dari tautan = data tak tepercaya: divalidasi decodeLink & di-escape. */
 import { SND, esc, ic, $, $$, store, toast } from '../core.js';
 import { UI } from '../ns.js';
-import { dailyNo, dailyQ, dayNo, decodeLink, encodeLink, score } from '../daily.js';
+import { dailyIndex, dailyNo, dailyQ, dayNo, decodeLink, encodeLink, questionAt, score } from '../daily.js';
 import { XP } from '../progress.js';
 import { addXp, passport } from './passport.js';
 
@@ -16,6 +16,7 @@ function loadState() {
   if (!s || typeof s !== 'object' || !Number.isInteger(s.d)) return null;
   const o = {
     d: s.d,
+    q: questionAt(s.q) ? s.q : dailyIndex(s.d),
     n: typeof s.n === 'string' ? s.n.slice(0, 16) : '',
     a: pickOk(s.a) ? s.a : null,
     g: pickOk(s.g) ? s.g : null,
@@ -60,6 +61,7 @@ function dailyCard() {
     ic('letter') +
     '</span><span class="grow"><span class="dc-k">Pertanyaan Hari Ini #' +
     dailyNo(today) +
+    (q.tag ? ' · ' + esc(q.tag) : '') +
     '</span><b>' +
     esc(q.q) +
     '</b><span class="dc-st">' +
@@ -113,7 +115,7 @@ function openDaily(link) {
   if (link && link.m != null) {
     // tautan hasil: jawaban berdua sudah lengkap
     ui.view = 'reveal';
-    ui.res = { d: link.d, A: link.n, a: link.a, g: link.g, B: link.m, b: link.b, h: link.h };
+    ui.res = { d: link.d, q: link.q, A: link.n, a: link.a, g: link.g, B: link.m, b: link.b, h: link.h };
     const me = myName(st).toLowerCase();
     if (st && st.d === link.d && me && me === link.n.toLowerCase() && st.a === link.a) {
       st.p = { n: link.m, a: link.b, g: link.h };
@@ -126,7 +128,7 @@ function openDaily(link) {
     else {
       ui.view = 'pick';
       ui.from = link; // menjawab tautan pasangan
-      if (!st || st.d !== link.d) st = { d: link.d, n: myName(st), a: null, g: null, p: null, xp: false };
+      if (!st || st.d !== link.d) st = { d: link.d, q: link.q, n: myName(st), a: null, g: null, p: null, xp: false };
       if (st.a != null && st.g != null && !st.p) {
         // sudah menjawab soal ini sendiri sebelumnya: langsung tunjukkan hasil
         st.p = { n: link.n, a: link.a, g: link.g };
@@ -135,11 +137,13 @@ function openDaily(link) {
       }
     }
   } else {
-    if (!st || st.d !== today) st = { d: today, n: myName(st), a: null, g: null, p: null, xp: false };
+    if (!st || st.d !== today) st = { d: today, q: dailyIndex(today), n: myName(st), a: null, g: null, p: null, xp: false };
     ui.view = st.a != null && st.g != null ? (st.p ? 'reveal' : 'send') : 'pick';
   }
   const day = (ui.res && ui.res.d) || st.d;
-  const q = dailyQ(day);
+  // nomor soal: dari tautan (soal yang dijawab pasangan) atau keadaan tersimpan, jadi semua pihak menjawab soal sama
+  const qi = ui.res ? ui.res.q : ui.from ? ui.from.q : st.q;
+  const q = dailyQ(day, qi);
   const partnerName = () => (ui.from ? ui.from.n : st.p ? st.p.n : ui.p2.n || 'pasanganmu');
 
   const opts = (sel, attr, label) =>
@@ -186,7 +190,7 @@ function openDaily(link) {
     build: () => {
       const v = ui.view;
       const step = v === 'pick' || v === 'p2pick' ? ' · Langkah 1 dari 2' : v === 'guess' || v === 'p2guess' ? ' · Langkah 2 dari 2' : '';
-      const kicker = ic('letter') + 'Pertanyaan Hari Ini #' + dailyNo(day) + step;
+      const kicker = ic('letter') + 'Pertanyaan Hari Ini #' + dailyNo(day) + (q.tag ? ' · ' + esc(q.tag) : '') + step;
       let body = '<p class="dq-q">' + esc(q.q) + '</p>',
         foot = '',
         title = 'Pilihanmu';
@@ -235,7 +239,7 @@ function openDaily(link) {
           '<div class="dq-share"><button type="button" class="btn primary" id="dqShare">' +
           ic('share') +
           '<span>Bagikan</span></button><a class="btn soft" id="dqWa" target="_blank" rel="noopener" href="' +
-          esc(waHref(shareTextQ(), linkFor({ d: day, n: myName(st), a: st.a, g: st.g }))) +
+          esc(waHref(shareTextQ(), linkFor({ d: day, q: qi, n: myName(st), a: st.a, g: st.g }))) +
           '">' +
           ic('chat') +
           '<span>WhatsApp</span></a></div>';
@@ -281,7 +285,7 @@ function openDaily(link) {
           'Pertanyaan Hari Ini #' + dailyNo(r.d) + ' 💌 Tebakan kami cocok ' + sc.n + '/2' + (sc.n === 2 ? ' 💞' : '') + '. Main gratis:';
         const site = location.origin + '/';
         // yang menjawab tautan pasangan bisa mengirim hasil balik; selain itu bagikan skor tanpa bocoran
-        const back = ui.from ? linkFor({ d: r.d, n: r.A, a: r.a, g: r.g, m: r.B, b: r.b, h: r.h }) : '';
+        const back = ui.from ? linkFor({ d: r.d, q: qi, n: r.A, a: r.a, g: r.g, m: r.B, b: r.b, h: r.h }) : '';
         body +=
           (back ? nameField() : '') +
           '<div class="dq-share">' +
@@ -307,12 +311,12 @@ function openDaily(link) {
       // nama diketik → tersimpan & tautan WhatsApp / kirim hasil diperbarui langsung
       const links = () => {
         const wa = $('#dqWa', m);
-        if (wa) wa.href = waHref(shareTextQ(), linkFor({ d: day, n: myName(st), a: st.a, g: st.g }));
+        if (wa) wa.href = waHref(shareTextQ(), linkFor({ d: day, q: qi, n: myName(st), a: st.a, g: st.g }));
         const bk = $('#dqBack', m);
         if (bk && ui.from)
           bk.href = waHref(
             'Hasil Pertanyaan Hari Ini kita sudah keluar 💌',
-            linkFor({ d: day, n: ui.from.n, a: ui.from.a, g: ui.from.g, m: myName(st), b: st.a, h: st.g })
+            linkFor({ d: day, q: qi, n: ui.from.n, a: ui.from.a, g: ui.from.g, m: myName(st), b: st.a, h: st.g })
           );
       };
       const n = $('#dqName', m);
@@ -373,7 +377,7 @@ function openDaily(link) {
       const sh = $('#dqShare', m);
       if (sh)
         sh.onclick = () => {
-          if (!needName()) share(shareTextQ(), linkFor({ d: day, n: myName(st), a: st.a, g: st.g }));
+          if (!needName()) share(shareTextQ(), linkFor({ d: day, q: qi, n: myName(st), a: st.a, g: st.g }));
         };
       const hot = $('#dqHot', m);
       if (hot)

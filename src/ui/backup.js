@@ -55,6 +55,7 @@ const pick4 = v => (Number.isInteger(v) && v >= 0 && v <= 3 ? v : null);
 function pickDaily(o) {
   if (!o || typeof o !== 'object' || !Number.isInteger(o.d)) return null;
   const d = { d: o.d, n: txt(o.n, 16), a: pick4(o.a), g: pick4(o.g), p: null, xp: !!o.xp };
+  if (Number.isInteger(o.q) && o.q >= 0 && o.q < 2000) d.q = o.q; // nomor soal (divalidasi lagi saat dibaca)
   if (o.p && typeof o.p === 'object' && pick4(o.p.a) != null && pick4(o.p.g) != null) d.p = { n: txt(o.p.n, 16), a: o.p.a, g: o.p.g };
   return d;
 }

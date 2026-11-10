@@ -170,3 +170,12 @@
 .pp-cover::after {
   display: none;
 }
+/* isi sampul & sisi dalamnya: dibatasi setinggi layar dan mulai dari atas. Halaman isi paspor bisa panjang (Jam
+   Terbang, lencana, cap kota) sehingga sampul ikut setinggi itu; dulu isinya di tengah sampul → di HP lambang, judul &
+   tombol "Buka Paspor" terdorong ke bawah layar. min-height (bukan height): bila isinya lebih tinggi dari layar
+   (HP mendatar), kotaknya memanjang ke bawah, bagian atas tidak terpotong. */
+.pp-cv-in,
+.pp-cb-in {
+  inset: 0 0 auto;
+  min-height: min(100%, calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
+}

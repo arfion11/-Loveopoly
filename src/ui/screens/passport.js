@@ -528,9 +528,10 @@ function openPassport(opts) {
           .slice(0, 12)
       ) +
       '&lt;&lt;RINDU&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>' +
-      '<div class="pp-stamp" aria-hidden="true"><b>DISETUJUI</b><span>' +
+      // cap DISETUJUI + stempel karet dalam satu wadah seukuran cap (miring bersama): stempel selalu tepat menutupi cap
+      '<div class="pp-seal" aria-hidden="true"><div class="pp-stamp"><b>DISETUJUI</b><span>' +
       ic('heart') +
-      ' Loveopoly</span></div>' +
+      ' Loveopoly</span></div><div class="pp-stamper"><svg viewBox="0 0 200 136" preserveAspectRatio="none"><ellipse cx="100" cy="22" rx="24" ry="18" fill="#c98a4b" stroke="#3a1426" stroke-width="3"/><path d="M86 14c5-6 16-7 22-3" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".45"/><rect x="90" y="37" width="20" height="34" rx="6" fill="#b5743a" stroke="#3a1426" stroke-width="3"/><rect x="64" y="67" width="72" height="15" rx="6" fill="#7a1840" stroke="#3a1426" stroke-width="3"/><rect x="8" y="80" width="184" height="38" rx="10" fill="#5b1236" stroke="#3a1426" stroke-width="3"/><path d="M20 89h70" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".22"/><path d="M100 110c-7-5-11-9-11-13a5.5 5.5 0 0 1 11-2.4 5.5 5.5 0 0 1 11 2.4c0 4-4 8-11 13z" fill="#f7d98b"/><rect x="12" y="116" width="176" height="15" rx="4" fill="#c0264f" stroke="#3a1426" stroke-width="3"/></svg></div></div>' +
       '</form>' +
       // sampul kulit dengan foil emas
       '<div class="pp-cover" aria-hidden="' +
@@ -661,7 +662,8 @@ function openPassport(opts) {
           r = stamp ? stamp.getBoundingClientRect() : null,
           away = !!r && (r.top < 0 || r.bottom > window.innerHeight);
         const seal = () => {
-          SND.play('stamp');
+          // stempel turun & menekan di ±0,44 dtk: bunyi cap, tinta muncul & halaman bergetar tepat saat itu
+          setTimeout(() => SND.play('stamp'), rm ? 0 : 440);
           $('.pp-book', ov).classList.add('done');
           setTimeout(
             () => {
@@ -672,7 +674,7 @@ function openPassport(opts) {
                 title: edit ? '' : 'Selamat datang',
               });
             },
-            rm ? 300 : 1350
+            rm ? 300 : 1750
           );
         };
         if (away && stamp) {

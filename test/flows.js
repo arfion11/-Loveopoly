@@ -1649,7 +1649,9 @@ const URL = (await serveDist()).url + '/';
     await C.p.goto(URL);
     await C.p.click('#hDaily');
     // tanpa paspor: pilihan langsung tercatat (dulu harus isi nama dulu → terasa "pilih dua kali"), langkah 2
-    // jelas berbeda (ringkasan pilihan + tebakan), nama baru ditanya saat mengirim tautan
+    // jelas berbeda (ringkasan pilihan + tebakan), nama baru ditanya saat mengirim tautan. Teks pilihan dibaca dari
+    // layar: soalnya berganti tiap hari (jangan mengunci teks soal tertentu di uji)
+    const opt0 = (await C.p.textContent('[data-dqa="0"] span:last-child')).trim();
     await C.p.click('[data-dqa="0"]');
     await C.p.waitForSelector('.dq-opts.guess [data-dqg]', { timeout: 3000 });
     const step2 = (await C.p.textContent('.modal')).replace(/\s+/g, ' ');
@@ -1662,7 +1664,7 @@ const URL = (await serveDist()).url + '/';
     const waName = decodeURIComponent((await C.p.$eval('#dqWa', a => a.href)).split('text=')[1]);
     ok(
       'Pertanyaan Hari Ini: sekali ketuk per langkah (langkah 2 = tebakan, ringkasan pilihan), nama ditanya saat kirim',
-      /Langkah 2 dari 2/.test(step2) && /Pilihanmu: Semua terjadwal/.test(step2) && blocked && /#tanya=/.test(waName),
+      /Langkah 2 dari 2/.test(step2) && step2.includes('Pilihanmu: ' + opt0) && blocked && /#tanya=/.test(waName),
       step2.slice(0, 160)
     );
     await C.p.click('#dqHot');

@@ -716,9 +716,10 @@
   text-transform: uppercase;
   color: #f7d98b;
 }
+/* 600 seperti kartu mode & Main lagi (700 = bobot maksimum Fredoka, terlalu tebal di kartu beranda) */
 .pass-card b {
   display: block;
-  font: 700 19px/1.2 var(--fd);
+  font: 600 19px/1.2 var(--fd);
   color: #fff;
 }
 .pass-card .pc-stats {

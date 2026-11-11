@@ -36,7 +36,7 @@ import {
 } from './core/base.js';
 import { toast, banner, clearFx, winLabel } from './core/notify.js';
 import { view3d, applyLayout, sizeBoard } from './core/layout.js';
-import { bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax } from './core/camera.js';
+import { bindCamDrag, camFocus, camApply, camSettle, renderCamCtl, camRelax, camCinema, camCinemaStop } from './core/camera.js';
 import { buildBoard, renderBoard, tileEl, tilePos, flashTile } from './core/board.js';
 import { renderTokens, setDieFace } from './core/pieces.js';
 import { EMOTES, showEmote, sendEmote, renderAmbience, merpiSay, merpiPoke, pick } from './core/mascot.js';
@@ -93,6 +93,8 @@ Object.assign(UI, {
   camSettle,
   renderCamCtl,
   camRelax,
+  camCinema,
+  camCinemaStop,
   buildBoard,
   renderBoard,
   renderTokens,
@@ -179,6 +181,8 @@ export {
   camSettle,
   renderCamCtl,
   camRelax,
+  camCinema,
+  camCinemaStop,
   buildBoard,
   renderBoard,
   renderTokens,

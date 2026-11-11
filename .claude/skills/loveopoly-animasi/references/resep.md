@@ -2,37 +2,36 @@
 
 Semua resep: progresif (browser lama = langsung tanpa animasi), mati saat gerak dikurangi, sekali jalan.
 
-## 1. Transisi layar (View Transitions API)
+## 1. Transisi layar (sudah dipakai: `show(id, shared)` di `src/ui/screens/base.js`)
 
-Browser modern (Chrome/Edge 111+, Safari 18+, Firefox terbaru) bisa menganimasikan perpindahan layar di kompositor.
+**Jangan pakai View Transitions API untuk pindah layar.** Sudah dicoba (Nov 2026): selama transisi ±0,45 dtk, titik
+ketuk mengenai `<html>` di Chromium **dan** WebKit (`document.elementFromPoint` → HTML), jadi tombol di layar baru
+tertelan — `::view-transition { pointer-events: none }` tidak menolong. Selain itu pergantian DOM jadi tertunda satu
+frame (kode yang mengecek `.hidden` keliru; pakai `activeScreen()`), dan grup bernama selalu tergambar di atas root
+(latar layar penuh yang diberi nama menutupi isi).
 
-```js
-// src/ui/screens/base.js — bungkus pergantian layar
-function swapScreen(update) {
-  if (!document.startViewTransition || UI.reduceMotion() || document.body.classList.contains('lowp')) return update();
-  document.startViewTransition(update);
-}
-```
+Pola yang dipakai sekarang — sinkron, langsung bisa disentuh:
 
-```css
-/* elemen bersama berpindah mulus: kartu mode → kepala setup, kartu paspor → buku paspor */
-.mode-card.mc-ai { view-transition-name: mode-ai; }
-.setup-head      { view-transition-name: mode-ai; } /* hanya satu elemen bernama sama yang terlihat per waktu */
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.28s; }
-```
+- Pergantian layar tetap sinkron. Layar baru diberi `.scr-pre` (opacity 0) → pemanggil mengisi layar → di
+  `requestAnimationFrame` kotak judul tujuan **diukur dulu**, baru `.scr-in`/`.scr-back` dipasang (naik + pegas,
+  transform/opacity). Mengukur setelah kelas animasi terpasang membuat judul mendarat ±25 px meleset.
+- Judul bersama dengan FLIP: salinan judul tujuan (`.title-fly`, `position: fixed`, `pointer-events: none`, gaya font
+  disalin dari `getComputedStyle`) dianimasikan WAAPI dari kotak asal ke kotak tujuan; judul asli `opacity: 0` selama
+  terbang; dibersihkan di `onfinish`/`oncancel` + `setTimeout` pengaman.
+- Lewati semuanya saat gerak dikurangi / Hemat baterai / dari-ke layar game.
+- Uji: ketukan `force` di tengah transisi harus mengenai layar baru (`test/flows.js`).
 
-Catatan: selama transisi halaman tidak bisa disentuh → durasi pendek (≤ 350 ms). Jangan dipakai untuk pembaruan papan
-saat bermain (renderStage sering). Uji axe & fokus setelah transisi.
+## 2. Kamera sinematik di momen besar (sudah dipakai: `camCinema(tile, opt)` di `src/ui/core/camera.js`)
 
-## 2. Kamera sinematik di momen besar
-
-Kamera 3D sudah ada (`src/ui/core/camera.js`: translate → rotateX(tilt) → scale3d → translate(-fokus)). Momen besar
-(landmark berdiri, ancaman/menang instan, Momen Berdua, akhir game) bisa memakai "dorong & putar sedikit":
-
-- target: fokus ke petak, skala ×1,15–1,25, `rotateZ` ±4–6°, durasi 1–1,5 dtk, lalu kembali ke `fit3d()`.
-- tambah sebagai fungsi `cinematic(tile, ms)` di camera.js yang menyetel variabel CSS lalu kembali; jangan
-  bentrok dengan `auto3d()` (Sorot langkah HP) — kunci lewat flag selama momen.
-- matikan di gerak dikurangi & Hemat baterai; di mode "Semua" kamera kembali diam setelahnya.
+- `App.cam.cine = { fx, fy, k, rz }` didahulukan `apply3d()`: skala `fit + (1 − fit)·k`, fokus ke petak (null = tengah
+  papan), titik fokus di 70% tinggi area (di bawah banner momen yang ada di 34–40%), `rotateZ(rz)` setelah `rotateX`
+  (papan berputar seperti meja putar). Panggilan kamera lain tetap jalan; setelah `inMs + hold` cine dilepas & kamera
+  kembali ke keadaan terkini. `camCinemaStop()` saat masuk/keluar game.
+- Dipicu di `flow.js` hanya bila `fresh`: landmark (`build` level 4), `takeover`, menang instan (`gameover`: tengah
+  jalur untuk Raja Jalur, pion juara untuk lainnya), `moment`. Durasi ikut `SPD()`.
+- Mati: papan 2D, gerak dikurangi, Hemat baterai, tab tersembunyi. Biaya terukur (CPU 4×): main thread ±1,0 dtk dari
+  3,2 dtk vs ±0,6 dtk giliran biasa — layout per frame selama kamera bergerak sudah ada sebelumnya (kandidat
+  optimasi: pelacak gelembung Merpi).
 
 ## 3. Koin terbang melengkung
 

@@ -7,6 +7,7 @@ import { UI } from '../ns.js';
 import { dailyIndex, dailyNo, dailyQ, dayNo, decodeLink, encodeLink, questionAt, score } from '../daily.js';
 import { XP } from '../progress.js';
 import { addXp, passport } from './passport.js';
+import { activeScreen } from './base.js';
 
 const DKEY = 'loveopoly.v1.daily';
 const pickOk = v => Number.isInteger(v) && v >= 0 && v <= 3;
@@ -371,7 +372,7 @@ function openDaily(link) {
             SND.play(ui.from ? 'fanfare' : 'stamp');
           }
           UI.refreshModal();
-          if (UI.renderHome && !$('#scrHome').hidden) UI.renderHome();
+          if (UI.renderHome && activeScreen() === 'scrHome') UI.renderHome();
         })
       );
       const sh = $('#dqShare', m);

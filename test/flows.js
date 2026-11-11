@@ -426,13 +426,14 @@ const URL = (await serveDist()).url + '/';
   await newGame('S.round = 5; S.turn.p = 1; S.turn.rolled = true;');
   await act({ type: 'END_TURN', p: 1 });
   const mom = await page.evaluate(() => ({
+    cine: /rotateZ\(/.test(document.querySelector('#board').style.transform),
     banner: (document.querySelector('#boardVP .banner') || {}).textContent || '',
     pill: (document.querySelector('.news-pill.moment') || {}).textContent || '',
     q: window.LoveUI.App.S.queue.map(x => x.type + ':' + x.source),
   }));
   ok(
-    'Momen Berdua: pengumuman + pil ronde ini + tantangan kerja sama di awal giliran',
-    /MOMEN BERDUA/.test(mom.banner) && /Momen Berdua/.test(mom.pill) && mom.q[0] === 'CHALLENGE:moment',
+    'Momen Berdua: pengumuman + pil ronde ini + kamera sinematik + tantangan kerja sama di awal giliran',
+    /MOMEN BERDUA/.test(mom.banner) && /Momen Berdua/.test(mom.pill) && mom.q[0] === 'CHALLENGE:moment' && mom.cine,
     JSON.stringify(mom).slice(0, 220)
   );
   await page.evaluate(() => {
@@ -1315,6 +1316,60 @@ const URL = (await serveDist()).url + '/';
     window.LoveUI.renderHome();
   });
   ok('Main lagi: setelan rusak → kartu tidak muncul', !(await page.$('#scrHome .quick-card')));
+  // transisi layar: kartu mode → setup: isi naik + judul kartu terbang (salinan .title-fly), layar baru langsung bisa
+  // diketuk (dulu View Transitions menelan ketukan ±0,45 dtk), semuanya bersih sesudahnya
+  await page.click('#hAI');
+  const fl1 = await page.evaluate(
+    () =>
+      new Promise(r =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() =>
+            r({
+              ghost: document.querySelectorAll('.title-fly').length,
+              anim: /scr-(in|pre)/.test(document.querySelector('#scrSetup').className),
+              text: (document.querySelector('.title-fly') || {}).textContent || '',
+            })
+          )
+        )
+      )
+  );
+  // ketukan cepat di tengah transisi tetap mengenai layar baru (pilih durasi Singkat)
+  await page.click('[data-seg="rounds"] [data-v="15"]', { force: true });
+  const fastTap = await page.evaluate(() => (document.querySelector('[data-seg="rounds"] [aria-pressed="true"]') || {}).textContent || '');
+  await page.waitForFunction(
+    () => !document.querySelector('.title-fly') && !/scr-/.test(document.querySelector('#scrSetup').className),
+    null,
+    {
+      timeout: 4000,
+    }
+  );
+  const fl2 = await page.evaluate(() => getComputedStyle(document.querySelector('#scrSetup .setup-head h2')).opacity);
+  ok(
+    'transisi layar: Lawan AI → setup (judul terbang + isi naik), ketukan cepat tidak tertelan, bersih sesudahnya',
+    fl1.ghost === 1 && fl1.anim && /Lawan AI/.test(fl1.text) && /15/.test(fastTap) && fl2 === '1',
+    JSON.stringify({ fl1, fastTap, fl2 })
+  );
+  await page.click('#sBack');
+  await page.waitForSelector('#scrHome:not([hidden]) #hAI', { timeout: 4000 });
+  // salinan judul & kelas animasi dibuat di frame berikutnya → tunggu sampai animasi beranda benar-benar selesai
+  await page.waitForFunction(
+    () => !document.querySelector('.title-fly') && !/scr-/.test(document.querySelector('#scrHome').className),
+    null,
+    {
+      timeout: 4000,
+    }
+  );
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.click('#hAI');
+  const vt2 = await page.evaluate(() => ({
+    anim: /scr-/.test(document.querySelector('#scrSetup').className),
+    ghost: document.querySelectorAll('.title-fly').length,
+    shown: !document.querySelector('#scrSetup').hidden,
+  }));
+  await page.emulateMedia({ reducedMotion: null });
+  ok('transisi layar: gerak dikurangi → pindah langsung tanpa animasi', !vt2.anim && !vt2.ghost && vt2.shown, JSON.stringify(vt2));
+  await page.click('#sBack');
+  await page.waitForSelector('#scrHome:not([hidden]) #hAI', { timeout: 4000 });
   await page.click('#hPass');
   await page.waitForSelector('#passOv .pp-prog', { timeout: 6000 }).catch(() => {});
   const ppTxt = await page.evaluate(() => (document.querySelector('#passOv .pp-prog') || {}).textContent || '');

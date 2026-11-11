@@ -95,7 +95,7 @@ function quickReplay() {
 }
 function openSetup(kind, preset) {
   setup = preset || defaultSetup(kind);
-  show('scrSetup');
+  show('scrSetup', preset ? null : kind === 'ai' ? 'ai' : 'local');
   renderSetup();
 }
 function setupErrors(s0) {
@@ -296,7 +296,7 @@ function bindSetup() {
     renderSetup();
   };
   $('#sBack').onclick = () => {
-    show('scrHome');
+    show('scrHome', s.kind === 'ai' ? 'ai' : 'local');
     renderHome();
   };
   $$('input[id^="pn"]', root).forEach(inp => {

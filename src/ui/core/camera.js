@@ -120,8 +120,21 @@ function apply3d(anim, ms) {
     t = (deg * Math.PI) / 180,
     cx = v.W / 2;
   c.deg = deg;
-  let fx, fy, s, cy;
-  if (c.zoomed) {
+  let fx,
+    fy,
+    s,
+    cy,
+    rz = 0;
+  if (c.cine) {
+    // kamera sinematik (momen besar): dekati petak/titik + putar papan sedikit seperti meja putar
+    const ft = fit3d(v, d, t);
+    s = ft.s + (1 - ft.s) * c.cine.k;
+    fx = c.cine.fx;
+    fy = c.cine.fy;
+    // titik fokus di bawah banner momen (banner di 34–40% tinggi papan), jadi yang disorot tidak tertutup
+    cy = v.top + v.vh * 0.7;
+    rz = c.cine.rz;
+  } else if (c.zoomed) {
     if (c.fx == null) {
       const S = App.S,
         a = S ? E.actor(S) : -1,
@@ -175,7 +188,9 @@ function apply3d(anim, ms) {
     cy.toFixed(1) +
     'px) rotateX(' +
     deg +
-    'deg) scale3d(' +
+    'deg)' +
+    (rz ? ' rotateZ(' + rz + 'deg)' : '') +
+    ' scale3d(' +
     s.toFixed(4) +
     ',' +
     s.toFixed(4) +
@@ -187,6 +202,36 @@ function apply3d(anim, ms) {
     (-fy).toFixed(1) +
     'px)';
   markFar();
+}
+// ---------- kamera sinematik ----------
+// Sekali jalan di momen besar (landmark, ambil alih, menang instan, Momen Berdua): papan 3D mendekat ke titik itu sambil
+// berputar sedikit, diam sebentar, lalu kembali ke kamera biasa. Semua panggilan kamera lain (camHold, camFocus,
+// camSettle) tetap jalan tapi apply3d mendahulukan App.cam.cine, jadi tidak ada yang bentrok; setelah selesai kamera
+// kembali ke keadaan terkini (Semua / Dekat / Sorot langkah). Mati saat gerak dikurangi, Hemat baterai, papan 2D.
+// tile = indeks petak, atau null = tengah papan. Mengembalikan ms sampai kamera tiba (0 = tidak dijalankan).
+function camCinema(tile, opt) {
+  if (!is3d() || !camActive() || reduceMotion() || document.body.classList.contains('lowp') || document.hidden) return 0;
+  const o = Object.assign({ k: 0.42, turn: 5, inMs: 760, hold: 1200, outMs: 950 }, opt);
+  const c = App.cam,
+    L = c.L,
+    b = tile == null ? { x: L / 2, y: L / 2 } : tileBox(tile);
+  clearTimeout(c.cineTimer);
+  // putar menjauh dari sisi petak supaya petak itu bergeser ke tengah pandangan (tengah papan: putar ke kanan)
+  const dir = tile == null ? 1 : b.x < L / 2 ? -1 : 1;
+  c.cine = { fx: b.x, fy: b.y, k: o.k, rz: dir * o.turn };
+  apply3d(true, o.inMs);
+  c.cineTimer = setTimeout(() => {
+    c.cine = null;
+    if (camActive() && is3d()) apply3d(true, o.outMs);
+  }, o.inMs + o.hold);
+  return o.inMs;
+}
+function camCinemaStop() {
+  const c = App.cam;
+  if (!c || !c.cine) return;
+  clearTimeout(c.cineTimer);
+  c.cine = null;
+  if (camActive() && is3d()) apply3d(false);
 }
 function camApply(anim, ms) {
   const b = $('#board');
@@ -414,4 +459,18 @@ function bindCamDrag() {
   );
 }
 
-export { auto3d, bindCamDrag, camActive, camApply, camAuto, camFocus, camHold, camRelax, camSettle, is3d, renderCamCtl };
+export {
+  auto3d,
+  bindCamDrag,
+  camActive,
+  camApply,
+  camAuto,
+  camCinema,
+  camCinemaStop,
+  camFocus,
+  camHold,
+  camRelax,
+  camSettle,
+  is3d,
+  renderCamCtl,
+};

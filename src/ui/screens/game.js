@@ -189,6 +189,7 @@ function drawReveal(S) {
 }
 function enterGame(mode, seat, S) {
   UI.cleanState(S);
+  UI.camCinemaStop(); // sisa kamera sinematik game sebelumnya tidak boleh terbawa
   closeDraw();
   clearTimeout(App.aiTimer);
   UI.closeModal(true);
@@ -297,6 +298,7 @@ function enterGame(mode, seat, S) {
 }
 function exitToHome() {
   clearTimeout(App.aiTimer);
+  UI.camCinemaStop();
   App.tourPending = false;
   App.revealing = false;
   App.gameId = (App.gameId || 0) + 1;

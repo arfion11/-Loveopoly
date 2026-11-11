@@ -748,3 +748,56 @@ main {
   color: inherit;
   text-decoration: underline;
 }
+
+/* ---------- transisi layar (show() di src/ui/screens/base.js) ----------
+   Isi layar menu yang baru naik & muncul dengan pegas (sekali jalan, transform/opacity), judul kartu mode terbang lewat
+   salinan .title-fly. Layar baru langsung bisa disentuh. Jangan pakai View Transitions API untuk ini: selama transisi
+   ketukan mengenai <html> (Chromium & WebKit) sehingga tombol di layar baru tertelan. */
+:root {
+  --spring: cubic-bezier(0.2, 1.15, 0.35, 1);
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring: linear(0, 0.24 7.6%, 0.64 17.1%, 0.93 27.4%, 1.06 36.7%, 1.09 44.5%, 1.03 60.4%, 0.99 76.6%, 1);
+  }
+}
+.screen.scr-pre {
+  opacity: 0;
+}
+.screen.scr-in {
+  animation: scrIn 0.42s var(--spring) both;
+}
+.screen.scr-back {
+  animation: scrBack 0.38s var(--spring) both;
+}
+@keyframes scrIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.99);
+  }
+}
+@keyframes scrBack {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.995);
+  }
+}
+.title-fly {
+  position: fixed;
+  z-index: 60;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+  overflow: visible;
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.scr-in,
+  .screen.scr-back {
+    animation: none;
+  }
+  .title-fly {
+    display: none;
+  }
+}

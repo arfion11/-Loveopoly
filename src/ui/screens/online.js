@@ -3,7 +3,7 @@ import { backend } from '../../net/backend.js';
 import { Net } from '../../net/net.js';
 import { track } from '../../analytics.js';
 import { D, RULES, KEYS, fmt, esc, ic, $, $$, store, toast, avatarHTML } from '../core.js';
-import { seg, show } from './base.js';
+import { activeScreen, seg, show } from './base.js';
 import { passport } from './passport.js';
 import { renderHome } from './home.js';
 import { openSetup } from './setup.js';
@@ -20,7 +20,7 @@ function profileDefault() {
   return Object.assign(d, p, { color: D.TOKEN_COLORS.includes(p.color) ? p.color : D.TOKEN_COLORS[0] });
 }
 async function openOnline(autoRejoin) {
-  show('scrOnline');
+  show('scrOnline', 'online');
   onlineProfile = onlineProfile || profileDefault();
   onlineSettings = onlineSettings || { startCash: RULES.startCash, roundLimit: 25, rules: 'seru' };
   onlineErr = '';
@@ -64,7 +64,7 @@ function renderOnlineUnavailable() {
     ic('users') +
     '<span>Main Bareng Saja</span></button></div></div></div>';
   $('#oBack').onclick = () => {
-    show('scrHome');
+    show('scrHome', 'online');
     renderHome();
   };
   $('#oLocal').onclick = () => openSetup('local');
@@ -110,7 +110,7 @@ function profileFields(prefix) {
 }
 function renderLobby() {
   const host = $('#scrOnline');
-  if (!host || host.hidden) return;
+  if (!host || activeScreen() !== 'scrOnline') return;
   const d = Net.doc;
   if (!d || !Net.code || Net.kicked) {
     const st = onlineSettings;
@@ -186,7 +186,7 @@ function renderLobby() {
       '</div>';
     bindProfile(host);
     $('#oBack').onclick = () => {
-      show('scrHome');
+      show('scrHome', 'online');
       renderHome();
     };
     $$('[data-seg]', host).forEach(g =>

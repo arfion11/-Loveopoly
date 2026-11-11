@@ -3,7 +3,7 @@ import { Icons } from '../../assets/icons.js';
 import { reportError } from '../../analytics.js';
 import { App, SND, ART, ic, $, toast, initPower } from '../core.js';
 import { UI } from '../ns.js';
-import { applyTheme, keepGameTop, show, syncSoundBtn } from './base.js';
+import { activeScreen, applyTheme, keepGameTop, show, syncSoundBtn } from './base.js';
 import { openPassport, passport } from './passport.js';
 import { renderHome } from './home.js';
 import { dailyFromHash, openDaily } from './daily.js';
@@ -95,7 +95,7 @@ function boot() {
   if (!pp.name && !pp.skipped)
     setTimeout(
       () => {
-        if (!$('#scrHome').hidden && !App.S) openPassport({ first: true });
+        if (activeScreen() === 'scrHome' && !App.S) openPassport({ first: true });
       },
       UI.reduceMotion() ? 0 : 350
     );

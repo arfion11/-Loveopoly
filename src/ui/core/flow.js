@@ -27,7 +27,7 @@ import {
   store,
 } from './base.js';
 import { achievementFx, banner, toast } from './notify.js';
-import { camHold, camSettle } from './camera.js';
+import { camCinema, camHold, camSettle } from './camera.js';
 import { flashTile, renderBoard, renderTile, tileEl } from './board.js';
 import { moveToken, rollDice, setDieFace } from './pieces.js';
 import { bfloat, burst, fireworks, flagDrop, moneyFx, stampDrop, stormFx, tweenCash } from './effects.js';
@@ -36,6 +36,8 @@ import { renderAll, renderStage, showPhotoPop } from './hud.js';
 import { endPick } from './pick.js';
 
 // ---------- alur commit & animasi ----------
+// durasi kamera sinematik ikut kecepatan animasi (Cepat = lebih singkat)
+const cine = (k, turn, hold) => ({ k, turn, hold: hold * SPD(), inMs: 760 * SPD(), outMs: 950 * SPD() });
 async function animateEvents(prev, ns) {
   const evs = ns.lastEvents || [];
   if (!prev || ns.evSeq !== ns.seq || prev.seq >= ns.seq) return;
@@ -102,7 +104,10 @@ async function animateEvents(prev, ns) {
         if (el) renderTile(el, ns, true);
         flashTile(e.tile);
         if (e.level === 4) {
-          if (fresh) burst(e.tile, ['#FFD93D', '#FFF3B0', '#FFFFFF'], 16);
+          if (fresh) {
+            burst(e.tile, ['#FFD93D', '#FFF3B0', '#FFFFFF'], 16);
+            camCinema(e.tile, cine(0.42, 5, 1200));
+          }
           banner('LANDMARK!', pname(e.p) + ' membangun landmark di ' + TILES[e.tile].name + '. Kebal diambil alih!', 'gold', 2400, 'b4');
           merpiSay(pick(D.MERPI.landmark), 'wow', 2200);
           mascotAct('spin', 900);
@@ -111,14 +116,17 @@ async function animateEvents(prev, ns) {
           merpiSay(pick(D.MERPI.build), 'happy', 1600);
           mascotEmote(ic('build'), 1400);
         }
-        if (fresh) await sleep(520 * SPD());
+        if (fresh) await sleep((e.level === 4 ? 900 : 520) * SPD());
         break;
       }
       case 'takeover': {
         SND.play('stamp');
         const taker = ns.players[e.p],
           from = ns.players[e.from];
-        if (fresh) stampDrop(e.tile, taker.color, 'DIAMBIL ALIH');
+        if (fresh) {
+          stampDrop(e.tile, taker.color, 'DIAMBIL ALIH');
+          camCinema(e.tile, cine(0.34, 4, 1000));
+        }
         banner(
           'AMBIL ALIH!',
           taker.name + ' merebut ' + TILES[e.tile].name + ' dari ' + from.name + ' (' + fmt(e.price) + ').',
@@ -231,6 +239,11 @@ async function animateEvents(prev, ns) {
         const o = ns.over;
         if (o && (o.reason === 'triple' || o.reason === 'line' || o.reason === 'spots')) {
           SND.play('win');
+          // kamera menyorot jalur yang dikuasai (Raja Jalur) atau pion sang juara
+          if (fresh) {
+            const sd = o.reason === 'line' && o.detail && D.SIDES.find(x => x.id === o.detail.side);
+            camCinema(sd ? Math.round((sd.from + sd.to) / 2) : ns.players[o.winner].pos, cine(0.5, 6, 1500));
+          }
           banner(
             { triple: 'TRIO WARNA!', line: 'RAJA JALUR!', spots: 'KOLEKTOR WISATA!' }[o.reason],
             pname(o.winner) + ' menang instan!',
@@ -299,6 +312,7 @@ async function animateEvents(prev, ns) {
           'card'
         );
         if (fresh) {
+          camCinema(null, cine(0.3, 6, 1300));
           merpiSay(pick(['Momen berdua! Kompakan, ya~', 'Waktunya kerja sama!', 'Bukan lawan dulu, sekarang tim!']), 'love', 2400);
           mascotAct('hop', 700);
           mascotEmote(ic('heart'), 2000);

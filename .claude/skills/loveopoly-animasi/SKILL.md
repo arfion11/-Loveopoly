@@ -38,5 +38,6 @@ perlu menyimpang.
 
 ## Resep
 
-Lihat `references/resep.md` untuk pola siap pakai: transisi layar dengan View Transitions API, kamera sinematik di
-momen besar, koin terbang melengkung, pegas CSS `linear()`, dan cara menambah suasana (`renderAmbience`).
+Lihat `references/resep.md`: transisi layar sinkron + judul terbang FLIP (sudah dipakai; **bukan** View Transitions
+API — menelan ketukan), kamera sinematik `camCinema` (sudah dipakai), koin terbang melengkung, pegas CSS `linear()`,
+dan cara menambah suasana (`renderAmbience`).

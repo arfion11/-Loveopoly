@@ -8,7 +8,7 @@ set -uo pipefail
 REPO="${CI_REPO:-arfion11/-Loveopoly}"
 SHA=""; WAIT=0
 for a in "$@"; do if [ "$a" = "--wait" ]; then WAIT=1; else SHA="$a"; fi; done
-[ -n "$SHA" ] || SHA=$(git rev-parse HEAD)
+SHA=$(git rev-parse "${SHA:-HEAD}")  # API butuh SHA lengkap (SHA pendek tidak cocok)
 AUTH=(); [ -n "${GITHUB_TOKEN:-}" ] && AUTH=(-H "Authorization: Bearer $GITHUB_TOKEN")
 for i in $(seq 1 50); do
   BODY=$(curl -sS -w '\n%{http_code}' ${AUTH[@]+"${AUTH[@]}"} "https://api.github.com/repos/$REPO/actions/runs?per_page=1&head_sha=$SHA")

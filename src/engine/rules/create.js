@@ -90,6 +90,7 @@ function create(setup) {
     instantWin: st.instantWin !== false,
     diceControl: st.diceControl !== false,
     news: st.news !== false,
+    moment: st.moment !== false,
   };
   const seed = Number(setup.seed) >>> 0 || (Math.random() * 4294967296) >>> 0 || 1;
   const S = {

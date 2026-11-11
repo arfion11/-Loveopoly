@@ -378,6 +378,11 @@
 .pp-book.done .pp-stamper {
   animation: ppStamper 1.05s cubic-bezier(0.45, 0, 0.3, 1) both;
 }
+/* HP: saat dicap sampul sudah terlipat & tersembunyi → ratakan ruang 3D buku supaya Safari/WebKit di HP tidak
+   salah mengurutkan stempel karet di balik halaman (layar lebar tetap 3D: sampul tampil sebagai halaman kiri) */
+.pp-book.done {
+  transform-style: flat;
+}
 @keyframes ppStamper {
   0% {
     opacity: 0;
@@ -503,6 +508,9 @@
     transform: rotateY(-176deg);
     visibility: visible;
     transition: transform 1s cubic-bezier(0.6, 0, 0.25, 1);
+  }
+  .pp-book.done {
+    transform-style: preserve-3d;
   }
 }
 .pp-cv-in {

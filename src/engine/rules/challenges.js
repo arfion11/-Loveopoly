@@ -18,6 +18,7 @@ import {
   fmt,
   log,
   loveAdd,
+  momentReward,
   rint,
   shuffle,
 } from './base.js';
@@ -29,6 +30,9 @@ import { actor } from './turns.js';
 // engine; judge = lawan manusia mengesahkan aksi nyata. Item: { type: 'CHALLENGE', p (pemilik), who (yang
 // sedang beraksi), judge (lawan penilai / -1), phase, pz (soal), isle (Rindu Challenge: syarat lebih ringan) }.
 const NEEDS_JUDGE = ['secret', 'bluff', 'charades', 'dare', 'photo'];
+// Momen Berdua: hanya tantangan kerja sama (berhasil = pemilik & penilai sama-sama dapat hadiah); Dua Fakta Satu Bohong
+// (saling mengecoh) & surat panjang tidak dipakai di sini
+const DUO = ['secret', 'charades', 'dare', 'photo'];
 const PHOTO_MAX = 22000,
   PHOTO_KEEP = 4;
 const PHOTO_RE = /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -70,6 +74,7 @@ function chType(S, i, cat) {
   const pickOf = arr => arr[rint(S, arr.length)];
   const auto = () => pickOf(AUTO_TYPES);
   if (cat === 'skill') return auto();
+  if (cat === 'duo') return j >= 0 ? pickOf(DUO) : auto();
   if (cat === 'any') return pickOf(AUTO_TYPES.concat(['dilemma'], human ? ['message'] : [], j >= 0 ? NEEDS_JUDGE : []));
   if (cat === 'rindu') return pickOf(AUTO_TYPES.concat(j >= 0 ? NEEDS_JUDGE : []));
   if (!CH_TYPES[cat]) return auto();
@@ -501,8 +506,10 @@ function chFinish(S, it, ok, proof, judgeShare) {
     p = PL(S, it.p);
   S.queue.shift();
   chProof(S, it, ok, proof);
+  // Momen Berdua: hadiah seragam & sama untuk berdua (kerja sama), bukan hadiah jenis tantangannya
+  const mom = it.source === 'moment';
   if (ok) {
-    const got = rewardTo(S, it.p, def.reward);
+    const got = rewardTo(S, it.p, mom ? momentReward(S) : def.reward);
     p.stats.challenges++;
     log(S, p.name + ' lulus ' + def.label + ' (' + got + '). Bukti: ' + proof + '.', 'heart', it.p);
     if (it.source === 'island' && p.island) {
@@ -518,10 +525,12 @@ function chFinish(S, it, ok, proof, judgeShare) {
       it.p
     );
   }
-  const sharers = judgeShare === true ? [it.judge] : Array.isArray(judgeShare) ? judgeShare : [];
+  const all = judgeShare === true ? [it.judge] : Array.isArray(judgeShare) ? judgeShare : [];
+  // Momen Berdua tetap "berdua" di 3–4 pemain: hanya satu pasangan (penilai utama / penebak yang benar), hanya bila berhasil
+  const sharers = mom ? (ok ? all.slice(0, 1) : []) : all;
   sharers.forEach(j => {
     if (j < 0 || !PL(S, j) || PL(S, j).bankrupt) return;
-    const g = rewardTo(S, j, def.judgeReward);
+    const g = rewardTo(S, j, mom ? momentReward(S) : def.judgeReward);
     if (g) log(S, PL(S, j).name + ' ikut dapat hadiah (' + g + ').', 'heart', j);
   });
   ev(S, { t: 'challenge', p: it.p, ok, proof, label: def.label, judge: it.judge });

@@ -210,8 +210,9 @@ let ambTimer = 0,
 function renderAmbience(S) {
   const b = document.body;
   const n = S && !S.over ? E.newsInfo(S) : null,
-    peak = !!(S && !S.over && E.peakOn(S));
-  const want = n ? n.id : peak ? 'peak' : '';
+    peak = !!(S && !S.over && E.peakOn(S)),
+    mom = !!(S && !S.over && E.momentInfo(S).now);
+  const want = n ? n.id : peak ? 'peak' : mom ? 'love' : '';
   b.classList.toggle('amb-peak', peak);
   const cur = b.dataset.amb || '';
   ambWant = want;

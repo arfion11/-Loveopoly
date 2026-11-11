@@ -26,6 +26,7 @@ function defaultSetup(kind) {
     takeover: true,
     instantWin: true,
     diceControl: true,
+    moment: true,
   };
   if (base && base.kind === kind && Array.isArray(base.players) && base.players.length >= 2) {
     Object.assign(s, base);
@@ -76,6 +77,7 @@ function lastSetup() {
     takeover: st.takeover !== false,
     instantWin: st.instantWin !== false,
     diceControl: st.diceControl !== false,
+    moment: st.moment !== false,
   };
   applyPassport(s);
   return Object.keys(setupErrors(s)).length ? null : s;
@@ -261,6 +263,17 @@ function renderSetup() {
     '<div class="toggle-row"><div><b>Kontrol dadu</b><div class="tiny muted">Bidik hasil kecil, sedang, atau besar sebelum melempar.</div></div><button type="button" class="switch" role="switch" id="sAimCtl" aria-checked="' +
     s.diceControl +
     '" aria-label="Kontrol dadu"></button></div>' +
+    '<div class="toggle-row"><div><b>Momen Berdua</b><div class="tiny muted">' +
+    (s.players.filter(p => p.kind === 'human').length >= 2
+      ? 'Tiap ' +
+        RULES.momentGap.short +
+        '–' +
+        RULES.momentGap.long +
+        ' ronde, tiap pemain dapat satu tantangan kerja sama. Berhasil = hadiah untuk berdua.'
+      : 'Tantangan kerja sama tiap beberapa ronde. Butuh minimal 2 pemain manusia.') +
+    '</div></div><button type="button" class="switch" role="switch" id="sMoment" aria-checked="' +
+    (s.moment !== false) +
+    '" aria-label="Momen Berdua"></button></div>' +
     (!s.takeover && !s.instantWin && !s.diceControl && s.players.some(p => p.kind === 'ai')
       ? '<div class="note gold">' +
         ic('dice') +
@@ -365,6 +378,10 @@ function bindSetup() {
     s.diceControl = !s.diceControl;
     re();
   };
+  $('#sMoment').onclick = () => {
+    s.moment = s.moment === false;
+    re();
+  };
   $('#sStart').onclick = () => {
     if (Object.keys(setupErrors()).length) {
       renderSetup();
@@ -382,6 +399,7 @@ function startSetup(s) {
     takeover: s.takeover !== false,
     instantWin: s.instantWin !== false,
     diceControl: s.diceControl !== false,
+    moment: s.moment !== false,
   };
   const pp = passport();
   const S = E.create({

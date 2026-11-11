@@ -36,6 +36,7 @@ import {
   levelCost,
   liquidation,
   netWorth,
+  momentReward,
   newsGap,
   newsOn,
   ownedBy,
@@ -53,7 +54,19 @@ import { canTakeover, rentFor, rentInfo, takeoverPrice, tripleOk, winCheck, winT
 import { create } from './create.js';
 import { nearestTile, swapTargets, targetCandidates } from './move.js';
 import { chActors, chSolve, charadesOpen, judgeFor, judgesFor, messageChecks, migrate } from './challenges.js';
-import { actor, canEnd, canRoll, checkAchievements, finish, islandPre, newsInfo, nextTurn, sideName, winReason } from './turns.js';
+import {
+  actor,
+  canEnd,
+  canRoll,
+  checkAchievements,
+  finish,
+  islandPre,
+  momentInfo,
+  newsInfo,
+  nextTurn,
+  sideName,
+  winReason,
+} from './turns.js';
 
 // ---------- dispatch ----------
 function clone(o) {
@@ -139,6 +152,8 @@ export const E = {
   chActors,
   migrate,
   newsInfo,
+  momentInfo,
+  momentReward,
   peakOn,
   newsGap,
   tripleOk,

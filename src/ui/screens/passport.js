@@ -678,15 +678,20 @@ function openPassport(opts) {
         savePassport(q);
         keepData();
         // cap "DISETUJUI" ada di atas halaman; di HP tombol Simpan di paling bawah → gulir dulu supaya capnya
-        // terlihat, baru dicap, lalu tutup (st.saving: sekali saja walau tombol diketuk berulang)
+        // terlihat, baru dicap, lalu tutup (st.saving: sekali saja walau tombol diketuk berulang).
+        // HP sungguhan: keyboard (nama/pesan) bisa masih terbuka saat Simpan diketuk → tutup dulu & ukur dengan
+        // area yang benar-benar terlihat (visualViewport), bukan innerHeight; dicap setelah guliran benar-benar berhenti.
         const rm = UI.reduceMotion(),
           stamp = $('.pp-stamp', ov),
-          r = stamp ? stamp.getBoundingClientRect() : null,
-          away = !!r && (r.top < 0 || r.bottom > window.innerHeight);
+          book = $('.pp-book', ov);
+        const fe = document.activeElement,
+          typing = !!fe && /^(INPUT|TEXTAREA)$/.test(fe.tagName) && ov.contains(fe);
+        if (typing) fe.blur();
         const seal = () => {
+          if (!ov.isConnected) return;
           // stempel turun & menekan di ±0,44 dtk: bunyi cap, tinta muncul & halaman bergetar tepat saat itu
           setTimeout(() => SND.play('stamp'), rm ? 0 : 440);
-          $('.pp-book', ov).classList.add('done');
+          book.classList.add('done');
           setTimeout(
             () => {
               close();
@@ -696,13 +701,42 @@ function openPassport(opts) {
                 title: edit ? '' : 'Selamat datang',
               });
             },
-            rm ? 300 : 1750
+            // gerak dikurangi: cap langsung tampil (tanpa stempel), tetap cukup lama untuk terlihat
+            rm ? 1200 : 1750
           );
         };
-        if (away && stamp) {
+        // cap + ruang stempel karet di atasnya (±60 px) di dalam area yang terlihat?
+        const inView = () => {
+          const r = stamp.getBoundingClientRect(),
+            vv = window.visualViewport,
+            top = vv ? vv.offsetTop : 0,
+            h = vv ? vv.height : window.innerHeight;
+          return r.top - 60 >= top && r.bottom <= top + h;
+        };
+        // tunggu sampai guliran & ukuran layar (keyboard menutup) diam beberapa frame, maks `max` ms
+        const still = (cb, max) => {
+          const t0 = performance.now();
+          let last = '',
+            same = 0;
+          const tick = () => {
+            const vv = window.visualViewport;
+            const k = ov.scrollTop + ':' + window.scrollY + ':' + (vv ? Math.round(vv.offsetTop) + ':' + Math.round(vv.height) : '');
+            same = k === last ? same + 1 : 0;
+            last = k;
+            const t = performance.now() - t0;
+            if ((same >= 6 && t >= 150) || t >= max) cb();
+            else requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        };
+        const go = () => {
+          if (!stamp || inView()) return seal();
           stamp.scrollIntoView({ block: 'center', behavior: rm ? 'auto' : 'smooth' });
-          setTimeout(seal, rm ? 0 : 480);
-        } else seal();
+          if (rm) seal();
+          else still(seal, 1100);
+        };
+        if (typing) still(go, 650);
+        else go();
       };
     const first = st.open ? $('#ppName', ov) : $('#ppOpen', ov);
     if (first && !opts.noFocus)

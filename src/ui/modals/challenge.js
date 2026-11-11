@@ -10,6 +10,26 @@ function humanCount() {
 // duel = lawan ikut main, judge = lawan mengesahkan (Aksi Berani & Foto Bukti). Main bersama di satu HP:
 // layar "Serahkan ke …" muncul tiap kali giliran beraksi berpindah orang supaya jawaban rahasia aman.
 function rewardChips(def, ch, it) {
+  // Momen Berdua: hadiah seragam, sama untuk pemilik & satu pasangannya
+  if (it && it.source === 'moment') {
+    const m = E.momentReward(App.S),
+      pair = it.judge >= 0 ? App.S.players[it.judge].name : '',
+      who = ch.type === 'charades' && isMulti(it) ? 'penebak yang benar' : pair;
+    return (
+      '<div class="reward-row"><span class="chip gold">' +
+      coin +
+      '+' +
+      m.gain +
+      '</span><span class="chip rose">' +
+      ic('heart') +
+      'Love +' +
+      m.love +
+      '</span>' +
+      (who ? '<span class="chip mint">' + ic('users') + 'Hadiah sama untuk ' + esc(who) + '</span>' : '') +
+      (def.skip && def.skip.love ? '<span class="chip plain">Lewati: Love ' + def.skip.love + '</span>' : '') +
+      '</div>'
+    );
+  }
   const r = def.reward || {},
     s = def.skip || {},
     jr = def.judgeReward;
@@ -43,6 +63,8 @@ const VERIFY_TXT = {
   judge: 'Disahkan lawan',
   choice: 'Pilih strategi',
 };
+// Momen Berdua = kerja sama: yang menilai disebut pasangan, bukan lawan
+const MOMENT_VERIFY = { duel: 'Main berdua · dinilai game', judge: 'Disahkan pasangan' };
 const nameList = arr => (arr.length <= 1 ? arr[0] || '' : arr.slice(0, -1).join(', ') + ' & ' + arr[arr.length - 1]);
 const judgeList = it => (it.judges || []).map(j => App.S.players[j].name);
 // all = true: {j} jadi semua lawan yang ikut (penjelasan cara main di 3–4 pemain); teks tantangan tetap memakai penilai utama
@@ -148,7 +170,10 @@ function dChallenge(key) {
         owner = S.players[it.p];
       const J = it.judge >= 0 ? S.players[it.judge] : null;
       const kicker =
-        ic(def.icon || 'heart') + esc(it.source === 'island' ? 'Rindu Challenge' : 'Kartu Cinta') + ' · ' + VERIFY_TXT[def.verify];
+        ic(def.icon || 'heart') +
+        esc(it.source === 'island' ? 'Rindu Challenge' : it.source === 'moment' ? 'Momen Berdua' : 'Kartu Cinta') +
+        ' · ' +
+        ((it.source === 'moment' && MOMENT_VERIFY[def.verify]) || VERIFY_TXT[def.verify]);
       const hero = '<span class="hero-art">' + ART.merpi(it.who === it.p ? 'is-wow' : 'is-think') + '</span>';
       const ownerPhase = it.who === it.p;
       // layar serah-HP (main bersama di satu perangkat)

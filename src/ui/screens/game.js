@@ -215,6 +215,7 @@ function enterGame(mode, seat, S) {
         takeover: st.takeover,
         instantWin: st.instantWin,
         diceControl: st.diceControl,
+        moment: st.moment,
       },
     });
   }

@@ -518,3 +518,123 @@ if (chFails) process.exitCode = 1;
   console.log('tantangan 3–4 pemain: ' + (fails ? fails + ' gagal' : 'semua lulus'));
   if (fails) process.exitCode = 1;
 })();
+
+// ---------- Momen Berdua (tantangan kerja sama tiap beberapa ronde) ----------
+(() => {
+  let fails = 0;
+  const ok = (n, c, d) => {
+    if (!c) {
+      fails++;
+      console.log('FAIL momen: ' + n + (d ? ' — ' + d : ''));
+    }
+  };
+  const d = (S, a) => {
+    const r = E.dispatch(S, a);
+    if (!r.ok) throw new Error(a.type + ': ' + r.error);
+    return r.state;
+  };
+  // siapkan akhir ronde r-1: giliran pemain terakhir sudah melempar → END_TURN membuka ronde r
+  const toRound = (players, r, settings) => {
+    const S = E.create({ players, settings: Object.assign({ roundLimit: 25 }, settings || {}), seed: 77 });
+    S.round = r - 1;
+    S.turn = Object.assign(S.turn, { p: S.players.length - 1, rolled: true, canRollAgain: false });
+    S.queue = [];
+    return d(S, { type: 'END_TURN', p: S.players.length - 1 });
+  };
+  const H2 = [{ name: 'Arfi' }, { name: 'Nadia' }];
+  const DUO = ['secret', 'charades', 'dare', 'photo'];
+  let S = toRound(H2, 6);
+  const it = S.queue[0];
+  ok(
+    'ronde 6 (Normal) = Momen Berdua: pemain pertama dapat tantangan kerja sama sebelum melempar',
+    S.moment === 6 &&
+      it &&
+      it.type === 'CHALLENGE' &&
+      it.source === 'moment' &&
+      it.p === 0 &&
+      DUO.includes(D.CHALLENGES.find(c => c.id === it.ch).type) &&
+      !E.canRoll(S, 0),
+    JSON.stringify({ moment: S.moment, it: it && { type: it.type, source: it.source, ch: it.ch } })
+  );
+  ok(
+    'pengumuman Momen Berdua di log & event',
+    S.log.some(l => /^Momen Berdua!/.test(l.text)) && (S.lastEvents || []).some(e => e.t === 'moment')
+  );
+  ok(
+    'E.momentInfo: ronde ini Momen, berikutnya ronde 12',
+    E.momentInfo(S).now === true && E.momentInfo(S).next === 12,
+    JSON.stringify(E.momentInfo(S))
+  );
+  // berhasil (Aksi Berani disahkan) → pemilik & pasangan sama-sama +100 & Love +4
+  const dareId = D.CHALLENGES.find(c => c.type === 'dare').id;
+  const mkMoment = (players, type) => {
+    const T = toRound(players, 6);
+    const q = T.queue[0];
+    q.ch = D.CHALLENGES.find(c => c.type === type).id;
+    return E.migrate(Object.assign(T, { queue: [Object.assign(q, { phase: undefined })] }));
+  };
+  S = mkMoment(H2, 'dare');
+  ok(
+    'tantangan Momen disiapkan ulang sebagai Aksi Berani',
+    S.queue[0].ch === dareId && S.queue[0].phase === 'do',
+    JSON.stringify(S.queue[0]).slice(0, 120)
+  );
+  const c0 = S.players.map(p => p.cash),
+    l0 = S.players.map(p => p.love);
+  S = d(S, { type: 'CH_ANSWER', p: 0 });
+  S = d(S, { type: 'CH_ANSWER', p: 1, ok: true });
+  ok(
+    'berhasil → hadiah sama untuk berdua (+100, Love +4)',
+    S.players[0].cash - c0[0] === 100 &&
+      S.players[1].cash - c0[1] === 100 &&
+      S.players[0].love - l0[0] === 4 &&
+      S.players[1].love - l0[1] === 4,
+    JSON.stringify({ cash: S.players.map((p, i) => p.cash - c0[i]), love: S.players.map((p, i) => p.love - l0[i]) })
+  );
+  ok('setelah tantangan Momen pemain bisa melempar dadu', E.canRoll(S, 0) && !S.queue.length);
+  S = mkMoment(H2, 'dare');
+  const c1 = S.players.map(p => p.cash);
+  S = d(S, { type: 'CH_ANSWER', p: 0 });
+  S = d(S, { type: 'CH_ANSWER', p: 1, ok: false });
+  ok('gagal → tidak ada hadiah', S.players[0].cash === c1[0] && S.players[1].cash === c1[1]);
+  // pemain berikutnya di ronde yang sama juga dapat Momen (adil)
+  S = d(S, { type: 'ROLL', p: 0 });
+  let guard = 0;
+  while (S.turn.p === 0 && guard++ < 30) {
+    const a = E.actor(S);
+    S = d(S, AI.decide(S, a));
+  }
+  ok(
+    'pemain kedua di ronde yang sama juga dapat tantangan Momen',
+    S.queue[0] && S.queue[0].source === 'moment' && S.queue[0].p === 1,
+    JSON.stringify(S.queue[0] || null).slice(0, 100)
+  );
+  // 3 pemain: Love +3 dan hanya satu pasangan yang ikut dapat hadiah (bukan semua pemilih)
+  const H3 = [{ name: 'A' }, { name: 'B' }, { name: 'C' }];
+  S = mkMoment(H3, 'dare');
+  const l3 = S.players.map(p => p.love);
+  S = d(S, { type: 'CH_ANSWER', p: 0 });
+  for (let g = 0; g < 3 && S.queue.length && S.queue[0].source === 'moment'; g++) S = d(S, { type: 'CH_ANSWER', p: E.actor(S), ok: true });
+  const got3 = S.players.map((p, i) => p.love - l3[i]);
+  ok(
+    '3 pemain: Love +3 untuk pemilik & tepat satu pasangan',
+    got3[0] === 3 && got3.filter(x => x === 3).length === 2,
+    JSON.stringify(got3)
+  );
+  // tidak muncul: ronde biasa, Musim Puncak, sakelar mati, kurang dari 2 manusia
+  ok('ronde 7 bukan Momen', !toRound(H2, 7).moment);
+  ok('Musim Puncak (ronde 24 dari 25) tanpa Momen', !toRound(H2, 24).moment);
+  ok('ronde 18 masih Momen (sebelum Puncak)', toRound(H2, 18).moment === 18);
+  ok('settings.moment = false → tidak ada Momen', !toRound(H2, 6, { moment: false }).moment);
+  ok('1 manusia + bot → tidak ada Momen', !toRound([{ name: 'A' }, { name: 'Bot', kind: 'ai' }], 6).moment);
+  ok(
+    'Singkat (15 ronde) → ronde 5; Panjang (35) → ronde 7',
+    toRound(H2, 5, { roundLimit: 15 }).moment === 5 && toRound(H2, 7, { roundLimit: 35 }).moment === 7
+  );
+  // bot di game campuran mendapat mini-game otomatis (tidak butuh penilai manusia)
+  S = toRound([{ name: 'Bot', kind: 'ai' }, { name: 'A' }, { name: 'B' }], 6);
+  const bt = D.CHALLENGES.find(c => c.id === S.queue[0].ch).type;
+  ok('bot di game campuran: Momen berupa mini-game otomatis', S.queue[0].p === 0 && D.AUTO_TYPES.includes(bt), bt);
+  console.log('Momen Berdua: ' + (fails ? fails + ' gagal' : 'semua lulus'));
+  if (fails) process.exitCode = 1;
+})();

@@ -265,6 +265,19 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await p.evaluate(() => window.LoveUI.syncModal(true));
       await p.waitForTimeout(200);
       await audit(p, tag + ' tantangan: dua fakta satu bohong', '#modalRoot');
+      // Momen Berdua: papan dengan pil & suasana, lalu dialog tantangan kerja sama (Singkat → ronde 5)
+      await newGame(p, 'S.round = 5; S.moment = 5;');
+      await settle(p);
+      await p.waitForTimeout(1300);
+      await audit(p, tag + ' papan: Momen Berdua');
+      await newGame(
+        p,
+        'S.round = 5; S.moment = 5; S.queue.push({ type: "CHALLENGE", p: 0, ch: "dr1", cat: "duo", source: "moment", redraws: 0 }); E.migrate(S);'
+      );
+      await settle(p);
+      await p.evaluate(() => window.LoveUI.syncModal(true));
+      await p.waitForTimeout(200);
+      await audit(p, tag + ' tantangan: Momen Berdua', '#modalRoot');
       await newGame(
         p,
         'S.queue.push({ type: "CHALLENGE", p: 0, ch: "ph1", cat: "card", source: "card", redraws: 0 }); E.migrate(S); S.queue[0].pz = { photo: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=" }; S.queue[0].phase = "judge"; S.queue[0].who = 1;'

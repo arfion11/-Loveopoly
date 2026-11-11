@@ -14,6 +14,8 @@ import {
   fmt,
   fullGroups,
   log,
+  momentGap,
+  momentRound,
   netWorth,
   newsGap,
   ownedBy,
@@ -24,6 +26,7 @@ import {
   spotsOf,
 } from './base.js';
 import { returnPowerCard } from './move.js';
+import { chItem } from './challenges.js';
 
 // ---------- pembayaran & utang ----------
 function charge(S, i, amt, to, reason, opts) {
@@ -114,6 +117,8 @@ function beginTurn(S, p) {
     nextTurn(S);
     return;
   }
+  // Momen Berdua: tantangan kerja sama dulu, baru melempar dadu (semua pemain di ronde itu, jadi adil)
+  if (S.moment === S.round) qadd(S, chItem(S, p, 'duo', 'moment'));
   if (pl.tour && !pl.island) qadd(S, { type: 'TOUR', p });
 }
 function nextTurn(S) {
@@ -156,7 +161,30 @@ function startRound(S) {
     log(S, 'Musim Puncak! ' + RULES.peakRounds + ' ronde terakhir: semua tol ×' + String(RULES.peakMult).replace('.', ',') + '.', 'bolt');
     ev(S, { t: 'peak', rounds: RULES.peakRounds, mult: RULES.peakMult });
   }
+  if (momentRound(S)) {
+    S.moment = S.round;
+    log(
+      S,
+      'Momen Berdua! Ronde ini tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu. Berhasil = hadiah untuk berdua.',
+      'heart'
+    );
+    ev(S, { t: 'moment' });
+  }
   return false;
+}
+// Momen Berdua untuk UI: { now: ronde ini, next: ronde Momen berikutnya atau null }
+function momentInfo(S) {
+  const on = S.settings.moment !== false && S.players.filter(p => p.kind === 'human' && !p.bankrupt).length >= 2;
+  const L = S.settings.roundLimit,
+    g = momentGap(S);
+  let next = null;
+  if (on)
+    for (let r = S.round + 1; r <= (L ? L - RULES.peakRounds : S.round + g); r++)
+      if (r >= g && r % g === 0) {
+        next = r;
+        break;
+      }
+  return { now: S.moment === S.round && !S.over, next };
 }
 // Kabar Merpi: event dunia berlaku 2 ronde, diundi tiap beberapa ronde (tidak sama dengan event sebelumnya)
 const NEWS_LABEL = {
@@ -347,6 +375,7 @@ export {
   finish,
   head,
   islandPre,
+  momentInfo,
   newsInfo,
   nextTurn,
   resetTile,

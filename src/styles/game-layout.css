@@ -418,6 +418,13 @@
 .nc-row.peak > .ic {
   color: var(--gold-d);
 }
+/* Momen Berdua (ronde tantangan kerja sama) */
+.nc-row.moment {
+  background: var(--brand-soft);
+}
+.nc-row.moment > .ic {
+  color: var(--brand-d);
+}
 .news-slot:empty {
   display: none;
 }
@@ -473,6 +480,11 @@
   background: var(--gold-soft);
   color: var(--gold-ink);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.news-pill.moment {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent);
 }
 .news-pill .np-t + .sr-only + .ic,
 .news-pill .np-t + .ic {

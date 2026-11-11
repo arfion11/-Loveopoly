@@ -303,6 +303,13 @@ const PAGES = [
       'Love naik dari tantangan yang lulus, kartu manis, dan lewat START. Melewati tantangan mengurangi Love.',
       'Jadian, Bucin, Soulmate: gaji +20/+30/+40 dan tol +5–15%.',
       'Penilai yang adil juga ikut dapat Love, jadi main jujur itu menguntungkan.',
+      'Momen Berdua: tiap ' +
+        RULES.momentGap.short +
+        '–' +
+        RULES.momentGap.long +
+        ' ronde (bila ada minimal 2 pemain manusia), tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu. Berhasil = +' +
+        RULES.momentReward.gain +
+        ' dan Love untuk pemain itu dan pasangannya.',
     ],
     scene: () =>
       '<div class="sc sc-love"><div class="g-meter">' +

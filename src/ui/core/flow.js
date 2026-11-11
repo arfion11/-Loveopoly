@@ -289,6 +289,23 @@ async function animateEvents(prev, ns) {
         }
         break;
       }
+      case 'moment': {
+        SND.play('fanfare');
+        banner(
+          'MOMEN BERDUA',
+          'Ronde ini tiap pemain dapat satu tantangan kerja sama. Berhasil = hadiah untuk berdua!',
+          'party',
+          3200,
+          'card'
+        );
+        if (fresh) {
+          merpiSay(pick(['Momen berdua! Kompakan, ya~', 'Waktunya kerja sama!', 'Bukan lawan dulu, sekarang tim!']), 'love', 2400);
+          mascotAct('hop', 700);
+          mascotEmote(ic('heart'), 2000);
+          await sleep(900 * SPD());
+        }
+        break;
+      }
       case 'peak': {
         SND.play('fanfare');
         banner(

@@ -239,11 +239,15 @@ function infoCardHTML(S) {
 // Kabar Merpi & Musim Puncak: pil kecil di samping chip ronde (ketuk = detail) dan blok di kartu info desktop
 function newsBits(S) {
   const n = S && !S.over ? E.newsInfo(S) : null,
-    peak = S && E.peakOn(S);
-  return { n, peak };
+    peak = S && E.peakOn(S),
+    mom = !!(S && !S.over && E.momentInfo(S).now);
+  return { n, peak, mom };
 }
+const MOMENT_TXT = 'tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu, berhasil = hadiah untuk berdua';
 function newsPillHTML(S) {
-  const { n, peak } = newsBits(S);
+  const { n, peak, mom } = newsBits(S);
+  if (mom && !n && !peak)
+    return '<button type="button" class="news-pill moment" data-news>' + ic('users') + '<span class="np-t">Momen Berdua</span></button>';
   if (!n && !peak) return '';
   return (
     '<button type="button" class="news-pill' +
@@ -256,10 +260,17 @@ function newsPillHTML(S) {
 }
 const NEWS_ICON = { rain: 'umbrella', holiday: 'sun', sale: 'ticket', promo: 'plane', bonus: 'coins', love: 'heart' };
 function newsCardHTML(S) {
-  const { n, peak } = newsBits(S);
-  if (!n && !peak) return '';
+  const { n, peak, mom } = newsBits(S);
+  if (!n && !peak && !mom) return '';
   return (
     '<div class="news-card">' +
+    (mom
+      ? '<div class="nc-row moment">' +
+        ic('users') +
+        '<span><b>Momen Berdua</b><small>' +
+        esc(MOMENT_TXT.charAt(0).toUpperCase() + MOMENT_TXT.slice(1)) +
+        '</small></span></div>'
+      : '') +
     (n
       ? '<div class="nc-row">' +
         ic(NEWS_ICON[n.id] || 'sparkle') +
@@ -282,16 +293,17 @@ function newsCardHTML(S) {
   );
 }
 function showNewsToast() {
-  const { n, peak } = newsBits(App.S);
-  if (!n && !peak) return;
+  const { n, peak, mom } = newsBits(App.S);
+  if (!n && !peak && !mom) return;
   toast(
     [
+      mom ? 'Momen Berdua ronde ini: ' + MOMENT_TXT + '.' : '',
       n ? n.label + ': ' + n.text + ' (sisa ' + n.left + ' ronde).' : '',
       peak ? 'Musim Puncak: semua tol ×' + String(RULES.peakMult).replace('.', ',') + ' sampai akhir permainan.' : '',
     ]
       .filter(Boolean)
       .join(' '),
-    { title: 'Kabar Merpi', icon: 'sparkle', kind: 'lilac' }
+    { title: n || peak ? 'Kabar Merpi' : 'Momen Berdua', icon: n || peak ? 'sparkle' : 'users', kind: 'lilac' }
   );
 }
 document.addEventListener('click', e => {

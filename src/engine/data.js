@@ -34,6 +34,12 @@ const RULES = {
   // Kabar Merpi: jeda mengikuti durasi (makin panjang game, makin jarang), berlaku 2 ronde, tidak muncul saat Musim Puncak
   newsGap: { short: 4, normal: 5, long: 6, free: 5 },
   newsLasts: 2,
+  // Momen Berdua: tiap beberapa ronde (menurut durasi, tidak bentrok dengan Kabar Merpi & tidak saat Musim Puncak),
+  // setiap pemain dapat satu tantangan kerja sama sebelum melempar dadu. Hanya bila ada ≥ 2 pemain manusia.
+  momentGap: { short: 5, normal: 6, long: 7, free: 6 },
+  // berhasil = hadiah sama untuk pemilik & satu pasangan (penilai). Love menurut jumlah pemain: game ramai sudah lebih
+  // sering dapat Love dari menilai, jadi Soulmate tetap ±25% game Normal (disetel lewat simulasi pasangan)
+  momentReward: { gain: 100, love: { 2: 4, 3: 3, 4: 2 } },
   newsRain: 0.5,
   newsHoliday: 1.5,
   newsSale: 0.2,

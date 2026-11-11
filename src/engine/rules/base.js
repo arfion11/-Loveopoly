@@ -165,6 +165,24 @@ const newsGap = S => {
     G = RULES.newsGap;
   return !L ? G.free : L <= 15 ? G.short : L <= 25 ? G.normal : G.long;
 };
+// jeda Momen Berdua (ronde) menurut durasi: Singkat 5, Normal 6, Panjang 7, Bebas 6
+const momentGap = S => {
+  const L = S.settings.roundLimit,
+    G = RULES.momentGap;
+  return !L ? G.free : L <= 15 ? G.short : L <= 25 ? G.normal : G.long;
+};
+// ronde ini Momen Berdua? (sakelar settings.moment, ≥ 2 manusia aktif, bukan Musim Puncak)
+const momentRound = S =>
+  S.settings.moment !== false &&
+  S.round >= momentGap(S) &&
+  S.round % momentGap(S) === 0 &&
+  !peakOn(S) &&
+  S.players.filter(p => p.kind === 'human' && !p.bankrupt).length >= 2;
+// hadiah Momen Berdua game ini: { gain, love } (Love menurut jumlah pemain)
+const momentReward = S => {
+  const r = RULES.momentReward;
+  return { gain: r.gain, love: r.love[S.players.length] || r.love[2] };
+};
 const discounted = (S, i, cost) =>
   Math.max(0, Math.round(cost * (1 - (PL(S, i).discount || 0)) * (newsOn(S, 'sale') ? 1 - RULES.newsSale : 1)));
 function buyCost(S, i, ti, level) {
@@ -228,6 +246,9 @@ export {
   log,
   loveAdd,
   netWorth,
+  momentGap,
+  momentReward,
+  momentRound,
   newsGap,
   newsOn,
   ownedBy,

@@ -422,6 +422,59 @@ const URL = (await serveDist()).url + '/';
       /1 dari 2 penilai/.test(st.proofs.slice(-1)[0].proof),
     JSON.stringify(voters) + ' ' + st.proofs.slice(-1)[0].proof
   );
+  // Momen Berdua: ronde 6 (tanpa batas ronde) → pengumuman, pil, tantangan kerja sama sebelum melempar, hadiah untuk berdua
+  await newGame('S.round = 5; S.turn.p = 1; S.turn.rolled = true;');
+  await act({ type: 'END_TURN', p: 1 });
+  const mom = await page.evaluate(() => ({
+    banner: (document.querySelector('#boardVP .banner') || {}).textContent || '',
+    pill: (document.querySelector('.news-pill.moment') || {}).textContent || '',
+    q: window.LoveUI.App.S.queue.map(x => x.type + ':' + x.source),
+  }));
+  ok(
+    'Momen Berdua: pengumuman + pil ronde ini + tantangan kerja sama di awal giliran',
+    /MOMEN BERDUA/.test(mom.banner) && /Momen Berdua/.test(mom.pill) && mom.q[0] === 'CHALLENGE:moment',
+    JSON.stringify(mom).slice(0, 220)
+  );
+  await page.evaluate(() => {
+    const A = window.LoveUI.App;
+    Object.assign(A.S.queue[0], { ch: 'dr1', phase: undefined });
+    window.LoveEngine.migrate(A.S);
+    window.LoveUI.syncModal(true);
+  });
+  await settle();
+  const momDlg = await page.evaluate(() => ({
+    kicker: (document.querySelector('#modalRoot .kicker') || {}).textContent || '',
+    chips: (document.querySelector('#modalRoot .reward-row') || {}).textContent || '',
+  }));
+  await shot('momen-berdua');
+  ok(
+    'Momen Berdua: dialog berlabel Momen Berdua, hadiah +100 & Love +4 sama untuk pasangan',
+    /Momen Berdua/.test(momDlg.kicker) &&
+      /\+100/.test(momDlg.chips) &&
+      /Love \+4/.test(momDlg.chips) &&
+      /Hadiah sama untuk Nadia/.test(momDlg.chips),
+    JSON.stringify(momDlg)
+  );
+  const m0 = await S();
+  await jsClick('#bChStep');
+  await jsClick('#bGate');
+  await jsClick('#bJudgeOk');
+  const m1 = await S();
+  ok(
+    'Momen Berdua: disahkan → Arfi & Nadia sama-sama +100 dan Love +4, lalu Arfi bisa melempar',
+    m1.players[0].cash - m0.players[0].cash === 100 &&
+      m1.players[1].cash - m0.players[1].cash === 100 &&
+      m1.players[0].love - m0.players[0].love === 4 &&
+      m1.players[1].love - m0.players[1].love === 4 &&
+      !m1.queue.length &&
+      m1.turn.p === 0 &&
+      !m1.turn.rolled,
+    JSON.stringify({
+      cash: [m1.players[0].cash - m0.players[0].cash, m1.players[1].cash - m0.players[1].cash],
+      love: [m1.players[0].love - m0.players[0].love, m1.players[1].love - m0.players[1].love],
+    })
+  );
+
   // 3 pemain: Peragakan! semua lawan menebak, pilih nama penebak, yang benar dapat hadiah
   await newGame(
     'S.queue.push({ type: "CHALLENGE", p: 0, ch: "cr", cat: "charades", source: "card", redraws: 0 }); E.migrate(S);',
@@ -1250,6 +1303,12 @@ const URL = (await serveDist()).url + '/';
     qSet.title === 'Lawan AI' && qSet.names.join() === 'Arfi,Mia' && /15/.test(qSet.rounds || ''),
     JSON.stringify(qSet)
   );
+  const momT = await page.evaluate(() => {
+    const before = document.querySelector('#sMoment').getAttribute('aria-checked');
+    document.querySelector('#sMoment').click();
+    return [before, document.querySelector('#sMoment').getAttribute('aria-checked')];
+  });
+  ok('setup: sakelar Momen Berdua (bawaan nyala, bisa dimatikan)', momT[0] === 'true' && momT[1] === 'false', JSON.stringify(momT));
   await page.click('#sBack');
   await page.evaluate(() => {
     localStorage.setItem('loveopoly.v2.last', JSON.stringify({ players: [{ name: 'X', avatar: '<b>', color: 'red' }] }));
@@ -1578,17 +1637,47 @@ const URL = (await serveDist()).url + '/';
     await OLD.p.waitForTimeout(900);
     await OLD.p.$eval('#ppGo', b => b.scrollIntoView({ block: 'end' }));
     const stampAway = await OLD.p.$eval('.pp-stamp', e => e.getBoundingClientRect().bottom < 0);
-    await OLD.p.click('#ppGo');
-    await OLD.p.waitForSelector('.pp-book.done', { timeout: 3000 });
+    // seperti iPhone: Safari tidak memindahkan fokus ke tombol saat diketuk → kolom nama masih fokus (keyboard terbuka)
+    await OLD.p.focus('#ppName');
+    await OLD.p.$eval('#ppForm', f => f.requestSubmit());
+    await OLD.p.waitForSelector('.pp-book.done', { timeout: 4000 });
     const stampSeen = await OLD.p.$eval('.pp-stamp', e => {
       const r = e.getBoundingClientRect();
       return r.top >= 0 && r.bottom <= innerHeight;
     });
+    await OLD.p.waitForTimeout(380);
+    const stamper = await OLD.p.evaluate(() => {
+      const el = document.querySelector('#passOv .pp-stamper'),
+        r = el.getBoundingClientRect();
+      return {
+        op: +getComputedStyle(el).opacity,
+        inView: r.bottom > 0 && r.top < innerHeight && r.width > 60,
+        typing: /INPUT|TEXTAREA/.test((document.activeElement || {}).tagName || ''),
+      };
+    });
     await OLD.p.waitForSelector('#passOv', { state: 'detached', timeout: 5000 });
     ok(
-      'Simpan Paspor di HP: gulir ke cap DISETUJUI dulu (terlihat), lalu paspor tertutup',
-      stampAway && stampSeen,
-      JSON.stringify({ stampAway, stampSeen })
+      'Simpan Paspor di HP (keyboard masih terbuka): keyboard ditutup, gulir ke cap DISETUJUI, stempel karet terlihat menekan, lalu tutup',
+      stampAway && stampSeen && stamper.op > 0.5 && stamper.inView && !stamper.typing,
+      JSON.stringify({ stampAway, stampSeen, stamper })
+    );
+    // gerak dikurangi: tanpa stempel karet, cap langsung tampil dan paspor cukup lama terbuka untuk terlihat
+    await OLD.p.emulateMedia({ reducedMotion: 'reduce' });
+    await OLD.p.click('#hPass');
+    await OLD.p.waitForSelector('#ppGo', { state: 'visible', timeout: 6000 });
+    await OLD.p.waitForTimeout(400);
+    await OLD.p.$eval('#ppForm', f => f.requestSubmit());
+    await OLD.p.waitForTimeout(700);
+    const rmStamp = await OLD.p.evaluate(() => {
+      const c = document.querySelector('#passOv .pp-stamp');
+      return { open: !!document.querySelector('#passOv'), op: c ? +getComputedStyle(c).opacity : 0 };
+    });
+    await OLD.p.waitForSelector('#passOv', { state: 'detached', timeout: 4000 });
+    await OLD.p.emulateMedia({ reducedMotion: null });
+    ok(
+      'Simpan Paspor (gerak dikurangi): cap langsung tampil & paspor masih terbuka ±1 dtk',
+      rmStamp.open && rmStamp.op > 0.8,
+      JSON.stringify(rmStamp)
     );
     // cadangan sekarang di Pengaturan → Cadangan Paspor (buku paspor tetap ringkas)
     await OLD.p.evaluate(() => window.LoveUI.openSettings());

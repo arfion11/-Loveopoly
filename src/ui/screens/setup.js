@@ -33,7 +33,10 @@ function defaultSetup(kind) {
     if (![2000, 2500, 3000].includes(s.startCash)) s.startCash = RULES.startCash;
     if (![15, 25, 35, 0].includes(s.roundLimit)) s.roundLimit = 25;
   }
-  // pemegang Paspor Cinta otomatis jadi Pemain 1 (avatar/warna pemain lain digeser bila bentrok)
+  return applyPassport(s);
+}
+// pemegang Paspor Cinta otomatis jadi Pemain 1 (avatar/warna pemain lain digeser bila bentrok)
+function applyPassport(s) {
   const pp = passport();
   if (pp.name) {
     const p0 = s.players[0];
@@ -49,21 +52,61 @@ function defaultSetup(kind) {
   }
   return s;
 }
-function openSetup(kind) {
-  setup = defaultSetup(kind);
+// ---------- Main lagi cepat (beranda): setelan game lokal terakhir, dicatat enterGame di KEYS.last ----------
+const SET_OPTS = { startCash: [2000, 2500, 3000], roundLimit: [15, 25, 35, 0] };
+function lastSetup() {
+  const o = store.get(KEYS.last, null);
+  if (!o || typeof o !== 'object' || !Array.isArray(o.players) || o.players.length < 2 || o.players.length > 4) return null;
+  const st = o.settings && typeof o.settings === 'object' ? o.settings : {};
+  const players = o.players.map(p => ({
+    name: p && typeof p.name === 'string' ? p.name.trim().slice(0, 16) : '',
+    avatar: p && D.AVATARS.includes(p.avatar) ? p.avatar : null,
+    color: p && D.TOKEN_COLORS.includes(p.color) ? p.color : null,
+    kind: p && p.kind === 'ai' ? 'ai' : 'human',
+    ai: p && ['easy', 'normal', 'hard'].includes(p.ai) ? p.ai : 'normal',
+  }));
+  if (players.some(p => !p.name || !p.avatar || !p.color)) return null;
+  if (new Set(players.map(p => p.avatar)).size < players.length || new Set(players.map(p => p.color)).size < players.length) return null;
+  const humans = players.filter(p => p.kind === 'human').length;
+  const s = {
+    kind: humans === 1 && humans < players.length ? 'ai' : 'local',
+    players,
+    startCash: SET_OPTS.startCash.includes(st.startCash) ? st.startCash : RULES.startCash,
+    roundLimit: SET_OPTS.roundLimit.includes(st.roundLimit) ? st.roundLimit : 25,
+    takeover: st.takeover !== false,
+    instantWin: st.instantWin !== false,
+    diceControl: st.diceControl !== false,
+  };
+  applyPassport(s);
+  return Object.keys(setupErrors(s)).length ? null : s;
+}
+// ringkasan untuk kartu beranda: "🐻 Arfi vs 🐰 Nadia · 25 ronde"
+function lastSetupText(s) {
+  const who = p => p.avatar + ' ' + p.name + (p.kind === 'ai' ? ' (' + { easy: 'Easy', normal: 'Normal', hard: 'Hard' }[p.ai] + ')' : '');
+  const ps = s.players.map(who);
+  return (ps.length === 2 ? ps.join(' vs ') : ps.join(', ')) + ' · ' + (s.roundLimit ? s.roundLimit + ' ronde' : 'Bebas');
+}
+function quickReplay() {
+  const s = lastSetup();
+  if (s) startSetup(s);
+  else openSetup('local');
+}
+function openSetup(kind, preset) {
+  setup = preset || defaultSetup(kind);
   show('scrSetup');
   renderSetup();
 }
-function setupErrors() {
+function setupErrors(s0) {
   const errs = {};
-  const names = setup.players.map(p => p.name.trim().toLowerCase());
-  setup.players.forEach((p, i) => {
+  const s = s0 || setup;
+  const names = s.players.map(p => p.name.trim().toLowerCase());
+  s.players.forEach((p, i) => {
     const n = p.name.trim();
     if (!n) errs['name' + i] = 'Nama wajib diisi.';
     else if (n.length > 16) errs['name' + i] = 'Maksimal 16 karakter.';
     else if (names.indexOf(n.toLowerCase()) !== i) errs['name' + i] = 'Nama sudah dipakai pemain lain.';
   });
-  if (!setup.players.some(p => p.kind === 'human')) errs.humans = 'Minimal satu pemain manusia.';
+  if (!s.players.some(p => p.kind === 'human')) errs.humans = 'Minimal satu pemain manusia.';
   return errs;
 }
 function renderSetup() {
@@ -327,31 +370,35 @@ function bindSetup() {
       renderSetup();
       return;
     }
-    store.set(KEYS.setup, s);
-    const settings = {
-      startCash: s.startCash,
-      roundLimit: s.roundLimit,
-      takeover: s.takeover !== false,
-      instantWin: s.instantWin !== false,
-      diceControl: s.diceControl !== false,
-    };
-    const pp = passport();
-    const S = E.create({
-      players: s.players.map(p => ({
-        name: p.name.trim(),
-        avatar: p.avatar,
-        color: p.color,
-        kind: p.kind,
-        ai: p.ai,
-        msg: p.kind === 'human' && pp.name && p.name.trim().toLowerCase() === pp.name.trim().toLowerCase() ? pp.msg : '',
-      })),
-      settings,
-      first: 'random',
-    });
-    SND.unlock();
-    SND.play('fanfare');
-    enterGame('local', -1, S);
+    startSetup(s);
   };
 }
+// mulai game lokal dari setelan (tombol Mulai Main! & Main lagi cepat di beranda)
+function startSetup(s) {
+  store.set(KEYS.setup, s);
+  const settings = {
+    startCash: s.startCash,
+    roundLimit: s.roundLimit,
+    takeover: s.takeover !== false,
+    instantWin: s.instantWin !== false,
+    diceControl: s.diceControl !== false,
+  };
+  const pp = passport();
+  const S = E.create({
+    players: s.players.map(p => ({
+      name: p.name.trim(),
+      avatar: p.avatar,
+      color: p.color,
+      kind: p.kind,
+      ai: p.ai,
+      msg: p.kind === 'human' && pp.name && p.name.trim().toLowerCase() === pp.name.trim().toLowerCase() ? pp.msg : '',
+    })),
+    settings,
+    first: 'random',
+  });
+  SND.unlock();
+  SND.play('fanfare');
+  enterGame('local', -1, S);
+}
 
-export { openSetup };
+export { lastSetup, lastSetupText, openSetup, quickReplay };

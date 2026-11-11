@@ -283,6 +283,110 @@ ok(
   JSON.stringify(nasty && nasty.p).slice(0, 140)
 );
 
+// --- rekap tahunan (bahan Kilas Balik Cinta) ---
+const cityIds = D.TILES.filter(t => t.type === 'city').map(t => t.i);
+const G = (o = {}) =>
+  Object.assign(
+    {
+      won: false,
+      reason: 'rounds',
+      mode: 'local',
+      rounds: 20,
+      worth: 5000,
+      love: 40,
+      ch: 2,
+      lt: 1,
+      lm: 1,
+      tk: 0,
+      tv: 1,
+      mt: 1,
+      cities: [cityIds[0], cityIds[1]],
+      vs: ['Nadia'],
+    },
+    o
+  );
+let yr = P.noteYear(null, G({ won: true, reason: 'triple', worth: 9000, rounds: 31 }), at(2026, 11, 10));
+yr = P.noteYear(yr, G({ mode: 'online', cities: [cityIds[0]] }), at(2026, 11, 11));
+yr = P.noteYear(yr, G({ mode: 'ai', vs: [] }), at(2026, 12, 21));
+const y26 = yr['2026'];
+ok(
+  'tahunan: 3 game → jumlah, menang, per bulan, per mode',
+  y26.g === 3 && y26.w === 1 && y26.mo[10] === 2 && y26.mo[11] === 1 && y26.md.local === 1 && y26.md.online === 1 && y26.md.ai === 1,
+  JSON.stringify({ g: y26.g, w: y26.w, mo: y26.mo, md: y26.md })
+);
+ok(
+  'tahunan: kota favorit, cara menang, lawan [main, menang], aset & game terpanjang',
+  y26.city[cityIds[0]] === 3 &&
+    y26.city[cityIds[1]] === 2 &&
+    y26.how.triple === 1 &&
+    !y26.how.rounds &&
+    y26.vs.Nadia[0] === 2 &&
+    y26.vs.Nadia[1] === 1 &&
+    y26.best === 9000 &&
+    y26.long === 31 &&
+    y26.rd === 71,
+  JSON.stringify({ city: y26.city, how: y26.how, vs: y26.vs })
+);
+ok('tahunan: minggu bermain dihitung sekali per minggu', y26.wk === 2, String(y26.wk));
+const y27 = P.noteYear(yr, G(), at(2027, 1, 2));
+ok('tahunan: pergantian tahun (lokal) membuat catatan baru', y27['2027'].g === 1 && y27['2026'].g === 3, Object.keys(y27).join(','));
+let many = {};
+for (let k = 0; k < 5; k++) many = P.noteYear(many, G(), at(2026 + k, 6, 1));
+ok(
+  'tahunan: hanya ' + P.YEARS_KEEP + ' tahun terbaru disimpan',
+  Object.keys(many).join(',') === '2028,2029,2030',
+  Object.keys(many).join(',')
+);
+let crowd = {};
+for (let k = 0; k < 12; k++) crowd = P.noteYear(crowd, G({ vs: ['Teman ' + k] }), at(2026, 3, 1 + k));
+for (let k = 0; k < 3; k++) crowd = P.noteYear(crowd, G({ vs: ['Teman 11'] }), at(2026, 4, 1 + k));
+ok(
+  'tahunan: daftar lawan dibatasi 8, lawan yang sering tetap tersimpan',
+  Object.keys(crowd['2026'].vs).length === 8 && crowd['2026'].vs['Teman 11'][0] === 4,
+  JSON.stringify(crowd['2026'].vs)
+);
+const dirty = B.normProfile({
+  name: 'A',
+  yr: {
+    2026: {
+      g: 2,
+      w: 9,
+      mo: [1, 'x'],
+      md: { local: 2, hack: 5 },
+      how: { triple: 1, evil: 3 },
+      city: { 0: 4, [cityIds[2]]: 1 },
+      vs: { '<b>N</b>': [2, 7], '': [1, 0] },
+    },
+    1999: { g: 1 },
+    evil: { g: 1 },
+  },
+});
+const dy = dirty.yr['2026'];
+ok(
+  'tahunan: data rusak dinormalkan (tahun asing, mode/cara asing, petak bukan kota, nama berbahaya, menang > main)',
+  Object.keys(dirty.yr).join(',') === '2026' &&
+    dy.w === 2 &&
+    dy.mo[1] === 0 &&
+    !dy.md.hack &&
+    !dy.how.evil &&
+    !dy.city[0] &&
+    dy.city[cityIds[2]] === 1 &&
+    dy.vs['bN/b'] &&
+    dy.vs['bN/b'][1] === 2 &&
+    !Object.keys(dy.vs).some(k => /[<>]/.test(k)) &&
+    !('' in dy.vs),
+  JSON.stringify(dy).slice(0, 220)
+);
+const bigP = B.normProfile({ name: 'Arfi', xp: 999, yr: crowd });
+for (let k = 0; k < 2; k++) bigP.yr = P.noteYear(bigP.yr, G({ vs: ['Nadia Kusumawardani'] }), at(2027 + k, 2, 14));
+const bigCode = B.makeBackup({ profile: bigP, prefs: {}, daily: null }, at(2028, 3, 1));
+const bigBack = B.parseBackup('https://loveopoly.web.app/#pulihkan=' + bigCode);
+ok(
+  'tahunan: ikut Cadangan Paspor, 3 tahun penuh tetap muat di tautan',
+  bigBack && bigBack.p.yr['2026'].g === 15 && bigBack.p.yr['2028'].g === 1 && bigCode.length < 6000,
+  bigCode.length + ' karakter'
+);
+
 console.log(results.join('\n'));
 const fails = results.filter(x => x.startsWith('FAIL')).length;
 console.log('\n' + (results.length - fails) + '/' + results.length + ' lulus');

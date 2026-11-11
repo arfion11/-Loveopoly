@@ -1119,6 +1119,19 @@ const URL = (await serveDist()).url + '/';
       /Bucin Totalitas/.test(jt.panel),
     JSON.stringify({ wk: pr1.wk, life: pr1.life })
   );
+  const yr1 = (pr1.yr || {})[String(new Date().getFullYear())] || {};
+  ok(
+    'rekap tahunan: game selesai tercatat (main, menang, mode AI, cara menang, 2 kota, tanpa lawan manusia)',
+    yr1.g === 1 &&
+      yr1.w === 1 &&
+      yr1.md &&
+      yr1.md.ai === 1 &&
+      yr1.city &&
+      yr1.city[1] === 1 &&
+      yr1.city[2] === 1 &&
+      Object.keys(yr1.vs || {}).length === 0,
+    JSON.stringify(yr1).slice(0, 200)
+  );
   await page.waitForSelector('#celebOv', { timeout: 3000 }).catch(() => {});
   const cb = await page.evaluate(() => (document.querySelector('#celebOv') || {}).textContent || '');
   ok(
@@ -1177,6 +1190,72 @@ const URL = (await serveDist()).url + '/';
     !bar.fill && bar.anim === 0,
     JSON.stringify(bar)
   );
+  // Main lagi cepat: setelan game lokal terakhir di beranda → satu ketukan mulai game dengan pemain & aturan yang sama
+  await page.evaluate(() => {
+    localStorage.removeItem('loveopoly.v2.save');
+    localStorage.setItem(
+      'loveopoly.v2.last',
+      JSON.stringify({
+        t: Date.now(),
+        players: [
+          { name: 'Arfi', avatar: '🦊', color: '#FF4F8B', kind: 'human', ai: 'normal' },
+          { name: 'Mia', avatar: '🐰', color: '#7B61FF', kind: 'ai', ai: 'hard' },
+        ],
+        settings: { startCash: 3000, roundLimit: 15, takeover: false, instantWin: true, diceControl: true },
+      })
+    );
+    window.LoveUI.renderHome();
+  });
+  const qTxt = await page.evaluate(() => (document.querySelector('#scrHome .quick-card') || {}).textContent || '');
+  ok(
+    'Main lagi: kartu beranda menampilkan pemain & durasi terakhir',
+    /Main lagi/.test(qTxt) && /Arfi vs 🐰 Mia \(Hard\)/.test(qTxt) && /15 ronde/.test(qTxt),
+    qTxt
+  );
+  await page.click('#hQuick');
+  await page.waitForSelector('#scrGame:not([hidden])', { timeout: 6000 }).catch(() => {});
+  const qS = await page.evaluate(() => {
+    const S = window.LoveUI.App.S;
+    return {
+      names: S.players.map(p => p.name + ':' + p.kind + ':' + (p.ai || '')),
+      st: S.settings,
+      round: S.round,
+      mode: window.LoveUI.App.mode,
+    };
+  });
+  ok(
+    'Main lagi: satu ketukan → game baru dengan pemain, level AI & aturan yang sama',
+    qS.mode === 'local' &&
+      qS.round === 1 &&
+      qS.names.join() === 'Arfi:human:normal,Mia:ai:hard' &&
+      qS.st.startCash === 3000 &&
+      qS.st.roundLimit === 15 &&
+      qS.st.takeover === false,
+    JSON.stringify(qS).slice(0, 200)
+  );
+  await page.evaluate(() => {
+    window.LoveUI.exitToHome(true);
+    localStorage.removeItem('loveopoly.v2.save');
+    window.LoveUI.renderHome();
+  });
+  await page.click('#hQuickEdit');
+  await page.waitForSelector('#scrSetup:not([hidden])', { timeout: 4000 }).catch(() => {});
+  const qSet = await page.evaluate(() => ({
+    title: (document.querySelector('#scrSetup h2') || {}).textContent,
+    names: [...document.querySelectorAll('#scrSetup input[id^="pn"]')].map(i => i.value),
+    rounds: (document.querySelector('[data-seg="rounds"] [aria-pressed="true"]') || {}).textContent,
+  }));
+  ok(
+    'Main lagi: tombol Ubah membuka setup terisi setelan terakhir',
+    qSet.title === 'Lawan AI' && qSet.names.join() === 'Arfi,Mia' && /15/.test(qSet.rounds || ''),
+    JSON.stringify(qSet)
+  );
+  await page.click('#sBack');
+  await page.evaluate(() => {
+    localStorage.setItem('loveopoly.v2.last', JSON.stringify({ players: [{ name: 'X', avatar: '<b>', color: 'red' }] }));
+    window.LoveUI.renderHome();
+  });
+  ok('Main lagi: setelan rusak → kartu tidak muncul', !(await page.$('#scrHome .quick-card')));
   await page.click('#hPass');
   await page.waitForSelector('#passOv .pp-prog', { timeout: 6000 }).catch(() => {});
   const ppTxt = await page.evaluate(() => (document.querySelector('#passOv .pp-prog') || {}).textContent || '');

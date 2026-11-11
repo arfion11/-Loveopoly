@@ -16,6 +16,7 @@ import {
   gameXp,
   levelInfo,
   markWeek,
+  noteYear,
   streakView,
   themesUnlocked,
   tierUps,
@@ -83,6 +84,27 @@ function recordPassport(S) {
   const g = gameXp({ won, challenges: st.challenges, newStamps: fresh });
   p.xp += g.total;
   const now = Date.now();
+  // rekap tahunan untuk Kilas Balik Cinta (hanya ringkasan angka & nama lawan manusia, di perangkat ini)
+  p.yr = noteYear(
+    p.yr,
+    {
+      won,
+      reason: S.over.reason,
+      mode: App.mode === 'online' ? 'online' : S.players.some(q => q.kind === 'ai') ? 'ai' : 'local',
+      rounds: S.over.round,
+      worth: (S.over.worth || [])[me],
+      love: pl.love,
+      ch: st.challenges,
+      lt: st.letters,
+      lm: st.landmarks,
+      tk: st.takeovers,
+      tv: st.travels,
+      mt: st.meets,
+      cities: E.citiesOf(S, me),
+      vs: S.players.filter(q => q.i !== me && q.kind === 'human').map(q => q.name),
+    },
+    now
+  );
   const week = noteWeek(p, now);
   p.seen = now;
   savePassport(p);

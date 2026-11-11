@@ -3,7 +3,7 @@ import { D, ART, TILES, KEYS, esc, ic, $, store } from '../core.js';
 import { UI } from '../ns.js';
 import { validSave } from './base.js';
 import { dismissKangen, kangenNote, openPassport, passport, passportCard } from './passport.js';
-import { openSetup } from './setup.js';
+import { lastSetup, lastSetupText, openSetup, quickReplay } from './setup.js';
 import { openOnline } from './online.js';
 import { enterGame } from './game.js';
 import { dailyCard, openDaily } from './daily.js';
@@ -55,7 +55,20 @@ function renderHome() {
       '</div></div><button type="button" class="btn primary sm" id="hResume"><span>Lanjut</span></button><button type="button" class="icon-btn" id="hDiscard" aria-label="Hapus simpanan">' +
       ic('x') +
       '</button></div>';
-  } else if (save) store.del(KEYS.save);
+  } else {
+    if (save) store.del(KEYS.save);
+    // Main lagi cepat: satu ketukan mengulang setelan game lokal terakhir (tidak ditampilkan bila ada game tersimpan)
+    const last = lastSetup();
+    if (last)
+      resume +=
+        '<div class="resume-card quick-card"><span class="rc-ic">' +
+        ic('refresh') +
+        '</span><div class="grow"><b>Main lagi</b><div class="tiny">' +
+        esc(lastSetupText(last)) +
+        '</div></div><button type="button" class="btn primary sm" id="hQuick"><span>Main</span><span class="sr-only"> lagi dengan setelan terakhir</span></button><button type="button" class="icon-btn" id="hQuickEdit" aria-label="Ubah setelan">' +
+        ic('sliders') +
+        '</button></div>';
+  }
   if (online && online.code)
     resume +=
       '<div class="resume-card"><span class="rc-ic">' +
@@ -151,6 +164,12 @@ function renderHome() {
   on('hDiscard', () => {
     store.del(KEYS.save);
     renderHome();
+  });
+  on('hQuick', () => quickReplay());
+  on('hQuickEdit', () => {
+    const last = lastSetup();
+    if (last) openSetup(last.kind, last);
+    else openSetup('local');
   });
   on('hRejoin', () => openOnline(true));
   on('hForget', () => {

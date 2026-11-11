@@ -111,6 +111,22 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
       await p.waitForSelector('#hPass');
       await p.waitForSelector('#scrHome .merpi-note');
       await audit(p, tag + ' beranda');
+      // beranda + kartu Main lagi (setelan game lokal terakhir)
+      await p.evaluate(() => {
+        localStorage.setItem(
+          'loveopoly.v2.last',
+          JSON.stringify({
+            players: [
+              { name: 'Arfi', avatar: '🐻', color: '#FF4F8B', kind: 'human' },
+              { name: 'Nadia', avatar: '🐰', color: '#7B61FF', kind: 'human' },
+            ],
+            settings: { roundLimit: 25 },
+          })
+        );
+        window.LoveUI.renderHome();
+      });
+      await p.waitForSelector('#scrHome .quick-card');
+      await audit(p, tag + ' beranda: Main lagi');
       await click(p, '#hPass');
       await p.waitForSelector('#passOv .pp-prog');
       await p.waitForTimeout(900);

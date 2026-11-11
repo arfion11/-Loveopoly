@@ -468,7 +468,7 @@ function openPrivacy() {
           row(
             'user',
             'Paspor Cinta & simpanan game',
-            'Nama, avatar, warna pion, statistik, cap kota, Jam Terbang, Api Cinta, lencana, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser). Menghapus data browser atau pindah HP berarti mulai dari awal, kecuali kamu menyimpan tautan cadangan (Pengaturan → Cadangan Paspor): isinya paspor & pengaturan tampilanmu (bagian setelah tanda #, tidak dikirim ke server kami), jadi simpan untuk dirimu sendiri.'
+            'Nama, avatar, warna pion, statistik, cap kota, Jam Terbang, Api Cinta, lencana, rekap tahunan (jumlah main, nama lawan main, kota & cara menang, untuk Kilas Balik), setelan game terakhir, dan game yang sedang berjalan hanya tersimpan di perangkat ini (penyimpanan browser). Menghapus data browser atau pindah HP berarti mulai dari awal, kecuali kamu menyimpan tautan cadangan (Pengaturan → Cadangan Paspor): isinya paspor & pengaturan tampilanmu (bagian setelah tanda #, tidak dikirim ke server kami), jadi simpan untuk dirimu sendiri.'
           ) +
           row(
             'letter',

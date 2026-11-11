@@ -73,6 +73,7 @@ const KEYS = {
   prefs: 'loveopoly.v1.prefs',
   online: 'loveopoly.v2.online',
   setup: 'loveopoly.v2.setup',
+  last: 'loveopoly.v2.last', // setelan game lokal terakhir (Main lagi cepat di beranda)
   tour: 'loveopoly.v2.tour',
   guide: 'loveopoly.v2.guide',
 };

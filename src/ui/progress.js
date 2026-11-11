@@ -192,9 +192,143 @@ function goldEdition(p) {
   return levelOf(p.xp) >= 5 || p.wk.best >= 4 || Object.keys(t).some(k => t[k] >= 3);
 }
 
+// ---------- catatan tahunan (bahan Kilas Balik Cinta) ----------
+// Satu ringkasan per tahun kalender lokal, bukan daftar per game: ukurannya tetap kecil (muat di tautan Cadangan
+// Paspor) berapa pun jumlah game. Hanya game selesai milik pemegang paspor (recordPassport). Disimpan 3 tahun terakhir.
+const YEARS_KEEP = 3;
+const VS_MAX = 8;
+const MODES = ['local', 'ai', 'online'];
+const REASONS = ['rounds', 'manual', 'bankrupt', 'resign', 'triple', 'line', 'spots'];
+// eslint-disable-next-line no-control-regex
+const BAD_CH = /[\u0000-\u001f\u007f<>]/g;
+const txt = (s, n) => (typeof s === 'string' ? s.replace(BAD_CH, '').trim().slice(0, n) : '');
+const counts = (o, keyOk, cap) => {
+  const out = {};
+  if (o && typeof o === 'object')
+    Object.keys(o)
+      .filter(keyOk)
+      .slice(0, cap)
+      .forEach(k => {
+        const v = int(o[k]);
+        if (v) out[k] = v;
+      });
+  return out;
+};
+function emptyYear() {
+  return {
+    g: 0,
+    w: 0,
+    mo: Array(12).fill(0),
+    md: {},
+    rd: 0,
+    long: 0,
+    ch: 0,
+    lt: 0,
+    lm: 0,
+    tk: 0,
+    tv: 0,
+    mt: 0,
+    love: 0,
+    best: 0,
+    how: {},
+    city: {},
+    vs: {},
+    wk: 0,
+    lw: 0,
+    t0: 0,
+    t1: 0,
+  };
+}
+function normYear(y, isCity) {
+  const o = y && typeof y === 'object' ? y : {};
+  const e = emptyYear();
+  ['g', 'w', 'rd', 'long', 'ch', 'lt', 'lm', 'tk', 'tv', 'mt', 'love', 'best', 'wk', 'lw', 't0', 't1'].forEach(k => (e[k] = int(o[k])));
+  e.w = Math.min(e.w, e.g);
+  if (Array.isArray(o.mo)) e.mo = e.mo.map((_, i) => int(o.mo[i]));
+  e.md = counts(o.md, k => MODES.includes(k), 3);
+  e.how = counts(o.how, k => REASONS.includes(k), 7);
+  e.city = counts(o.city, k => /^\d{1,2}$/.test(k) && (!isCity || isCity(+k)), 64);
+  if (o.vs && typeof o.vs === 'object')
+    Object.keys(o.vs)
+      .slice(0, VS_MAX)
+      .forEach(k => {
+        const n = txt(k, 16),
+          v = Array.isArray(o.vs[k]) ? o.vs[k] : [];
+        const g = int(v[0]);
+        if (n && g) e.vs[n] = [g, Math.min(int(v[1]), g)];
+      });
+  return e;
+}
+// { "2026": {...}, ... } → hanya tahun 2000–2999 yang sah, YEARS_KEEP tahun terbaru
+function normYears(yr, isCity) {
+  const out = {};
+  if (yr && typeof yr === 'object')
+    Object.keys(yr)
+      .filter(k => /^2\d{3}$/.test(k))
+      .sort()
+      .slice(-YEARS_KEEP)
+      .forEach(k => (out[k] = normYear(yr[k], isCity)));
+  return out;
+}
+// Catat satu game selesai ke tahun lokal `now`. g = { won, reason, mode, rounds, worth, love, ch, lt, lm, tk, tv, mt,
+// cities: [indeks petak], vs: [nama lawan manusia] }. Mengembalikan data tahunan baru (tidak mengubah yr).
+function noteYear(yr, g, now) {
+  const all = normYears(yr);
+  const d = new Date(now),
+    key = String(d.getFullYear());
+  const y = all[key] || emptyYear();
+  y.g++;
+  if (g.won) y.w++;
+  y.mo[d.getMonth()]++;
+  if (MODES.includes(g.mode)) y.md[g.mode] = (y.md[g.mode] || 0) + 1;
+  const r = int(g.rounds);
+  y.rd += r;
+  y.long = Math.max(y.long, r);
+  y.ch += int(g.ch);
+  y.lt += int(g.lt);
+  y.lm += int(g.lm);
+  y.tk += int(g.tk);
+  y.tv += int(g.tv);
+  y.mt += int(g.mt);
+  y.love += int(g.love);
+  y.best = Math.max(y.best, int(g.worth));
+  if (g.won && REASONS.includes(g.reason)) y.how[g.reason] = (y.how[g.reason] || 0) + 1;
+  (Array.isArray(g.cities) ? g.cities : []).forEach(i => {
+    if (Number.isInteger(i) && i >= 0 && i < 100) y.city[i] = (y.city[i] || 0) + 1;
+  });
+  const met = [];
+  (Array.isArray(g.vs) ? g.vs : []).forEach(raw => {
+    const n = txt(raw, 16);
+    if (!n || met.includes(n)) return;
+    met.push(n);
+    const v = y.vs[n] || [0, 0];
+    y.vs[n] = [v[0] + 1, v[1] + (g.won ? 1 : 0)];
+  });
+  // daftar lawan dibatasi: yang paling jarang dibuang dulu, tapi lawan game ini selalu tetap (lawan baru bisa tumbuh)
+  const names = Object.keys(y.vs);
+  if (names.length > VS_MAX)
+    names
+      .filter(n => !met.includes(n))
+      .sort((a, b) => y.vs[a][0] - y.vs[b][0])
+      .slice(0, names.length - VS_MAX)
+      .forEach(n => delete y.vs[n]);
+  const w = weekNo(now);
+  if (w !== y.lw) {
+    y.wk++;
+    y.lw = w;
+  }
+  if (!y.t0) y.t0 = int(now);
+  y.t1 = Math.max(y.t1, int(now));
+  all[key] = y;
+  return normYears(all);
+}
+
 export {
   BOARD_THEMES,
   goldEdition,
+  noteYear,
+  normYears,
+  YEARS_KEEP,
   themeFor,
   themesUnlocked,
   BADGES,

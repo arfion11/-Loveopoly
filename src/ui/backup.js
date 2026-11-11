@@ -4,8 +4,9 @@
    { v: 1, t: waktu, p: profil, s: pengaturan tampilan (daftar putih), d: Pertanyaan Hari Ini }. Simpanan game berjalan
    & persetujuan statistik (analytics) sengaja TIDAK ikut. */
 import { D } from '../engine/data.js';
-import { normLife, normWeek } from './progress.js';
+import { normLife, normWeek, normYears } from './progress.js';
 
+const isCity = i => !!D.TILES[i] && D.TILES[i].type === 'city';
 const int = v => (Number.isFinite(+v) ? Math.max(0, Math.floor(+v)) : 0);
 // eslint-disable-next-line no-control-regex
 const txt = (s, n) => (typeof s === 'string' ? s.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, n) : '');
@@ -19,9 +20,7 @@ function normProfile(raw) {
     since: int(p.since),
     games: int(p.games),
     wins: int(p.wins),
-    stamps: Array.isArray(p.stamps)
-      ? [...new Set(p.stamps.filter(i => Number.isInteger(i) && D.TILES[i] && D.TILES[i].type === 'city'))]
-      : [],
+    stamps: Array.isArray(p.stamps) ? [...new Set(p.stamps.filter(i => Number.isInteger(i) && isCity(i)))] : [],
     skipped: !!p.skipped,
     last: txt(p.last, 80),
     msg: txt(p.msg, 240),
@@ -30,6 +29,8 @@ function normProfile(raw) {
     wk: normWeek(p.wk),
     life: normLife(p.life),
     seen: int(p.seen),
+    // rekap per tahun (bahan Kilas Balik Cinta): jumlah main, lawan, kota, cara menang, …
+    yr: normYears(p.yr, isCity),
   };
 }
 

@@ -203,6 +203,21 @@ function enterGame(mode, seat, S) {
     resumed: S.seq > 0,
   });
   App.seat = mode === 'online' ? (seat >= 0 ? seat : Net.mySeat()) : -1;
+  // game lokal baru: ingat setelannya untuk "Main lagi" di beranda (pesan paspor diambil lagi saat mulai)
+  if (mode === 'local' && !S.seq && !S.over) {
+    const st = S.settings || {};
+    store.set(KEYS.last, {
+      t: Date.now(),
+      players: S.players.map(p => ({ name: p.name, avatar: p.avatar, color: p.color, kind: p.kind, ai: p.ai })),
+      settings: {
+        startCash: st.startCash,
+        roundLimit: st.roundLimit,
+        takeover: st.takeover,
+        instantWin: st.instantWin,
+        diceControl: st.diceControl,
+      },
+    });
+  }
   UI.clearFx();
   App.S = S;
   App.shown = S;

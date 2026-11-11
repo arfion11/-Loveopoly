@@ -94,6 +94,43 @@
     margin-left: 54px;
   }
 }
+/* Main lagi cepat: satu baris ringkas juga di HP (tidak mendorong "Main Online" jauh ke bawah lipatan layar);
+   nama panjang dipotong "…" (teks lengkap tetap terbaca pembaca layar) */
+.resume-card.quick-card {
+  gap: 10px;
+  padding: 10px 12px;
+}
+.quick-card .rc-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+.quick-card .grow {
+  min-width: 0;
+}
+.quick-card .tiny {
+  /* lebar 0 + min 100%: teks satu baris tidak ikut menentukan lebar kolom beranda (dulu halaman HP jadi melebar) */
+  width: 0;
+  min-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 480px) {
+  .resume-card.quick-card {
+    flex-wrap: nowrap;
+    padding: 10px 12px;
+  }
+  .resume-card.quick-card .grow {
+    flex: 1 1 auto;
+  }
+  .resume-card.quick-card .btn.primary {
+    flex: none;
+  }
+  .resume-card.quick-card .rc-ic + .grow + .btn {
+    margin-left: 0;
+  }
+}
 /* sakelar Suara di menu */
 .btn.tile-btn[aria-pressed='false'] .ic {
   color: var(--ink-3);

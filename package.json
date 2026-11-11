@@ -34,7 +34,11 @@
     "deploy:preview": "npm run build && firebase hosting:channel:deploy pratinjau --only main --expires 7d",
     "icons": "node tools/icons.mjs",
     "test:pwa": "node test/pwa.js",
-    "test:analytics": "node test/analytics.js"
+    "test:analytics": "node test/analytics.js",
+    "balance:flow": "node tools/balance/flow.mjs",
+    "balance:couple": "node tools/balance/couple.mjs",
+    "balance:seat": "node tools/balance/seat.mjs",
+    "shots": "node tools/qa/shots.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

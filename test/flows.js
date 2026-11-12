@@ -10,7 +10,7 @@ const URL = (await serveDist()).url + '/';
 
 (async () => {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1366, height: 860 } });
+  const ctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 1366, height: 860 } });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -1575,7 +1575,7 @@ const URL = (await serveDist()).url + '/';
   // Aplikasi terpasang di iPhone (jarak aman atas/bawah): layar game pas satu layar, tidak tergulir, kartu pemain
   // tidak masuk ke bawah header (pernah: dokumen 93 px lebih tinggi dari layar → bisa tergulir)
   {
-    const sctx = await browser.newContext({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+    const sctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
     const sp = await sctx.newPage();
     sp.on('pageerror', e => errors.push('iphone pageerror: ' + e.message));
     await sp.addInitScript(() => {
@@ -1654,7 +1654,7 @@ const URL = (await serveDist()).url + '/';
   // HP yang sudah punya paspor lain diberi peringatan; persetujuan statistik tidak ikut
   {
     const dev = async (prof, prefs) => {
-      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const ctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       const p = await ctx.newPage();
       p.on('pageerror', e => errors.push('cadangan pageerror: ' + e.message));
       p.on('console', m => m.type() === 'error' && errors.push('cadangan console: ' + m.text()));
@@ -1805,7 +1805,7 @@ const URL = (await serveDist()).url + '/';
   // Pertanyaan Hari Ini: dua perangkat lewat tautan (#tanya=…) + satu HP bergantian + tautan rusak
   {
     const dev = async name => {
-      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const ctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       const p = await ctx.newPage();
       p.on('pageerror', e => errors.push(name + ' pageerror: ' + e.message));
       p.on('console', m => m.type() === 'error' && errors.push(name + ' console: ' + m.text()));

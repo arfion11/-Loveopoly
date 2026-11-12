@@ -1,5 +1,5 @@
 /* LOVEOPOLY — dialog permainan › menu, keluar, pengaturan, privasi (dikumpulkan lewat src/ui/modals.js) */
-import { App, SND, esc, ic, $, $$, toast, controls, viewer, act, canBuzz } from '../core.js';
+import { App, SND, esc, ic, $, $$, toast, controls, viewer, act, canBuzz, t, getLang } from '../core.js';
 import { BOARD_THEMES, levelOf, themeFor } from '../progress.js';
 import { parseBackup } from '../backup.js';
 import { UI } from '../ns.js';
@@ -12,7 +12,8 @@ import { analyticsOn, setAnalytics } from '../../analytics.js';
 function onlineControls() {
   const N = App.mode === 'online' ? App.net : null;
   if (!N || !N.doc) return '';
-  let h = '<div class="sec-title">Room ' + esc(N.code) + (N.isHost() ? ' · kamu host' : '') + '</div><div class="choice-list">';
+  let h =
+    '<div class="sec-title">' + esc(t(N.isHost() ? 'Room {c} · kamu host' : 'Room {c}', { c: N.code })) + '</div><div class="choice-list">';
   if (N.isHost()) {
     N.doc.seats.forEach((s, i) => {
       if (s.bot || i === App.seat) return;
@@ -21,14 +22,18 @@ function onlineControls() {
         'data-afk="' + i + '"',
         'choice',
         'bot',
-        s.afk ? 'Kembalikan kendali ke ' + s.name : 'Kendalikan ' + s.name + ' dengan AI' + (on === false ? ' (offline)' : '')
+        s.afk
+          ? t('Kembalikan kendali ke {n}', { n: s.name })
+          : t(on === false ? 'Kendalikan {n} dengan AI (offline)' : 'Kendalikan {n} dengan AI', { n: s.name })
       );
     });
-    h += '</div><div class="tiny muted">Pakai saat pasangan terputus lama supaya permainan tetap jalan.</div>';
+    h += '</div><div class="tiny muted">' + t('Pakai saat pasangan terputus lama supaya permainan tetap jalan.') + '</div>';
   } else {
     h +=
       btn('id="mTake"', 'choice', 'globe', 'Jadi host (kalau host offline)') +
-      '</div><div class="tiny muted">Hanya berhasil bila host benar-benar tidak aktif (±45 detik).</div>';
+      '</div><div class="tiny muted">' +
+      t('Hanya berhasil bila host benar-benar tidak aktif (±45 detik).') +
+      '</div>';
   }
   return h;
 }
@@ -102,7 +107,7 @@ function openMenu() {
       const canEndNow = controls(cur) && !S.queue.length && !S.over;
       return {
         title: 'Menu',
-        kicker: ic('menu') + 'Ronde ' + S.round,
+        kicker: ic('menu') + esc(t('Ronde {r}', { r: S.round })),
         body:
           '<div class="menu-grid">' +
           btn('id="mGuide"', 'tile-btn', 'book', 'Buku Panduan') +
@@ -124,11 +129,13 @@ function openMenu() {
             'id="mResign"',
             'choice danger',
             'flag',
-            confirm === 'resign' ? 'Yakin menyerah? Kotamu kembali ke bank' : 'Menyerah (' + S.players[cur].name + ')',
+            confirm === 'resign' ? 'Yakin menyerah? Kotamu kembali ke bank' : t('Menyerah ({n})', { n: S.players[cur].name }),
             !canEndNow
           ) +
           '</div>' +
-          (!canEndNow ? '<div class="tiny muted">Akhiri/menyerah hanya di giliran pemain manusia tanpa keputusan tertunda.</div>' : '') +
+          (!canEndNow
+            ? '<div class="tiny muted">' + t('Akhiri/menyerah hanya di giliran pemain manusia tanpa keputusan tertunda.') + '</div>'
+            : '') +
           onlineControls(),
         foot: '',
       };
@@ -188,15 +195,19 @@ function openExit() {
     size: 'mid',
     build: () => ({
       title: 'Keluar ke Menu?',
-      kicker: ic('exit') + 'Keluar',
+      kicker: ic('exit') + esc(t('Keluar')),
       body:
         App.mode === 'online'
           ? '<div class="note">' +
             ic('info') +
-            '<span>Kamu bisa kembali kapan saja dengan kode room <b class="mono">' +
-            esc(App.net ? App.net.code : '') +
-            '</b>.</span></div>'
-          : '<div class="note">' + ic('info') + ' Progres tersimpan otomatis di perangkat ini. Lanjutkan dari menu utama kapan saja.</div>',
+            '<span>' +
+            t('Kamu bisa kembali kapan saja dengan kode room {c}.', { c: '<b class="mono">' + esc(App.net ? App.net.code : '') + '</b>' }) +
+            '</span></div>'
+          : '<div class="note">' +
+            ic('info') +
+            ' ' +
+            esc(t('Progres tersimpan otomatis di perangkat ini. Lanjutkan dari menu utama kapan saja.')) +
+            '</div>',
       foot: btn('id="xNo"', 'ghost', 'back', 'Tetap Main') + '<span class="grow"></span>' + btn('id="xYes"', 'primary', 'exit', 'Keluar'),
     }),
     mount: m => {
@@ -213,7 +224,43 @@ function seg(id, opts, val) {
     '<div class="seg" role="group" id="' +
     id +
     '">' +
-    opts.map(([k, l]) => '<button type="button" data-v="' + k + '" aria-pressed="' + (val === k) + '">' + l + '</button>').join('') +
+    opts
+      .map(([k, l]) => '<button type="button" data-v="' + k + '" aria-pressed="' + (val === k) + '">' + esc(t(l)) + '</button>')
+      .join('') +
+    '</div>'
+  );
+}
+const tr = t;
+// baris sakelar Pengaturan: judul + keterangan; nama aksesibel = judul yang terlihat
+const toggleRow = (id, title, note, on) =>
+  '<div class="toggle-row"><div><b>' +
+  esc(t(title)) +
+  '</b><div class="tiny muted">' +
+  esc(t(note)) +
+  '</div></div><button type="button" class="switch" role="switch" id="' +
+  id +
+  '" aria-checked="' +
+  !!on +
+  '" aria-label="' +
+  esc(t(title)) +
+  '"></button></div>';
+// Bahasa: label dwibahasa supaya selalu bisa ditemukan walau sedang di bahasa yang tidak dimengerti
+function langOpt() {
+  const cur = App.prefs.lang === 'id' || App.prefs.lang === 'en' ? App.prefs.lang : 'auto';
+  return (
+    '<div class="opt"><span class="label" id="sLangL">Bahasa · Language</span>' +
+    seg(
+      'sLang',
+      [
+        ['auto', 'Otomatis (ikut perangkat)'],
+        ['id', 'Indonesia'],
+        ['en', 'English'],
+      ],
+      cur
+    ).replace('role="group"', 'role="group" aria-labelledby="sLangL"') +
+    (cur === 'auto'
+      ? '<div class="tiny muted">' + esc(t('Sekarang: {l}', { l: getLang() === 'en' ? 'English' : 'Indonesia' })) + '</div>'
+      : '') +
     '</div>'
   );
 }
@@ -223,7 +270,9 @@ function boardThemeOpt() {
   const L = pp.name ? levelOf(pp.xp) : 1;
   const cur = themeFor(App.prefs.board, L);
   return (
-    '<div class="opt"><span class="label" id="sBoardL">Tema papan</span><div class="bt-grid" role="group" aria-labelledby="sBoardL">' +
+    '<div class="opt"><span class="label" id="sBoardL">' +
+    esc(t('Tema papan')) +
+    '</span><div class="bt-grid" role="group" aria-labelledby="sBoardL">' +
     BOARD_THEMES.map(t => {
       const open = L >= t.lv;
       return (
@@ -236,16 +285,24 @@ function boardThemeOpt() {
         '><span class="bt-sw" data-b="' +
         t.id +
         '" aria-hidden="true"></span><b>' +
-        esc(t.name) +
+        esc(tr(t.name)) +
         '</b><small>' +
-        (open ? (cur === t.id ? ic('check') + 'Dipakai' : 'Terbuka') : ic('lock') + 'Terbuka di Lv ' + t.lv) +
+        (open
+          ? cur === t.id
+            ? ic('check') + esc(tr('Dipakai'))
+            : esc(tr('Terbuka'))
+          : ic('lock') + esc(tr('Terbuka di Lv {l}', { l: t.lv }))) +
         '</small></button>'
       );
     }).join('') +
     '</div><div class="tiny muted">' +
-    (pp.name
-      ? 'Tema baru terbuka lewat Jam Terbang di Paspor Cinta (kamu sekarang Lv ' + L + '). Hanya mengubah warna papan di perangkat ini.'
-      : 'Buat Paspor Cinta untuk membuka tema papan lewat Jam Terbang.') +
+    esc(
+      pp.name
+        ? tr('Tema baru terbuka lewat Jam Terbang di Paspor Cinta (kamu sekarang Lv {l}). Hanya mengubah warna papan di perangkat ini.', {
+            l: L,
+          })
+        : tr('Buat Paspor Cinta untuk membuka tema papan lewat Jam Terbang.')
+    ) +
     '</div></div>'
   );
 }
@@ -253,11 +310,18 @@ function boardThemeOpt() {
 function backupOpt() {
   const has = !!UI.passport().name;
   const wa = has
-    ? 'https://wa.me/?text=' + encodeURIComponent('Cadangan Paspor Cinta Loveopoly (simpan untuk diri sendiri): ' + UI.backupLink())
+    ? 'https://wa.me/?text=' + encodeURIComponent(t('Cadangan Paspor Cinta Loveopoly (simpan untuk diri sendiri):') + ' ' + UI.backupLink())
     : '';
   return (
-    '<div class="opt"><span class="label">Cadangan Paspor</span>' +
-    '<div class="tiny muted">Jam Terbang, Api Cinta, lencana & cap kota hanya tersimpan di perangkat ini. Simpan tautan cadangan di catatan atau chat pribadimu supaya bisa dipulihkan di HP lain atau setelah data browser terhapus. Siapa pun yang memegang tautannya bisa memulihkan paspormu.</div>' +
+    '<div class="opt"><span class="label">' +
+    esc(t('Cadangan Paspor')) +
+    '</span><div class="tiny muted">' +
+    esc(
+      t(
+        'Jam Terbang, Api Cinta, lencana & cap kota hanya tersimpan di perangkat ini. Simpan tautan cadangan di catatan atau chat pribadimu supaya bisa dipulihkan di HP lain atau setelah data browser terhapus. Siapa pun yang memegang tautannya bisa memulihkan paspormu.'
+      )
+    ) +
+    '</div>' +
     (has
       ? '<div class="bk-row">' +
         btn('id="sBackup"', 'soft', 'share', 'Cadangkan') +
@@ -265,9 +329,13 @@ function backupOpt() {
         esc(wa) +
         '">' +
         ic('chat') +
-        '<span>WhatsApp ke diri sendiri</span></a></div>'
-      : '<div class="tiny muted">Buat Paspor Cinta dulu untuk bisa mencadangkan.</div>') +
-    '<label class="label" for="sRestoreIn">Pulihkan dari tautan cadangan</label><div class="bk-row"><input class="input" id="sRestoreIn" placeholder="loveopoly.web.app/#pulihkan=…" autocomplete="off" spellcheck="false">' +
+        '<span>' +
+        esc(t('WhatsApp ke diri sendiri')) +
+        '</span></a></div>'
+      : '<div class="tiny muted">' + esc(t('Buat Paspor Cinta dulu untuk bisa mencadangkan.')) + '</div>') +
+    '<label class="label" for="sRestoreIn">' +
+    esc(t('Pulihkan dari tautan cadangan')) +
+    '</label><div class="bk-row"><input class="input" id="sRestoreIn" placeholder="loveopoly.web.app/#pulihkan=…" autocomplete="off" spellcheck="false">' +
     btn('id="sRestoreGo"', 'ghost', 'refresh', 'Pulihkan') +
     '</div></div>'
   );
@@ -278,32 +346,48 @@ function openSettings() {
     size: 'mid',
     build: () => ({
       title: 'Pengaturan',
-      kicker: ic('sliders') + 'Tersimpan di perangkat ini',
+      kicker: ic('sliders') + esc(t('Tersimpan di perangkat ini')),
       body:
         '<div class="opt-list">' +
-        '<div class="toggle-row"><div><b>Efek suara</b><div class="tiny muted">Dadu, koin, kartu, dan musik kecil.</div></div><button type="button" class="switch" role="switch" id="sSound" aria-checked="' +
-        App.prefs.sound +
-        '" aria-label="Efek suara"></button></div>' +
-        '<div class="toggle-row"><div><b>Papan 3D</b><div class="tiny muted">Papan miring dengan ilustrasi berdiri seperti pop-up. Matikan untuk papan datar.</div></div><button type="button" class="switch" role="switch" id="sView3d" aria-checked="' +
-        (App.prefs.view3d !== false) +
-        '" aria-label="Papan 3D"></button></div>' +
+        langOpt() +
+        toggleRow('sSound', 'Efek suara', 'Dadu, koin, kartu, dan musik kecil.', App.prefs.sound) +
+        toggleRow(
+          'sView3d',
+          'Papan 3D',
+          'Papan miring dengan ilustrasi berdiri seperti pop-up. Matikan untuk papan datar.',
+          App.prefs.view3d !== false
+        ) +
         (canBuzz()
-          ? '<div class="toggle-row"><div><b>Getar halus</b><div class="tiny muted">Getaran singkat saat kamu melempar dadu, membeli kota, menang & naik level. Mati otomatis saat Hemat baterai.</div></div><button type="button" class="switch" role="switch" id="sHaptic" aria-checked="' +
-            (App.prefs.haptics !== false) +
-            '" aria-label="Getar halus"></button></div>'
+          ? toggleRow(
+              'sHaptic',
+              'Getar halus',
+              'Getaran singkat saat kamu melempar dadu, membeli kota, menang & naik level. Mati otomatis saat Hemat baterai.',
+              App.prefs.haptics !== false
+            )
           : '') +
-        '<div class="toggle-row"><div><b>Sorot langkah (HP)</b><div class="tiny muted">Saat pion berjalan, papan mendekat mengikuti pion supaya nama & gambar petak besar, lalu kembali menampilkan seluruh papan.</div></div><button type="button" class="switch" role="switch" id="sWalkCam" aria-checked="' +
-        (App.prefs.walkCam !== false) +
-        '" aria-label="Sorot langkah (HP)"></button></div>' +
-        '<div class="toggle-row"><div><b>Akhiri giliran otomatis</b><div class="tiny muted">Giliran selesai sendiri ±2 detik setelah semua beres. Sentuh layar untuk menahan.</div></div><button type="button" class="switch" role="switch" id="sAutoEnd" aria-checked="' +
-        (App.prefs.autoEnd !== false) +
-        '" aria-label="Akhiri giliran otomatis"></button></div>' +
-        '<div class="toggle-row"><div><b>Bantu kembangkan Loveopoly</b><div class="tiny muted">Kirim statistik pemakaian anonim (Google Analytics) & laporan error. Tanpa nama, pesan, foto, atau kode room.</div></div><button type="button" class="switch" role="switch" id="sStats" aria-checked="' +
-        analyticsOn() +
-        '" aria-label="Bantu kembangkan Loveopoly"></button></div>' +
+        toggleRow(
+          'sWalkCam',
+          'Sorot langkah (HP)',
+          'Saat pion berjalan, papan mendekat mengikuti pion supaya nama & gambar petak besar, lalu kembali menampilkan seluruh papan.',
+          App.prefs.walkCam !== false
+        ) +
+        toggleRow(
+          'sAutoEnd',
+          'Akhiri giliran otomatis',
+          'Giliran selesai sendiri ±2 detik setelah semua beres. Sentuh layar untuk menahan.',
+          App.prefs.autoEnd !== false
+        ) +
+        toggleRow(
+          'sStats',
+          'Bantu kembangkan Loveopoly',
+          'Kirim statistik pemakaian anonim (Google Analytics) & laporan error. Tanpa nama, pesan, foto, atau kode room.',
+          analyticsOn()
+        ) +
         boardThemeOpt() +
         backupOpt() +
-        '<div class="opt"><span class="label">Hemat baterai</span>' +
+        '<div class="opt"><span class="label">' +
+        esc(t('Hemat baterai')) +
+        '</span>' +
         seg(
           'sPower',
           [
@@ -313,10 +397,18 @@ function openSettings() {
           ],
           App.prefs.power || 'auto'
         ) +
-        '<div class="tiny muted opt-note">Hiasan yang terus bergerak (Merpi, bola dunia) diam & latar Kabar Merpi bergerak pelan supaya HP tidak cepat panas & baterai awet. Langkah pion, dadu & kartu tetap beranimasi. Otomatis: nyala di HP yang lebih ringan atau saat HP sedang berat (diukur ulang tiap kali dibuka). ' +
-        (UI.lowPower() ? 'Di perangkat ini sekarang: nyala.' : 'Di perangkat ini sekarang: mati.') +
+        '<div class="tiny muted opt-note">' +
+        esc(
+          t(
+            'Hiasan yang terus bergerak (Merpi, bola dunia) diam & latar Kabar Merpi bergerak pelan supaya HP tidak cepat panas & baterai awet. Langkah pion, dadu & kartu tetap beranimasi. Otomatis: nyala di HP yang lebih ringan atau saat HP sedang berat (diukur ulang tiap kali dibuka).'
+          ) +
+            ' ' +
+            t(UI.lowPower() ? 'Di perangkat ini sekarang: nyala.' : 'Di perangkat ini sekarang: mati.')
+        ) +
         '</div></div>' +
-        '<div class="opt"><span class="label">Kecepatan animasi</span>' +
+        '<div class="opt"><span class="label">' +
+        esc(t('Kecepatan animasi')) +
+        '</span>' +
         seg(
           'sSpeed',
           [
@@ -326,7 +418,9 @@ function openSettings() {
           App.prefs.speed
         ) +
         '</div>' +
-        '<div class="opt"><span class="label">Kecepatan AI</span>' +
+        '<div class="opt"><span class="label">' +
+        esc(t('Kecepatan AI')) +
+        '</span>' +
         seg(
           'sAi',
           [
@@ -337,7 +431,9 @@ function openSettings() {
           App.prefs.aiSpeed
         ) +
         '</div>' +
-        '<div class="opt"><span class="label">Tema</span>' +
+        '<div class="opt"><span class="label">' +
+        esc(t('Tema')) +
+        '</span>' +
         seg(
           'sTheme',
           [
@@ -429,6 +525,7 @@ function openSettings() {
         ['#sAi', 'aiSpeed'],
         ['#sTheme', 'theme'],
         ['#sPower', 'power'],
+        ['#sLang', 'lang'],
       ].forEach(([sel, k]) =>
         $$(sel + ' [data-v]', m).forEach(b =>
           b.addEventListener('click', () => {
@@ -436,7 +533,8 @@ function openSettings() {
             UI.savePrefs();
             UI.applyTheme();
             UI.wakeCalm();
-            refreshModal();
+            if (k === 'lang') UI.relang().then(() => refreshModal());
+            else refreshModal();
           })
         )
       );
@@ -453,9 +551,10 @@ function openPrivacy() {
     key: 'privacy',
     size: 'mid',
     build: () => {
-      const row = (icon, title, text) => '<div class="pv-row">' + ic(icon) + '<div><b>' + title + '</b><p>' + text + '</p></div></div>';
+      const row = (icon, title, text) =>
+        '<div class="pv-row">' + ic(icon) + '<div><b>' + esc(t(title)) + '</b><p>' + esc(t(text)) + '</p></div></div>';
       return {
-        kicker: ic('shield') + 'Privasi',
+        kicker: ic('shield') + esc(t('Privasi')),
         title: 'Data kamu di Loveopoly',
         body:
           '<div class="pv-list">' +
@@ -478,9 +577,11 @@ function openPrivacy() {
           row(
             'globe',
             'Main online',
-            'Saat main online kamu masuk tanpa akun (login anonim Firebase: kode acak, tanpa email/nomor HP). Nama, avatar, isi permainan, surat, dan Foto Bukti disimpan di room (Google Firebase) dan hanya bisa dibuka oleh orang yang tahu kode room-nya.' +
+            t(
+              'Saat main online kamu masuk tanpa akun (login anonim Firebase: kode acak, tanpa email/nomor HP). Nama, avatar, isi permainan, surat, dan Foto Bukti disimpan di room (Google Firebase) dan hanya bisa dibuka oleh orang yang tahu kode room-nya.'
+            ) +
               (window.LOVE_FIREBASE && window.LOVE_FIREBASE.appCheckSiteKey
-                ? ' Untuk menangkal bot, main online memakai Google reCAPTCHA.'
+                ? ' ' + t('Untuk menangkal bot, main online memakai Google reCAPTCHA.')
                 : '')
           ) +
           row(
@@ -498,7 +599,13 @@ function openPrivacy() {
           (confirmDel
             ? '<div class="note warn">' +
               ic('alert') +
-              '<span>Hapus Paspor Cinta, simpanan game, dan pengaturan di perangkat ini? Tidak bisa dibatalkan. Simpan tautan cadangan dulu (Pengaturan → Cadangan Paspor) kalau ingin memulihkannya nanti.</span></div>'
+              '<span>' +
+              esc(
+                t(
+                  'Hapus Paspor Cinta, simpanan game, dan pengaturan di perangkat ini? Tidak bisa dibatalkan. Simpan tautan cadangan dulu (Pengaturan → Cadangan Paspor) kalau ingin memulihkannya nanti.'
+                )
+              ) +
+              '</span></div>'
             : '') +
           btn(
             'id="pvDel"',

@@ -11,7 +11,6 @@ import {
   $$,
   App,
   RULES,
-  TILES,
   avatarHTML,
   coin,
   controls,
@@ -24,6 +23,8 @@ import {
   runsAI,
   safeImg,
   setHTML,
+  t,
+  tLog,
 } from './base.js';
 import { toast } from './notify.js';
 import { miniStrip } from './layout.js';
@@ -58,18 +59,19 @@ function playerCardHTML(S, p, compact) {
   // selama papan muncul & undian giliran (App.revealing), siapa yang jalan duluan dirahasiakan
   const active = p.i === S.turn.p && !S.over && !App.revealing;
   const tags = [];
-  if (p.bankrupt) tags.push('<span class="tag warn">' + ic('alert') + 'Bangkrut</span>');
-  if (p.island) tags.push('<span class="tag sea">' + ic('island') + 'Pulau Rindu</span>');
-  if (p.tour) tags.push('<span class="tag sky">' + ic('plane') + 'World Tour</span>');
-  if (p.skip) tags.push('<span class="tag warn">' + ic('pause') + 'Lewat giliran</span>');
-  if (p.discount) tags.push('<span class="tag good">' + ic('ticket') + 'Diskon ' + Math.round(p.discount * 100) + '%</span>');
+  if (p.bankrupt) tags.push('<span class="tag warn">' + ic('alert') + esc(t('Bangkrut')) + '</span>');
+  if (p.island) tags.push('<span class="tag sea">' + ic('island') + esc(t('Pulau Rindu')) + '</span>');
+  if (p.tour) tags.push('<span class="tag sky">' + ic('plane') + esc(t('World Tour')) + '</span>');
+  if (p.skip) tags.push('<span class="tag warn">' + ic('pause') + esc(t('Lewat giliran')) + '</span>');
+  if (p.discount)
+    tags.push('<span class="tag good">' + ic('ticket') + esc(t('Diskon {d}%', { d: Math.round(p.discount * 100) })) + '</span>');
   const held = {};
   p.cards.forEach(c => {
     const k = E.CARD[c].power;
     held[k] = (held[k] || 0) + 1;
   });
   Object.keys(held).forEach(k =>
-    tags.push('<span class="tag lilac" title="' + esc(D.POWER[k].name) + '">' + ic(D.POWER[k].icon) + '×' + held[k] + '</span>')
+    tags.push('<span class="tag lilac" title="' + esc(t(D.POWER[k].name)) + '">' + ic(D.POWER[k].icon) + '×' + held[k] + '</span>')
   );
   if (!tweens[p.i]) App.cashShown[p.i] = p.cash;
   const kind =
@@ -77,9 +79,9 @@ function playerCardHTML(S, p, compact) {
       ? 'AI ' + { easy: 'Easy', normal: 'Normal', hard: 'Hard' }[p.ai]
       : App.mode === 'online'
         ? p.i === App.seat
-          ? 'Kamu'
+          ? t('Kamu')
           : 'Online'
-        : 'Pemain';
+        : t('Pemain');
   const presence = App.mode === 'online' && App.net ? App.net.presenceDot(p.i) : '';
   if (compact) {
     return (
@@ -114,8 +116,10 @@ function playerCardHTML(S, p, compact) {
     p.i +
     '" style="--c:' +
     p.color +
-    '"><span class="sr-only">Lihat aset: </span>' +
-    (active ? '<span class="turn-pill">Giliran</span>' : '') +
+    '"><span class="sr-only">' +
+    esc(t('Lihat aset:')) +
+    ' </span>' +
+    (active ? '<span class="turn-pill">' + esc(t('Giliran')) + '</span>' : '') +
     '<span class="pc-top">' +
     avatarHTML(p) +
     '<span class="pc-id"><span class="pc-name">' +
@@ -131,26 +135,32 @@ function playerCardHTML(S, p, compact) {
     '">' +
     fmt(App.cashShown[p.i]) +
     '</b></span>' +
-    '<span class="pc-meta"><span title="Total aset">' +
+    '<span class="pc-meta"><span title="' +
+    esc(t('Total aset')) +
+    '">' +
     ic('briefcase') +
     fmt(nw) +
-    '</span><span title="Kota">' +
+    '</span><span title="' +
+    esc(t('Kota')) +
+    '">' +
     ic('house') +
     cities +
-    '</span><span title="Wisata">' +
+    '</span><span title="' +
+    esc(t('Wisata')) +
+    '">' +
     ic('ferris') +
     spots +
     '</span></span>' +
     '<span class="pc-love" title="Love Meter ' +
     p.love +
     '/100 · ' +
-    esc(tier.name) +
+    esc(t(tier.name)) +
     '">' +
     ic('heart') +
     '<span class="meter"><i style="--v:' +
     p.love +
     '%"></i></span><b>' +
-    esc(tier.name) +
+    esc(t(tier.name)) +
     '</b></span>' +
     (tags.length ? '<span class="pc-tags">' + tags.join('') + '</span>' : '') +
     '</button>'
@@ -217,23 +227,26 @@ function infoCardHTML(S) {
   let h =
     '<div class="info-card"><div class="ic-row"><span class="ic-title">' +
     ic('calendar') +
-    'Ronde ' +
-    S.round +
-    (lim ? ' dari ' + lim : '') +
+    esc(lim ? t('Ronde {r} dari {n}', { r: S.round, n: lim }) : t('Ronde {r}', { r: S.round })) +
     '</span></div>' +
     (lim ? '<span class="meter gold"><i style="--v:' + pct + '%"></i></span>' : '') +
     newsCardHTML(S) +
-    '<div class="ic-wins"><b>Cara menang cepat</b>';
+    '<div class="ic-wins"><b>' +
+    esc(t('Cara menang cepat')) +
+    '</b>';
   if (S.settings.instantWin)
     h +=
       '<span>' +
       ic('trophy') +
-      'Trio Warna: 3 grup penuh (1 grup 3 kota)</span><span>' +
+      esc(t('Trio Warna: 3 grup penuh (1 grup 3 kota)')) +
+      '</span><span>' +
       ic('map') +
-      'Raja Jalur: 1 jalur penuh</span><span>' +
+      esc(t('Raja Jalur: 1 jalur penuh')) +
+      '</span><span>' +
       ic('ferris') +
-      'Kolektor Wisata: 5 wisata</span>';
-  h += '<span>' + ic('alert') + 'Buat lawan bangkrut</span></div></div>';
+      esc(t('Kolektor Wisata: 5 wisata')) +
+      '</span>';
+  h += '<span>' + ic('alert') + esc(t('Buat lawan bangkrut')) + '</span></div></div>';
   return h;
 }
 // Kabar Merpi & Musim Puncak: pil kecil di samping chip ronde (ketuk = detail) dan blok di kartu info desktop
@@ -244,17 +257,36 @@ function newsBits(S) {
   return { n, peak, mom };
 }
 const MOMENT_TXT = 'tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu, berhasil = hadiah untuk berdua';
+const MOMENT_CAP = 'Tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu, berhasil = hadiah untuk berdua';
+const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
 function newsPillHTML(S) {
   const { n, peak, mom } = newsBits(S);
   if (mom && !n && !peak)
-    return '<button type="button" class="news-pill moment" data-news>' + ic('users') + '<span class="np-t">Momen Berdua</span></button>';
+    return (
+      '<button type="button" class="news-pill moment" data-news>' +
+      ic('users') +
+      '<span class="np-t">' +
+      esc(t('Momen Berdua')) +
+      '</span></button>'
+    );
   if (!n && !peak) return '';
   return (
     '<button type="button" class="news-pill' +
     (peak ? ' peak' : '') +
-    '" data-news><span class="sr-only">Kabar Merpi: </span>' +
-    (n ? ic(NEWS_ICON[n.id] || 'sparkle') + '<span class="np-t">' + esc(n.label) + '</span>' : '') +
-    (peak ? '<span class="sr-only">' + (n ? ', ' : '') + 'Musim </span>' + ic('bolt') + '<span class="np-t">Puncak</span>' : '') +
+    '" data-news><span class="sr-only">' +
+    esc(t('Kabar Merpi:')) +
+    ' </span>' +
+    (n ? ic(NEWS_ICON[n.id] || 'sparkle') + '<span class="np-t">' + esc(t(n.label)) + '</span>' : '') +
+    (peak
+      ? '<span class="sr-only">' +
+        (n ? ', ' : '') +
+        esc(t('Musim')) +
+        ' </span>' +
+        ic('bolt') +
+        '<span class="np-t">' +
+        esc(t('Puncak')) +
+        '</span>'
+      : '') +
     '</button>'
   );
 }
@@ -267,27 +299,31 @@ function newsCardHTML(S) {
     (mom
       ? '<div class="nc-row moment">' +
         ic('users') +
-        '<span><b>Momen Berdua</b><small>' +
-        esc(MOMENT_TXT.charAt(0).toUpperCase() + MOMENT_TXT.slice(1)) +
+        '<span><b>' +
+        esc(t('Momen Berdua')) +
+        '</b><small>' +
+        esc(t(MOMENT_CAP)) +
         '</small></span></div>'
       : '') +
     (n
       ? '<div class="nc-row">' +
         ic(NEWS_ICON[n.id] || 'sparkle') +
-        '<span><b>Kabar Merpi: ' +
-        esc(n.label) +
+        '<span><b>' +
+        esc(t('Kabar Merpi: {l}', { l: { t: n.label } })) +
         '</b><small>' +
-        esc(n.text.charAt(0).toUpperCase() + n.text.slice(1)) +
-        ' · sisa ' +
-        n.left +
-        ' ronde</small></span></div>'
+        esc(cap(t(n.tpl, n.tp))) +
+        ' · ' +
+        esc(t('sisa {n} {n|ronde|ronde}', { n: n.left })) +
+        '</small></span></div>'
       : '') +
     (peak
       ? '<div class="nc-row peak">' +
         ic('bolt') +
-        '<span><b>Musim Puncak</b><small>Semua tol ×' +
-        String(RULES.peakMult).replace('.', ',') +
-        ' sampai akhir</small></span></div>'
+        '<span><b>' +
+        esc(t('Musim Puncak')) +
+        '</b><small>' +
+        esc(t('Semua tol ×{m} sampai akhir', { m: RULES.peakMult })) +
+        '</small></span></div>'
       : '') +
     '</div>'
   );
@@ -297,9 +333,9 @@ function showNewsToast() {
   if (!n && !peak && !mom) return;
   toast(
     [
-      mom ? 'Momen Berdua ronde ini: ' + MOMENT_TXT + '.' : '',
-      n ? n.label + ': ' + n.text + ' (sisa ' + n.left + ' ronde).' : '',
-      peak ? 'Musim Puncak: semua tol ×' + String(RULES.peakMult).replace('.', ',') + ' sampai akhir permainan.' : '',
+      mom ? t('Momen Berdua ronde ini: {x}.', { x: { t: MOMENT_TXT } }) : '',
+      n ? t('{l}: {x} (sisa {n} {n|ronde|ronde}).', { l: { t: n.label }, x: { t: n.tpl, p: n.tp }, n: n.left }) : '',
+      peak ? t('Musim Puncak: semua tol ×{m} sampai akhir permainan.', { m: RULES.peakMult }) : '',
     ]
       .filter(Boolean)
       .join(' '),
@@ -322,7 +358,7 @@ function logCardHTML(S) {
         '">' +
         ic(l.icon in Icons.paths ? l.icon : 'dot') +
         '</span><span>' +
-        esc(l.text) +
+        esc(tLog(l)) +
         '</span></li>'
     )
     .join('');
@@ -330,7 +366,10 @@ function logCardHTML(S) {
   return (
     '<div class="log-card"><div class="ic-row"><span class="ic-title">' +
     ic('history') +
-    'Kabar terbaru</span><button type="button" class="link-btn" id="logMore">Semua</button></div><ul class="log">' +
+    esc(t('Kabar terbaru')) +
+    '</span><button type="button" class="link-btn" id="logMore">' +
+    esc(t('Semua')) +
+    '</button></div><ul class="log">' +
     items +
     '</ul></div>'
   );
@@ -343,20 +382,24 @@ function renderStage(S) {
   if (UI.notePlay) UI.notePlay(S); // Api Cinta: minggu ini tercatat saat game mencapai ronde 3 (paspor)
   const cur = S.players[S.turn.p];
   const lim = S.settings.roundLimit;
-  setHTML($('#roundChip'), ic('calendar') + '<span>Ronde <b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span>');
+  setHTML($('#roundChip'), ic('calendar') + '<span>' + esc(t('Ronde')) + ' <b>' + S.round + '</b>' + (lim ? '/' + lim : '') + '</span>');
   setHTML($('#newsSlot'), newsPillHTML(S));
   renderAmbience(S);
   const tl = $('#turnLine');
   setHTML(
     tl,
     S.over
-      ? '<span class="tl-txt">' + ic('trophy') + ' Permainan selesai</span>'
+      ? '<span class="tl-txt">' + ic('trophy') + ' ' + esc(t('Permainan selesai')) + '</span>'
       : App.revealing
-        ? '<span class="tl-txt">' + ic('dice') + ' Mengundi giliran…</span>'
+        ? '<span class="tl-txt">' + ic('dice') + ' ' + esc(t('Mengundi giliran…')) + '</span>'
         : avatarHTML(cur, 'xs') +
-          '<span class="tl-txt"><span class="tl-w">Giliran </span><b>' +
-          esc(cur.name) +
-          '</b></span>' +
+          '<span class="tl-txt">' +
+          // "Giliran Arfi" / "Arfi's turn": urutan kata beda per bahasa, jadi satu templat (label "Giliran" tetap bisa disembunyikan)
+          t('{w}{n}§giliran', {
+            w: '<span class="tl-w">' + esc(t('Giliran §baris')) + '</span>',
+            n: '<b>' + esc(cur.name) + '</b>',
+          }) +
+          '</span>' +
           '<span class="tl-round">' +
           ic('calendar') +
           'R' +
@@ -366,7 +409,9 @@ function renderStage(S) {
           (cur.island
             ? '<span class="tag sea">' +
               ic('island') +
-              '<span class="tl-w">Pulau Rindu </span>' +
+              '<span class="tl-w">' +
+              esc(t('Pulau Rindu')) +
+              ' </span>' +
               cur.islandTries +
               '/' +
               RULES.islandTurns +
@@ -402,11 +447,11 @@ function renderStage(S) {
     '" id="' +
     id +
     '"' +
-    (title ? ' title="' + esc(title) + '"' : '') +
+    (title ? ' title="' + esc(t(title)) + '"' : '') +
     '>' +
     (icon ? ic(icon) : '') +
     '<span>' +
-    esc(label) +
+    esc(t(label)) +
     '</span></button>';
   let aiming = false,
     mode = '';
@@ -415,11 +460,11 @@ function renderStage(S) {
     ah = btn('cShowWin', 'primary big', 'trophy', 'Lihat Hasil');
     binds.push(['cShowWin', () => UI.showWin()]);
   } else if (S.paused) {
-    nh = 'Permainan dijeda.';
+    nh = esc(t('Permainan dijeda.'));
     ah = btn('cResume', 'primary big', 'play', 'Lanjutkan');
     binds.push(['cResume', () => UI.togglePause()]);
   } else if (App.revealing) {
-    nh = 'Papan disiapkan, sebentar lagi undian siapa yang jalan duluan…';
+    nh = esc(t('Papan disiapkan, sebentar lagi undian siapa yang jalan duluan…'));
   } else if (App.animating) {
     nh = dots;
   } else {
@@ -448,14 +493,14 @@ function renderStage(S) {
           '</span>';
         // online: pemilik tantangan yang menunggu penilai boleh membatalkan (penilai pergi / tidak merespons)
         if (it.type === 'CHALLENGE' && it.who !== it.p && controls(it.p)) {
-          ah = btn('cChCancel', 'ghost', 'x', 'Batalkan tantangan', 'Lewati bila ' + who.name + ' tidak merespons');
+          ah = btn('cChCancel', 'ghost', 'x', 'Batalkan tantangan', t('Lewati bila {n} tidak merespons', { n: who.name }));
           binds.push(['cChCancel', () => act({ type: 'CH_RESOLVE', p: it.p, result: 'skip' })]);
         }
       }
     } else if (!controls(a)) {
       nh =
         '<span class="wait">' +
-        (runsAI(a) ? ic('bot') + esc(cur.name) + ' sedang berpikir' : ic('clock') + 'Menunggu ' + esc(cur.name)) +
+        (runsAI(a) ? ic('bot') + esc(t('{n} sedang berpikir', { n: cur.name })) : ic('clock') + esc(t('Menunggu {n}', { n: cur.name }))) +
         ' ' +
         dots +
         '</span>';
@@ -467,18 +512,20 @@ function renderStage(S) {
         ah += btn('cRoll', 'go', 'dice', 'Cari Kembar', 'Lempar: dadu kembar = keluar dan jalan');
         ah +=
           '<div class="isle-opts">' +
-          btn('cIslePay', 'soft', 'boat', 'Bayar ' + RULES.islandFee, 'Bayar perahu dan lempar dadu biasa') +
+          btn('cIslePay', 'soft', 'boat', t('Bayar {a}', { a: RULES.islandFee }), 'Bayar perahu dan lempar dadu biasa') +
           (p.cards.some(c => E.CARD[c].power === 'escape') ? btn('cIsleCard', 'soft lilac', 'key', 'Tiket Pulang') : '') +
           (!p.islandCh
             ? btn('cIsleCh', 'soft rose', 'heart', 'Rindu Challenge', 'Lulus tantangan = keluar gratis. Gagal = tetap di pulau.')
             : '') +
           '</div>';
-        nh = 'Terdampar! Percobaan ' + (p.islandTries + 1) + '/' + RULES.islandTurns + '. Kembar = keluar, atau pilih cara lain.';
+        nh = esc(t('Terdampar! Percobaan {a}/{b}. Kembar = keluar, atau pilih cara lain.', { a: p.islandTries + 1, b: RULES.islandTurns }));
       } else if (E.canRoll(S, a)) {
         if (S.settings.diceControl) {
           aiming = true;
           ah =
-            '<div class="aim" role="group" aria-label="Bidik hasil dadu">' +
+            '<div class="aim" role="group" aria-label="' +
+            esc(t('Bidik hasil dadu')) +
+            '">' +
             [
               ['low', 'Kecil', '2–5'],
               ['mid', 'Sedang', '6–8'],
@@ -490,12 +537,10 @@ function renderStage(S) {
                   k +
                   '" aria-pressed="' +
                   (App.aim === k) +
-                  '" title="Bidik total ' +
-                  r +
-                  ' (berhasil ' +
-                  Math.round(RULES.aimChance * 100) +
-                  '%)"><b>' +
-                  l +
+                  '" title="' +
+                  esc(t('Bidik total {r} (berhasil {p}%)', { r, p: Math.round(RULES.aimChance * 100) })) +
+                  '"><b>' +
+                  esc(t(l)) +
                   '</b><small>' +
                   r +
                   '</small></button>'
@@ -503,15 +548,27 @@ function renderStage(S) {
               .join('') +
             '</div>';
         }
-        ah += btn('cRoll', 'go', 'dice', S.turn.canRollAgain ? 'Lempar Lagi!' : 'Lempar', App.aim ? 'Bidik ' + E.AIM_LABEL[App.aim] : '');
-        nh = S.turn.canRollAgain
-          ? 'Dadu kembar! Kamu dapat lemparan bonus.'
-          : S.settings.diceControl
-            ? 'Pilih bidikan (opsional), lalu tekan Lempar.'
-            : 'Tekan Lempar untuk berjalan.';
+        ah += btn(
+          'cRoll',
+          'go',
+          'dice',
+          S.turn.canRollAgain ? 'Lempar Lagi!' : 'Lempar',
+          App.aim ? t('Bidik {x}', { x: { t: E.AIM_LABEL[App.aim] } }) : ''
+        );
+        nh = esc(
+          t(
+            S.turn.canRollAgain
+              ? 'Dadu kembar! Kamu dapat lemparan bonus.'
+              : S.settings.diceControl
+                ? 'Pilih bidikan (opsional), lalu tekan Lempar.'
+                : 'Tekan Lempar untuk berjalan.'
+          )
+        );
       } else if (E.canEnd(S, a)) {
         ah = btn('cEnd', 'primary big', 'check', 'Akhiri Giliran');
-        nh = App.prefs.autoEnd !== false ? 'Giliran berakhir otomatis. Sentuh layar untuk menahan.' : 'Tekan Akhiri Giliran untuk lanjut.';
+        nh = esc(
+          t(App.prefs.autoEnd !== false ? 'Giliran berakhir otomatis. Sentuh layar untuk menahan.' : 'Tekan Akhiri Giliran untuk lanjut.')
+        );
       }
       const roll = () => {
         const aim = App.aim;
@@ -551,7 +608,7 @@ function renderStage(S) {
 }
 // selama undian giliran belum terungkap (App.revealing), entri "Undian giliran: … jalan duluan" disembunyikan
 function visibleLog(S) {
-  return App.revealing ? S.log.filter(l => !/^Undian giliran:/.test(l.text)) : S.log;
+  return App.revealing ? S.log.filter(l => !/^Undian giliran:/.test(l.text || '')) : S.log;
 }
 function renderTicker(S) {
   const el = $('#ticker');
@@ -562,50 +619,52 @@ function renderTicker(S) {
     setHTML(el, '');
     return;
   }
-  if (setHTML(el, ic(l.icon in Icons.paths ? l.icon : 'dot') + '<span>' + esc(l.text) + '</span>')) restart(el, 'new');
+  if (setHTML(el, ic(l.icon in Icons.paths ? l.icon : 'dot') + '<span>' + esc(tLog(l)) + '</span>')) restart(el, 'new');
 }
 function describeItem(S, it, mine) {
-  const t = it.tile != null ? TILES[it.tile] : null;
+  const k = it.tile != null ? { tile: it.tile } : '';
   switch (it.type) {
     case 'BUY':
-      return mine ? 'Beli ' + t.name + '?' : 'memutuskan membeli ' + t.name;
+      return mine ? t('Beli {k}?', { k }) : t('memutuskan membeli {k}', { k });
     case 'UPGRADE':
-      return mine ? 'Bangun di ' + t.name + '?' : 'membangun di ' + t.name;
+      return mine ? t('Bangun di {k}?', { k }) : t('membangun di {k}', { k });
     case 'RENT':
-      return mine ? 'Bayar tol ' + fmt(it.amount) + '.' : 'membayar tol ' + fmt(it.amount);
+      return mine ? t('Bayar tol {a}.', { a: it.amount }) : t('membayar tol {a}', { a: it.amount });
     case 'TAKEOVER':
-      return mine ? 'Ambil alih ' + t.name + '?' : 'mempertimbangkan ambil alih ' + t.name;
+      return mine ? t('Ambil alih {k}?', { k }) : t('mempertimbangkan ambil alih {k}', { k });
     case 'TAX':
-      return mine ? 'Bayar Pajak Rindu.' : 'membayar Pajak Rindu';
+      return t(mine ? 'Bayar Pajak Rindu.' : 'membayar Pajak Rindu');
     case 'CARD':
-      return mine ? 'Buka Kartu Cinta.' : 'membuka Kartu Cinta';
+      return t(mine ? 'Buka Kartu Cinta.' : 'membuka Kartu Cinta');
     case 'CHALLENGE': {
       const ch = E.CH[it.ch],
-        lb = ch ? D.CH_TYPES[ch.type].label : 'tantangan';
+        lb = { t: ch ? D.CH_TYPES[ch.type].label : 'tantangan' };
       if (it.who != null && it.who !== it.p)
-        return mine ? 'Giliranmu menilai ' + lb + '.' : S.players[it.who].name + ' sedang menilai ' + lb;
-      return mine ? lb + ' menunggu.' : 'mengerjakan ' + lb;
+        return mine ? t('Giliranmu menilai {c}.', { c: lb }) : t('{n} sedang menilai {c}', { n: S.players[it.who].name, c: lb });
+      return mine ? t('{c} menunggu.', { c: lb }) : t('mengerjakan {c}', { c: lb });
     }
     case 'DEBT':
-      return mine ? 'Uangmu kurang ' + fmt(it.amount - S.players[it.p].cash) + '.' : 'sedang mencari dana';
+      return mine ? t('Uangmu kurang {a}.', { a: it.amount - S.players[it.p].cash }) : t('sedang mencari dana');
     case 'TARGET':
-      return mine
-        ? {
-            festival: 'Pilih kota tuan rumah Festival Cinta di papan.',
-            build: 'Pilih kotamu untuk dibangun di papan.',
-            renov: 'Pilih kota untuk renovasi gratis.',
-            storm: 'Pilih kota lawan untuk Badai Rindu.',
-            swap: 'Pilih kota yang mau ditukar.',
-          }[it.kind]
-        : {
-            festival: 'memilih kota festival',
-            build: 'memilih kota untuk dibangun',
-            renov: 'memilih kota renovasi',
-            storm: 'memilih sasaran badai',
-            swap: 'memilih kota untuk ditukar',
-          }[it.kind];
+      return t(
+        mine
+          ? {
+              festival: 'Pilih kota tuan rumah Festival Cinta di papan.',
+              build: 'Pilih kotamu untuk dibangun di papan.',
+              renov: 'Pilih kota untuk renovasi gratis.',
+              storm: 'Pilih kota lawan untuk Badai Rindu.',
+              swap: 'Pilih kota yang mau ditukar.',
+            }[it.kind]
+          : {
+              festival: 'memilih kota festival',
+              build: 'memilih kota untuk dibangun',
+              renov: 'memilih kota renovasi',
+              storm: 'memilih sasaran badai',
+              swap: 'memilih kota untuk ditukar',
+            }[it.kind]
+      );
     case 'TOUR':
-      return mine ? 'World Tour: pilih tujuan di papan.' : 'memilih tujuan World Tour';
+      return t(mine ? 'World Tour: pilih tujuan di papan.' : 'memilih tujuan World Tour');
     default:
       return '';
   }
@@ -632,7 +691,7 @@ function renderProofPin(S) {
   const k = S.photos.length + ':' + ph.r + ':' + ph.p;
   if (pin.dataset.k === k) return;
   pin.dataset.k = k;
-  pin.setAttribute('aria-label', 'Galeri foto bukti (' + S.photos.length + ')');
+  pin.setAttribute('aria-label', t('Galeri foto bukti ({n})', { n: S.photos.length }));
   pin.innerHTML =
     '<img src="' +
     safeImg(ph.img) +

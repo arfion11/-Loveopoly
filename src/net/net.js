@@ -8,11 +8,13 @@
    Host memvalidasi setiap aksi dengan engine yang sama (giliran, saldo, kepemilikan), menolak data basi (baseSeq),
    dan mencatat ack per intent sehingga aksi ganda tidak pernah diterapkan dua kali. */
 import { UI } from '../ui/ns.js';
-import { App, D, E, toast, esc, ic, store, KEYS } from '../ui/core.js';
+import { App, D, E, toast, esc, ic, store, KEYS, t } from '../ui/core.js';
 import { SND } from '../assets/audio.js';
 import { backend } from './backend.js';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+// pesan penolakan engine untuk toast: { text, k, a } supaya diterjemahkan ke bahasa perangkat ini
+const engErr = r => (r.errorT ? { text: r.error, k: r.errorT.k, a: r.errorT.a } : r.error);
 // hemat kuota Firestore: lease host 60 dtk diperpanjang tiap 25 dtk (gagal sekali masih aman), polling cadangan
 // 10 dtk (jalur utama tetap listener realtime), ambil manual setelah sinyal RTDB hanya bila data belum tiba
 const LEASE_MS = 60000,
@@ -110,12 +112,12 @@ const Net = {
       const code = e && e.code;
       this.initErr =
         code === 'sdk-load' || code === 'unavailable'
-          ? MSG.offline
+          ? t(MSG.offline)
           : code === 'auth'
-            ? MSG.auth
+            ? t(MSG.auth)
             : code === 'resource-exhausted'
-              ? MSG.full
-              : 'Gagal menyiapkan mode online: ' + (e && e.message ? e.message : 'tidak diketahui');
+              ? t(MSG.full)
+              : t('Gagal menyiapkan mode online: {m}', { m: e && e.message ? e.message : { t: 'tidak diketahui' } });
       return false;
     }
   },
@@ -179,7 +181,7 @@ const Net = {
     this.joined = true;
     store.set(KEYS.online, { code });
     const ok = await this.becomeHost();
-    if (!ok) throw new Error('Gagal mengunci room sebagai host.');
+    if (!ok) throw new Error(t('Gagal mengunci room sebagai host.'));
     this.subscribeRoom();
     this.joinPresence();
     return code;
@@ -189,18 +191,18 @@ const Net = {
     code = String(code || '')
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '');
-    if (code.length !== 6) throw new Error('Kode room terdiri dari 6 huruf/angka.');
+    if (code.length !== 6) throw new Error(t('Kode room terdiri dari 6 huruf/angka.'));
     const snap = await this.roomRef(code).get();
-    if (!snap.exists) throw new Error('Room ' + code + ' tidak ditemukan. Periksa kodenya.');
+    if (!snap.exists) throw new Error(t('Room {c} tidak ditemukan. Periksa kodenya.', { c: code }));
     const d = snap.data();
     this.code = code;
     this.doc = d;
     const seat = d.seats.findIndex(s => s.uid === this.uid && !s.bot);
     if (seat < 0) {
-      if ((d.kicked || []).includes(this.uid)) throw new Error('Kamu tidak bisa masuk ke room ini.');
-      if (d.status !== 'lobby') throw new Error('Permainan di room ini sudah dimulai.');
-      if (d.seats.length >= 4) throw new Error('Room penuh (maksimal 4 pemain).');
-      if (!profile) throw new Error('Isi profil pemain dulu.');
+      if ((d.kicked || []).includes(this.uid)) throw new Error(t('Kamu tidak bisa masuk ke room ini.'));
+      if (d.status !== 'lobby') throw new Error(t('Permainan di room ini sudah dimulai.'));
+      if (d.seats.length >= 4) throw new Error(t('Room penuh (maksimal 4 pemain).'));
+      if (!profile) throw new Error(t('Isi profil pemain dulu.'));
       await this.db
         .doc('lobby/' + this.uid)
         .set({ room: code, name: profile.name, avatar: profile.avatar, color: profile.color, msg: seatMsg(profile.msg), ts: Date.now() });
@@ -307,7 +309,7 @@ const Net = {
       toast(MSG.full, { kind: 'err' });
       return;
     }
-    toast('Koneksi room bermasalah (' + (code || 'error') + ').', { kind: 'err' });
+    toast(t('Koneksi room bermasalah ({c}).', { c: code || 'error' }), { kind: 'err' });
   },
   onRoomSnap(s) {
     this.lastSync = Date.now();
@@ -499,30 +501,32 @@ const Net = {
       '"><span class="online-dot' +
       (on ? ' on' : '') +
       '"></span>' +
-      (on ? 'Online' : 'Offline') +
+      esc(t(on ? 'Online' : 'Offline')) +
       '</span>'
     );
   },
   presenceDot(i) {
     const s = this.doc && this.doc.seats[i];
     if (!s || s.bot) return '';
-    if (s.afk) return '<span class="online-dot afk" title="Dikendalikan AI"></span>';
+    if (s.afk) return '<span class="online-dot afk" title="' + esc(t('Dikendalikan AI')) + '"></span>';
     const on = this.isOnline(s.uid);
     if (on == null) return '';
-    return '<span class="online-dot' + (on ? ' on' : '') + '" title="' + (on ? 'Online' : 'Offline') + '"></span>';
+    return '<span class="online-dot' + (on ? ' on' : '') + '" title="' + esc(t(on ? 'Online' : 'Offline')) + '"></span>';
   },
   chipHTML() {
     const live = (this.named && this.connected) || Date.now() - this.lastSync < 20000;
     return (
       '<span class="chip ' +
       (live ? 'mint' : 'plain') +
-      ' net-chip" title="Room online">' +
+      ' net-chip" title="' +
+      esc(t('Room online')) +
+      '">' +
       ic('globe') +
       '<span class="mono">' +
       esc(this.code) +
       '</span>' +
       (this.isHost() ? '<span class="host-tag"> · host</span>' : '') +
-      (this.sending ? ' · mengirim…' : '') +
+      (this.sending ? ' · ' + esc(t('mengirim…')) : '') +
       '</span>'
     );
   },
@@ -737,7 +741,7 @@ const Net = {
     if (!d || !d.state) return false;
     const r = E.dispatch(d.state, action);
     if (!r.ok) {
-      toast(r.error, { kind: 'err' });
+      toast(engErr(r), { kind: 'err' });
       SND.play('error');
       return false;
     }
@@ -774,7 +778,7 @@ const Net = {
               this.stepDown('Host dipindahkan ke pemain lain.');
               break;
             }
-            toast('Gagal menyimpan room (' + (e && e.code ? e.code : 'error') + ').', { kind: 'err' });
+            toast(t('Gagal menyimpan room ({c}).', { c: e && e.code ? e.code : 'error' }), { kind: 'err' });
             break;
           }
         }
@@ -824,7 +828,7 @@ const Net = {
     const base = this.doc.state && this.doc.state.seq >= App.S.seq ? this.doc.state : App.S;
     const pre = E.dispatch(base, action);
     if (!pre.ok) {
-      toast(pre.error, { kind: 'err' });
+      toast(engErr(pre), { kind: 'err' });
       SND.play('error');
       return false;
     }
@@ -846,7 +850,7 @@ const Net = {
       })
       .catch(e => {
         this.sending = null;
-        toast('Gagal mengirim aksi (' + (e && e.code ? e.code : 'error') + '). Periksa koneksi lalu coba lagi.', { kind: 'err' });
+        toast(t('Gagal mengirim aksi ({c}). Periksa koneksi lalu coba lagi.', { c: e && e.code ? e.code : 'error' }), { kind: 'err' });
         UI.renderHeader();
       });
     UI.renderHeader();
@@ -875,7 +879,7 @@ const Net = {
     const n = this.doc.seats.filter(s => s.bot).length;
     this.doc.seats.push({
       uid: null,
-      name: D.AI_NAMES[n % D.AI_NAMES.length],
+      name: t(D.AI_NAMES[n % D.AI_NAMES.length]),
       avatar: D.AVATARS.find(a => !usedAv.includes(a)),
       color: D.TOKEN_COLORS.find(c => !used.includes(c)),
       bot: true,
@@ -945,7 +949,7 @@ const Net = {
     if (!s || s.bot) return;
     s.afk = !!on;
     this.writeRoom();
-    toast(on ? s.name + ' sementara dikendalikan AI.' : s.name + ' kembali mengendalikan pionnya.', { icon: 'bot' });
+    toast(t(on ? '{n} sementara dikendalikan AI.' : '{n} kembali mengendalikan pionnya.', { n: s.name }), { icon: 'bot' });
     UI.renderAll();
     UI.scheduleAI();
   },

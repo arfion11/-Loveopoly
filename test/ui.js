@@ -137,7 +137,7 @@ const MONKEY = () => {
   const browser = await chromium.launch();
   const errors = [];
   async function newPage(viewport, scheme, label, extra) {
-    const ctx = await browser.newContext(Object.assign({ viewport, colorScheme: scheme || 'light' }, extra || {}));
+    const ctx = await browser.newContext(Object.assign({ locale: 'id-ID', viewport, colorScheme: scheme || 'light' }, extra || {}));
     const page = await ctx.newPage();
     page.on('console', m => {
       if (m.type() === 'error') errors.push(label + ' console: ' + m.text());

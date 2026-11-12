@@ -1,5 +1,5 @@
 /* LOVEOPOLY — dialog permainan › dialog keputusan (beli, bangun, tol, rebut, pajak, kartu, utang) & sinkronisasi dengan state (dikumpulkan lewat src/ui/modals.js) */
-import { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $$, controls, pname, act, coin, buzz } from '../core.js';
+import { App, D, E, SND, ART, TILES, GROUPS, RULES, fmt, esc, ic, $$, controls, pname, act, coin, buzz, t as tr, tLog } from '../core.js';
 import { UI } from '../ns.js';
 import {
   btn,
@@ -61,8 +61,9 @@ function dBuy(key) {
       const can = p.cash >= cost;
       let body = cityHero(S, it.tile) + groupProgress(S, it.p, it.tile);
       if (t.type === 'city') {
-        body += '<div class="sec-title">Bangun sekaligus</div>' + levelCards(S, it.p, it.tile, -1, sel, allowed, costFn);
-        if (E.capLevel(S, it.p) < 3) body += '<div class="note">' + ic('info') + ' Hotel terbuka setelah kamu melewati START sekali.</div>';
+        body += '<div class="sec-title">' + esc(tr('Bangun sekaligus')) + '</div>' + levelCards(S, it.p, it.tile, -1, sel, allowed, costFn);
+        if (E.capLevel(S, it.p) < 3)
+          body += '<div class="note">' + ic('info') + ' ' + esc(tr('Hotel terbuka setelah kamu melewati START sekali.')) + '</div>';
       } else {
         body +=
           '<div class="spot-table">' +
@@ -72,18 +73,25 @@ function dBuy(key) {
                 '<span class="' +
                 (k === E.spotsOf(S, it.p).length ? 'cur' : '') +
                 '"><b>' +
-                (k + 1) +
-                ' wisata</b>Tol ' +
-                fmt(r) +
+                esc(tr('{n} wisata', { n: k + 1 })) +
+                '</b>' +
+                esc(tr('Tol {a}', { a: r })) +
                 '</span>'
             )
             .join('') +
           '</div><div class="note">' +
           ic('shield') +
-          ' Tempat wisata tidak bisa diambil alih lawan.</div>';
+          ' ' +
+          esc(tr('Tempat wisata tidak bisa diambil alih lawan.')) +
+          '</div>';
       }
       if (p.discount)
-        body += '<div class="note good">' + ic('ticket') + ' Voucher diskon ' + Math.round(p.discount * 100) + '% dipakai.</div>';
+        body +=
+          '<div class="note good">' +
+          ic('ticket') +
+          ' ' +
+          esc(tr('Voucher diskon {d}% dipakai.', { d: Math.round(p.discount * 100) })) +
+          '</div>';
       E.winThreats(S)
         .filter(x => x.tile === it.tile)
         .forEach(x => {
@@ -93,21 +101,23 @@ function dBuy(key) {
             '">' +
             ic(x.p === it.p ? 'trophy' : 'alert') +
             ' ' +
-            (x.p === it.p
-              ? 'Beli ini dan kamu menang ' + esc(UI.winLabel(x)) + '!'
-              : esc(S.players[x.p].name) + ' butuh petak ini untuk ' + esc(UI.winLabel(x)) + '. Beli untuk menghalangi!') +
+            esc(
+              x.p === it.p
+                ? tr('Beli ini dan kamu menang {w}!', { w: UI.winLabel(x) })
+                : tr('{n} butuh petak ini untuk {w}. Beli untuk menghalangi!', { n: S.players[x.p].name, w: UI.winLabel(x) })
+            ) +
             '</div>';
         });
       body += sumRow(p.cash, cost, can);
       return {
-        kicker: ic('flag') + 'Petak kosong',
-        title: 'Beli ' + t.name + '?',
+        kicker: ic('flag') + esc(tr('Petak kosong')),
+        title: tr('Beli {k}?', { k: { tile: it.tile } }),
         who: whoLine(it.p),
         body,
         foot:
           btn('id="bSkip"', 'ghost', '', 'Lewati') +
           '<span class="grow"></span>' +
-          btn('id="bBuy"', 'primary big', 'flag', 'Beli · ' + fmt(cost), !can),
+          btn('id="bBuy"', 'primary big', 'flag', tr('Beli · {a}', { a: cost }), !can),
       };
     },
     mount: m => {
@@ -138,7 +148,6 @@ function dUpgrade(key) {
         it = head();
       if (!it || it.type !== 'UPGRADE') return null;
       const p = S.players[it.p],
-        t = TILES[it.tile],
         st = S.tiles[it.tile];
       const allowed = E.upgradeLevels(S, it.p, it.tile);
       const costFn = k => E.upgradeCost(S, it.p, it.tile, k);
@@ -148,21 +157,31 @@ function dUpgrade(key) {
       const src = { visit: 'Mampir ke kotamu', start: 'Bonus berhenti di START', takeover: 'Kota baru hasil ambil alih' }[it.src] || '';
       let body = cityHero(S, it.tile, { owner: false }) + levelCards(S, it.p, it.tile, st.level, sel, allowed, costFn);
       if (st.level === 3)
-        body += '<div class="note gold">' + ic('crown') + '<span>Landmark: tol tertinggi dan <b>kebal diambil alih</b>.</span></div>';
+        body +=
+          '<div class="note gold">' +
+          ic('crown') +
+          '<span>' +
+          tr('Landmark: tol tertinggi dan {b}.', { b: '<b>' + esc(tr('kebal diambil alih')) + '</b>' }) +
+          '</span></div>';
       else if (E.capLevel(S, it.p) < 3)
-        body += '<div class="note">' + ic('info') + ' Hotel terbuka setelah kamu melewati START sekali.</div>';
+        body += '<div class="note">' + ic('info') + ' ' + esc(tr('Hotel terbuka setelah kamu melewati START sekali.')) + '</div>';
       if (p.discount)
-        body += '<div class="note good">' + ic('ticket') + ' Voucher diskon ' + Math.round(p.discount * 100) + '% dipakai.</div>';
+        body +=
+          '<div class="note good">' +
+          ic('ticket') +
+          ' ' +
+          esc(tr('Voucher diskon {d}% dipakai.', { d: Math.round(p.discount * 100) })) +
+          '</div>';
       body += sumRow(p.cash, cost, can);
       return {
-        kicker: ic('build') + esc(src),
-        title: (st.level === 3 ? 'Bangun Landmark di ' : 'Bangun di ') + t.name + '?',
+        kicker: ic('build') + esc(tr(src)),
+        title: tr(st.level === 3 ? 'Bangun Landmark di {k}?' : 'Bangun di {k}?', { k: { tile: it.tile } }),
         who: whoLine(it.p),
         body,
         foot:
           btn('id="bSkip"', 'ghost', '', 'Nanti saja') +
           '<span class="grow"></span>' +
-          btn('id="bUp"', 'primary big', sel === 4 ? 'crown' : 'build', 'Bangun · ' + fmt(cost), !can),
+          btn('id="bUp"', 'primary big', sel === 4 ? 'crown' : 'build', tr('Bangun · {a}', { a: cost }), !can),
       };
     },
     mount: m => {
@@ -200,18 +219,18 @@ function dRent(key) {
         ri.parts.forEach(x => {
           rows +=
             '<div class="kv"><span>' +
-            esc(x.label) +
+            esc(tLog(x.label)) +
             '</span><b>' +
-            (x.v != null ? fmt(x.v) : x.m ? '×' + String(x.m).replace('.', ',') : '+' + x.pct + '%') +
+            (x.v != null ? fmt(x.v) : x.m ? '×' + esc(tr('{m}', { m: x.m })) : '+' + x.pct + '%') +
             '</b></div>';
         });
-      if (it.discountUsed) rows += '<div class="kv good"><span>Kupon Tol 50%</span><b>÷2</b></div>';
+      if (it.discountUsed) rows += '<div class="kv good"><span>' + esc(tr('Kupon Tol 50%')) + '</span><b>÷2</b></div>';
       let body =
         cityHero(S, it.tile) +
         '<div class="toll-big" style="--oc:' +
         o.color +
-        '"><span>Tol untuk ' +
-        esc(o.name) +
+        '"><span>' +
+        esc(tr('Tol untuk {n}', { n: o.name })) +
         '</span><b>' +
         coin +
         fmt(it.amount) +
@@ -223,27 +242,27 @@ function dRent(key) {
         body +=
           '<div class="note warn">' +
           ic('alert') +
-          ' Uangmu kurang ' +
-          fmt(it.amount - p.cash) +
-          '. Setelah menekan Bayar, kamu bisa menjual kota.</div>';
+          ' ' +
+          esc(tr('Uangmu kurang {a}. Setelah menekan Bayar, kamu bisa menjual kota.', { a: it.amount - p.cash })) +
+          '</div>';
       if (S.settings.takeover && TILES[it.tile].type === 'city' && S.tiles[it.tile].level < 4)
         body +=
           '<div class="tiny muted">' +
           ic('swap') +
-          ' Setelah bayar, kamu boleh mengambil alih kota ini seharga ' +
-          fmt(E.takeoverPrice(S, it.tile)) +
-          '.</div>';
+          ' ' +
+          esc(tr('Setelah bayar, kamu boleh mengambil alih kota ini seharga {a}.', { a: E.takeoverPrice(S, it.tile) })) +
+          '</div>';
       return {
         tone: 'warn',
-        kicker: ic('coins') + 'Kota lawan',
+        kicker: ic('coins') + esc(tr('Kota lawan')),
         title: 'Bayar Tol',
-        who: whoLine(it.p, 'ke ' + esc(o.name)),
+        who: whoLine(it.p, esc(tr('ke {n}', { n: o.name }))),
         body,
         foot:
-          (nAngel ? btn('id="bAngel"', 'lilac', 'angel', 'Malaikat (' + nAngel + ')') : '') +
+          (nAngel ? btn('id="bAngel"', 'lilac', 'angel', tr('Malaikat ({n})', { n: nAngel })) : '') +
           (nDisc && !it.discountUsed ? btn('id="bDisc"', 'soft', 'ticket', 'Kupon 50%') : '') +
           '<span class="grow"></span>' +
-          btn('id="bPay"', 'primary big', 'coins', can ? 'Bayar ' + fmt(it.amount) : 'Bayar · jual aset'),
+          btn('id="bPay"', 'primary big', 'coins', can ? tr('Bayar {a}', { a: it.amount }) : 'Bayar · jual aset'),
       };
     },
     mount: m => {
@@ -273,45 +292,63 @@ function dTakeover(key) {
       const w = E.winCheck(after, it.p);
       if (w && S.settings.instantWin)
         notes.push(
-          '<div class="note good">' + ic('trophy') + ' Ambil alih ini dan kamu langsung menang (' + esc(UI.winLabel(w)) + ')!</div>'
+          '<div class="note good">' +
+            ic('trophy') +
+            ' ' +
+            esc(tr('Ambil alih ini dan kamu langsung menang ({w})!', { w: UI.winLabel(w) })) +
+            '</div>'
         );
       if (t.type === 'city' && !E.ownsGroup(S, it.p, t.group) && E.ownsGroup(after, it.p, t.group))
         notes.push(
-          '<div class="note good">' + ic('check') + ' Melengkapi grup ' + esc(GROUPS[t.group].name) + ': tol semua kotanya ×2.</div>'
+          '<div class="note good">' +
+            ic('check') +
+            ' ' +
+            esc(tr('Melengkapi grup {g}: tol semua kotanya ×2.', { g: { t: GROUPS[t.group].name } })) +
+            '</div>'
         );
       if (t.type === 'city' && E.ownsGroup(S, it.owner, t.group))
-        notes.push('<div class="note">' + ic('swap') + ' Memecah grup penuh milik ' + esc(o.name) + '.</div>');
+        notes.push('<div class="note">' + ic('swap') + ' ' + esc(tr('Memecah grup penuh milik {n}.', { n: o.name })) + '</div>');
       E.winThreats(S)
         .filter(x => x.p === it.owner)
         .forEach(x => {
           if (E.winThreats(after).every(y => !(y.p === x.p && y.tile === x.tile)))
-            notes.push('<div class="note">' + ic('shield') + ' Menghalangi ' + esc(o.name) + ' menuju ' + esc(UI.winLabel(x)) + '.</div>');
+            notes.push(
+              '<div class="note">' +
+                ic('shield') +
+                ' ' +
+                esc(tr('Menghalangi {n} menuju {w}.', { n: o.name, w: UI.winLabel(x) })) +
+                '</div>'
+            );
         });
       return {
         tone: 'take',
-        kicker: ic('swap') + 'Ambil alih',
-        title: 'Rebut ' + t.name + '?',
-        who: whoLine(it.p, 'dari ' + esc(o.name)),
+        kicker: ic('swap') + esc(tr('Ambil alih')),
+        title: tr('Rebut {k}?', { k: { tile: it.tile } }),
+        who: whoLine(it.p, esc(tr('dari {n}', { n: o.name }))),
         body:
           cityHero(S, it.tile) +
-          '<div class="kv-list"><div class="kv"><span>Nilai kota (tanah + bangunan)</span><b>' +
+          '<div class="kv-list"><div class="kv"><span>' +
+          esc(tr('Nilai kota (tanah + bangunan)')) +
+          '</span><b>' +
           fmt(E.tileValue(S, it.tile)) +
-          '</b></div><div class="kv"><span>Harga ambil alih (×' +
-          RULES.takeoverMult +
-          ')</span><b>' +
+          '</b></div><div class="kv"><span>' +
+          esc(tr('Harga ambil alih (×{m})', { m: RULES.takeoverMult })) +
+          '</span><b>' +
           fmt(it.price) +
-          '</b></div><div class="kv"><span>Uangmu setelahnya</span><b>' +
+          '</b></div><div class="kv"><span>' +
+          esc(tr('Uangmu setelahnya')) +
+          '</span><b>' +
           fmt(p.cash - it.price) +
           '</b></div></div>' +
           notes.join('') +
-          '<div class="tiny muted">Uangnya dibayar ke ' +
-          esc(o.name) +
-          '. Bangunan ikut pindah, dan kamu bisa langsung membangun lagi.</div>' +
-          (c.ok ? '' : '<div class="note warn">' + esc(c.reason) + '</div>'),
+          '<div class="tiny muted">' +
+          esc(tr('Uangnya dibayar ke {n}. Bangunan ikut pindah, dan kamu bisa langsung membangun lagi.', { n: o.name })) +
+          '</div>' +
+          (c.ok ? '' : '<div class="note warn">' + esc(tLog(c.reason)) + '</div>'),
         foot:
           btn('id="bTkSkip"', 'ghost', '', 'Tidak') +
           '<span class="grow"></span>' +
-          btn('id="bTkBuy"', 'primary big', 'swap', 'Ambil Alih · ' + fmt(it.price), !c.ok),
+          btn('id="bTkBuy"', 'primary big', 'swap', tr('Ambil Alih · {a}', { a: it.price }), !c.ok),
       };
     },
     mount: m => {
@@ -333,20 +370,30 @@ function dTax(key) {
       if (!it || it.type !== 'TAX') return null;
       const p = S.players[it.p];
       return {
-        kicker: ic('tax') + 'Pajak Rindu',
-        title: 'Bayar Pajak ' + fmt(it.amount),
+        kicker: ic('tax') + esc(tr('Pajak Rindu')),
+        title: tr('Bayar Pajak {a}', { a: it.amount }),
         who: whoLine(it.p),
         hero: '<span class="hero-art">' + ART.art('tax') + '</span>',
         body:
-          '<p class="lead">Ongkir kado, pulsa, dan tiket pulang-pergi itu nyata. Pajak = ' +
-          Math.round(RULES.taxRate * 100) +
-          '% dari total asetmu.</p><div class="kv-list"><div class="kv"><span>Total aset</span><b>' +
+          '<p class="lead">' +
+          esc(
+            tr('Ongkir kado, pulsa, dan tiket pulang-pergi itu nyata. Pajak = {p}% dari total asetmu.', {
+              p: Math.round(RULES.taxRate * 100),
+            })
+          ) +
+          '</p><div class="kv-list"><div class="kv"><span>' +
+          esc(tr('Total aset')) +
+          '</span><b>' +
           fmt(E.netWorth(S, it.p)) +
-          '</b></div><div class="kv"><span>Pajak</span><b>' +
+          '</b></div><div class="kv"><span>' +
+          esc(tr('Pajak')) +
+          '</span><b>' +
           fmt(it.amount) +
           '</b></div></div>' +
-          (p.cash < it.amount ? '<div class="note warn">' + ic('alert') + ' Uangmu kurang. Kamu perlu menjual kota.</div>' : ''),
-        foot: '<span class="grow"></span>' + btn('id="bTax"', 'primary big', 'coins', 'Bayar ' + fmt(it.amount)),
+          (p.cash < it.amount
+            ? '<div class="note warn">' + ic('alert') + ' ' + esc(tr('Uangmu kurang. Kamu perlu menjual kota.')) + '</div>'
+            : ''),
+        foot: '<span class="grow"></span>' + btn('id="bTax"', 'primary big', 'coins', tr('Bayar {a}', { a: it.amount })),
       };
     },
     mount: m => {
@@ -425,27 +472,34 @@ function dCard(key) {
       const vis = cardVisual(c);
       let extra = '';
       if (c.power)
-        extra = '<div class="note good">' + ic(D.POWER[c.power].icon) + ' Kartu disimpan. ' + esc(D.POWER[c.power].desc) + '</div>';
+        extra =
+          '<div class="note good">' +
+          ic(D.POWER[c.power].icon) +
+          ' ' +
+          esc(tr('Kartu disimpan.')) +
+          ' ' +
+          esc(tr(D.POWER[c.power].desc)) +
+          '</div>';
       if (c.choice)
         extra =
           '<div class="choice-list">' +
           c.choice.map((o, i) => btn('data-ch="' + i + '"', 'choice', 'chevron', o.label)).join('') +
           '</div>';
       return {
-        kicker: ic('letter') + 'Kartu Cinta',
+        kicker: ic('letter') + esc(tr('Kartu Cinta')),
         title: c.title,
         who: whoLine(it.p),
         body:
           '<div class="love-card flip lc-' +
           vis.tone +
           '"><div class="lc-inner tilt3d"><div class="lc-front"><span class="lc-cat">' +
-          esc(c.cat) +
+          esc(tr(c.cat)) +
           '</span><span class="lc-med">' +
           vis.html +
           '</span><b>' +
-          esc(c.title) +
+          esc(tr(c.title)) +
           '</b><p>' +
-          esc(c.text) +
+          esc(tr(c.text)) +
           '</p></div><div class="lc-back" aria-hidden="true">' +
           ART.art('card') +
           '</div></div></div>' +
@@ -493,11 +547,11 @@ function dDebt(key) {
                 '"><span class="sr-art">' +
                 ART.art(tl.art) +
                 '</span><span class="sr-txt"><b>' +
-                esc(tl.name) +
+                esc(tr(tl.name)) +
                 '</b><span>' +
-                (tl.type === 'city' ? E.LEVEL_NAME[st.level] : 'Wisata') +
-                ' · nilai ' +
-                fmt(E.tileValue(S, t)) +
+                esc(tr(tl.type === 'city' ? E.LEVEL_NAME[st.level] : 'Wisata')) +
+                ' · ' +
+                esc(tr('nilai {a}', { a: E.tileValue(S, t) })) +
                 '</span></span>' +
                 btn('data-sell="' + t + '"', 'soft sm', 'coins', '+' + fmt(E.sellValue(S, t)), can) +
                 '</div>'
@@ -505,37 +559,45 @@ function dDebt(key) {
             })
             .join('') +
           '</div>'
-        : '<div class="empty">' + ic('house') + 'Tidak ada kota yang bisa dijual.</div>';
+        : '<div class="empty">' + ic('house') + esc(tr('Tidak ada kota yang bisa dijual.')) + '</div>';
       return {
         tone: 'warn',
-        kicker: ic('alert') + 'Uang kurang',
-        title: 'Cari Dana ' + fmt(it.amount),
-        who: whoLine(it.p, 'untuk ' + esc(it.reason)),
+        kicker: ic('alert') + esc(tr('Uang kurang')),
+        title: tr('Cari Dana {a}', { a: it.amount }),
+        who: whoLine(it.p, esc(tr('untuk {r}', { r: tLog(it.reason) }))),
         body:
-          '<div class="kv-list"><div class="kv"><span>Harus dibayar ke ' +
-          esc(it.to >= 0 ? pname(it.to) : 'Bank') +
+          '<div class="kv-list"><div class="kv"><span>' +
+          esc(tr('Harus dibayar ke {n}', { n: it.to >= 0 ? pname(it.to) : tr('Bank') })) +
           '</span><b>' +
           fmt(it.amount) +
-          '</b></div><div class="kv"><span>Uangmu</span><b>' +
+          '</b></div><div class="kv"><span>' +
+          esc(tr('Uangmu')) +
+          '</span><b>' +
           fmt(p.cash) +
-          '</b></div><div class="kv"><span>Kurang</span><b>' +
+          '</b></div><div class="kv"><span>' +
+          esc(tr('Kurang')) +
+          '</span><b>' +
           fmt(Math.max(0, it.amount - p.cash)) +
           '</b></div></div>' +
           (can
-            ? '<div class="note good">' + ic('check') + ' Uangmu sudah cukup. Tekan Bayar.</div>'
+            ? '<div class="note good">' + ic('check') + ' ' + esc(tr('Uangmu sudah cukup. Tekan Bayar.')) + '</div>'
             : enough
               ? '<div class="note">' +
                 ic('info') +
-                ' Jual kota ke bank (' +
-                Math.round(RULES.sellRate * 100) +
-                '% nilainya) sampai uangmu cukup.</div>'
-              : '<div class="note warn">' + ic('alert') + ' Semua asetmu tetap tidak cukup. Kamu harus menyatakan bangkrut.</div>') +
+                ' ' +
+                esc(tr('Jual kota ke bank ({p}% nilainya) sampai uangmu cukup.', { p: Math.round(RULES.sellRate * 100) })) +
+                '</div>'
+              : '<div class="note warn">' +
+                ic('alert') +
+                ' ' +
+                esc(tr('Semua asetmu tetap tidak cukup. Kamu harus menyatakan bangkrut.')) +
+                '</div>') +
           list +
-          (confirmBk ? '<div class="note warn">' + ic('alert') + ' Yakin? Kamu keluar dari permainan.</div>' : ''),
+          (confirmBk ? '<div class="note warn">' + ic('alert') + ' ' + esc(tr('Yakin? Kamu keluar dari permainan.')) + '</div>' : ''),
         foot:
           (!enough ? btn('id="bBk"', 'danger', 'flag', confirmBk ? 'Ya, Bangkrut' : 'Nyatakan Bangkrut') : '') +
           '<span class="grow"></span>' +
-          btn('id="bPayDebt"', 'primary big', 'check', 'Bayar ' + fmt(it.amount), !can),
+          btn('id="bPayDebt"', 'primary big', 'check', tr('Bayar {a}', { a: it.amount }), !can),
       };
     },
     mount: m => {

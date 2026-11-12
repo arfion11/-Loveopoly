@@ -11,7 +11,7 @@ const server = await serveDist(8127);
 
 (async () => {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 820 } });
+  const ctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 1280, height: 820 } });
   await ctx.addInitScript(MOCK);
   const errors = [];
   const mkPage = async u => {

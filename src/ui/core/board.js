@@ -3,7 +3,7 @@ import { ART } from '../../assets/art.js';
 import { SND } from '../../assets/audio.js';
 import { D } from '../../engine/data.js';
 import { E } from '../../engine/engine.js';
-import { $, $$, App, GROUPS, RULES, TILES, coin, controls, esc, fmt, hotseat, ic, pulse, reduceMotion } from './base.js';
+import { $, $$, App, GROUPS, RULES, TILES, coin, controls, esc, fmt, hotseat, ic, pulse, reduceMotion, t as tr, tile } from './base.js';
 import { banner, winLabel } from './notify.js';
 import { placeStage, setStageEl, stageEl } from './layout.js';
 import { is3d } from './camera.js';
@@ -24,12 +24,24 @@ function tilePos(i) {
   return { row: 1 + (i - 24), col: 9, side: 'right' };
 }
 function cornerSub(t) {
-  if (t.type === 'start') return 'Gaji +' + RULES.salary;
-  if (t.type === 'island') return 'Terdampar';
-  if (t.type === 'fest') return 'Tol ×2';
-  if (t.type === 'travel') return 'Terbang';
+  if (t.type === 'start') return tr('Gaji +{n}', { n: RULES.salary });
+  if (t.type === 'island') return tr('Terdampar');
+  if (t.type === 'fest') return tr('Tol ×2');
+  if (t.type === 'travel') return tr('Terbang§petak');
   return '';
 }
+// label aksesibel dasar petak (sebelum ada pemilik)
+const baseLabel = t =>
+  tile(t.i) +
+  (t.type === 'card'
+    ? ', ' + tr('ambil Kartu Cinta')
+    : t.type === 'tax'
+      ? ', ' + tr('bayar 10% aset')
+      : t.type === 'spot'
+        ? ', ' + tr('tempat wisata')
+        : cornerSub(t)
+          ? ', ' + cornerSub(t)
+          : '');
 function dieHTML(id) {
   const pips = {
     2: [
@@ -87,11 +99,11 @@ function tileInner(t, pos) {
       '<span class="t-face"><span class="t-art">' +
       ART.art(t.art) +
       '</span><span class="t-name">' +
-      esc(t.short) +
+      esc(tr(t.short)) +
       '</span><span class="t-sub">' +
       esc(cornerSub(t)) +
       '</span></span>' +
-      popHTML(t, '<span class="tp-tag tp-cn">' + esc(t.short) + '</span>', cornerSub(t))
+      popHTML(t, '<span class="tp-tag tp-cn">' + esc(tr(t.short)) + '</span>', cornerSub(t))
     );
   }
   const g = t.group ? GROUPS[t.group] : null;
@@ -100,7 +112,7 @@ function tileInner(t, pos) {
   if (t.price) price = '<span class="t-price">' + coin + '<b>' + fmt(t.price) + '</b></span>';
   else if (t.type === 'tax') price = '<span class="t-price muted"><b>10%</b></span>';
   else if (t.type === 'card') price = '<span class="t-price muted"><b>?</b></span>';
-  const kind = t.type === 'spot' ? '<span class="t-kind">Wisata</span>' : '';
+  const kind = t.type === 'spot' ? '<span class="t-kind">' + esc(tr('Wisata')) + '</span>' : '';
   void g;
   const tag = price ? price.replace('class="t-price', 'class="tp-tag t-price') : '';
   return (
@@ -111,11 +123,11 @@ function tileInner(t, pos) {
     '</span><span class="t-txt">' +
     kind +
     '<span class="t-name">' +
-    esc(t.short) +
+    esc(tr(t.short)) +
     '</span>' +
     price +
     '</span></span>' +
-    popHTML(t, tag, t.short) +
+    popHTML(t, tag, tr(t.short)) +
     '<span class="t-bld" aria-hidden="true"></span><span class="t-own" aria-hidden="true"></span><span class="t-fb" aria-hidden="true"></span>'
   );
 }
@@ -150,19 +162,7 @@ function buildBoard() {
       el.style.setProperty('--gi', GROUPS[t.group].ink);
     }
     el.dataset.i = t.i;
-    el.setAttribute(
-      'aria-label',
-      t.name +
-        (t.type === 'card'
-          ? ', ambil Kartu Cinta'
-          : t.type === 'tax'
-            ? ', bayar 10% aset'
-            : t.type === 'spot'
-              ? ', tempat wisata'
-              : cornerSub(t)
-                ? ', ' + cornerSub(t)
-                : '')
-    );
+    el.setAttribute('aria-label', baseLabel(t));
     el.innerHTML = tileInner(t, pos);
     el.addEventListener('click', e => onTileTap(t.i, e));
     b.appendChild(el);
@@ -307,15 +307,28 @@ function renderTile(el, S, fx) {
     fe.innerHTML = fv ? ic('party') + '<b>' + fv + '</b>' : '';
     el.classList.toggle('fest', !!fv);
   }
-  const lvName = E.LEVEL_NAME[st.level];
+  const lvName = tr(E.LEVEL_NAME[st.level]);
   el.setAttribute(
     'aria-label',
-    t.name +
+    tile(i) +
       (owned
-        ? ', milik ' + o.name + (t.type === 'city' ? ', ' + lvName : '') + ', tol ' + tollText(S, i)
-        : ', kosong, harga ' + fmt(t.price)) +
-      (fv ? ', festival ' + fv : '')
+        ? ', ' + tr('milik {n}', { n: o.name }) + (t.type === 'city' ? ', ' + lvName : '') + ', ' + tr('tol {n}', { n: tollText(S, i) })
+        : ', ' + tr('kosong, harga {n}', { n: t.price })) +
+      (fv ? ', ' + tr('festival {m}', { m: fv }) : '')
   );
+}
+// ganti bahasa di tengah permainan: tulis ulang teks petak tanpa membangun ulang papan (pion & animasi tetap)
+function relabelBoard() {
+  TILES.forEach(t => {
+    const el = tileEl(t.i);
+    if (!el) return;
+    el.setAttribute('aria-label', baseLabel(t));
+    el.querySelectorAll('.t-name, .tp-cn').forEach(x => (x.textContent = tr(t.short)));
+    el.querySelectorAll('.t-sub').forEach(x => (x.textContent = cornerSub(t)));
+    el.querySelectorAll('.tp-cap').forEach(x => (x.textContent = tilePos(t.i).side === 'corner' ? cornerSub(t) : tr(t.short)));
+    el.querySelectorAll('.t-kind').forEach(x => (x.textContent = tr('Wisata')));
+    el.querySelectorAll('.t-price').forEach(x => (x._h = null));
+  });
 }
 function renderBoard(S) {
   S = S || App.S;
@@ -345,8 +358,8 @@ function renderThreats(S) {
   const x = fresh[0],
     who = S.players[x.p];
   if (controls(x.p) && !hotseat())
-    banner('Satu petak lagi!', 'Dapatkan ' + TILES[x.tile].name + ' untuk ' + winLabel(x) + '.', 'goal', 2800);
-  else banner('Awas, ' + who.name + '!', 'Tinggal ' + TILES[x.tile].name + ' menuju ' + winLabel(x) + '.', 'warn', 2800);
+    banner('Satu petak lagi!', tr('Dapatkan {c} untuk {w}.', { c: tile(x.tile), w: winLabel(x) }), 'goal', 2800);
+  else banner(tr('Awas, {n}!', { n: who.name }), tr('Tinggal {c} menuju {w}.', { c: tile(x.tile), w: winLabel(x) }), 'warn', 2800);
   merpiSay(pick(D.MERPI.threat), 'wow', 2400);
   SND.play('event');
 }
@@ -354,4 +367,4 @@ function flashTile(i) {
   pulse(tileEl(i), 'flash', 1150);
 }
 
-export { buildBoard, flashTile, renderBoard, renderTile, tileEl, tilePos };
+export { buildBoard, flashTile, relabelBoard, renderBoard, renderTile, tileEl, tilePos };

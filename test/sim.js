@@ -234,6 +234,23 @@ let chFails = 0;
   ok('bluff: ketahuan → penilai dapat hadiah', r2.S.players[1].cash > 2500 && r2.S.players[0].cash === 2500);
   r2 = d(r.S, { type: 'CH_ANSWER', p: 1, pick: 0 });
   ok('bluff: berhasil mengecoh → pemilik dapat hadiah', r2.S.players[0].cash > 2500);
+  // pemain English: jawaban dalam English dinilai sama (nama petak TILES[].en, kata Peragakan! CHARADES_EN, kota di surat)
+  S = mk('scramble');
+  const scIt = S.queue[0];
+  r = d(S, { type: 'CH_ANSWER', p: 0, answers: scIt.pz.items.map(x => D.TILES[x.s].en || D.TILES[x.s].name), ms: 5000 });
+  ok('scramble: nama tempat English diterima', r.S && !r.S.queue.length && r.S.players[0].cash > 2500, r.err);
+  S = mk('charades');
+  const wEn = D.CHARADES_EN[D.CHARADES.indexOf(S.queue[0].pz.word)];
+  r = d(S, { type: 'CH_ANSWER', p: 0 });
+  r2 = d(r.S, { type: 'CH_ANSWER', p: 1, guess: wEn });
+  ok('charades: tebakan English diterima', !!wEn && r2.S && r2.S.players[0].cash > 2500, wEn);
+  const cityRule = D.CHALLENGES.find(c => c.id === 'ms2').rule;
+  const cc = E.messageChecks(cityRule, 'I miss you so much, see you in Rome, Prague and Venice very very soon my love');
+  ok(
+    'surat: nama kota English dihitung',
+    cc.every(c => c.ok),
+    cc.map(c => c.label.text + '=' + c.ok).join(', ')
+  );
   // charades
   S = mk('charades');
   const word = S.queue[0].pz.word;

@@ -14,7 +14,7 @@ fs.mkdirSync(OUT, { recursive: true });
     results = [];
   const ok = (n, c, d) => results.push((c ? 'PASS ' : 'FAIL ') + n + (d ? ' — ' + d : ''));
   const mk = async (label, viewport) => {
-    const ctx = await browser.newContext({ viewport });
+    const ctx = await browser.newContext({ locale: 'id-ID', viewport });
     await ctx.addInitScript(() => {
       try {
         localStorage.setItem(

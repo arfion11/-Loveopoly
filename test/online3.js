@@ -9,7 +9,7 @@ await serveDist(8134);
   const errs = [],
     results = [];
   const ok = (n, c, d) => results.push((c ? 'PASS ' : 'FAIL ') + n + (d ? ' — ' + d : ''));
-  const ctx = await b.newContext({ viewport: { width: 900, height: 820 } });
+  const ctx = await b.newContext({ locale: 'id-ID', viewport: { width: 900, height: 820 } });
   await ctx.addInitScript(MOCK);
   const mk = async u => {
     const p = await ctx.newPage();

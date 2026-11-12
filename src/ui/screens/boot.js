@@ -1,7 +1,7 @@
 /* LOVEOPOLY — layar › header & boot (dikumpulkan lewat src/ui/screens.js) */
 import { Icons } from '../../assets/icons.js';
 import { reportError } from '../../analytics.js';
-import { App, SND, ART, ic, $, toast, initPower } from '../core.js';
+import { App, SND, ART, ic, $, toast, initPower, applyLang, getLang, prepareLang, wantLang, t } from '../core.js';
 import { UI } from '../ns.js';
 import { activeScreen, applyTheme, keepGameTop, show, syncSoundBtn } from './base.js';
 import { openPassport, passport } from './passport.js';
@@ -48,7 +48,8 @@ function takeLink(link) {
   return true;
 }
 function boot() {
-  document.documentElement.lang = 'id';
+  // bahasa dipasang paling awal (ikut perangkat / setelan), sebelum layar & pesan apa pun dibuat
+  applyLang();
   keepGameTop();
   initPower();
   // tata letak papan memakai container query (iOS 16+, Chrome/Edge 105+, Firefox 110+)
@@ -79,7 +80,7 @@ function boot() {
   if (UI.imported)
     setTimeout(
       () =>
-        toast('Loveopoly pindah ke ' + location.host + '. Paspor, simpanan game, dan pengaturanmu ikut pindah.', {
+        toast(t('Loveopoly pindah ke {h}. Paspor, simpanan game, dan pengaturanmu ikut pindah.', { h: location.host }), {
           title: 'Alamat baru',
           icon: 'heart',
           kind: 'good',
@@ -103,6 +104,14 @@ function boot() {
 
 // dipanggil src/main.js setelah semua modul siap
 export const start = () => {
+  // English: kamus dimuat dulu (chunk terpisah, ±1 permintaan, lalu di-cache service worker); Indonesia langsung
+  if (wantLang() !== 'id' && getLang() === 'id') {
+    prepareLang().then(run);
+    return;
+  }
+  run();
+};
+const run = () => {
   try {
     boot();
   } catch (e) {
@@ -111,7 +120,7 @@ export const start = () => {
     const m = document.getElementById('fatal');
     if (m) {
       m.hidden = false;
-      m.textContent = 'Terjadi kesalahan saat memuat game: ' + e.message;
+      m.textContent = t('Terjadi kesalahan saat memuat game: {m}', { m: String(e && e.message) });
     }
   }
 };

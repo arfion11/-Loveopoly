@@ -30,6 +30,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - run: npm run test:sim
       - run: npm run test:progress
+      - run: npm run test:i18n
       - run: npm run test:flows
       - run: npm run test:online
       - run: npm run test:migrate

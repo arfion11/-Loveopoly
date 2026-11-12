@@ -1,11 +1,13 @@
 /* LOVEOPOLY — UI inti › dasar: helper DOM & teks, penyimpanan, impor data alamat lama, state App, kepemilikan kontrol (diekspor ulang lewat src/ui/core.js) */
 import { D } from '../../engine/data.js';
 import { E } from '../../engine/engine.js';
+import { detectLang, fmtNum, getLang, loadLang, setLang, t, tLog, tile } from '../../i18n/i18n.js';
 
 const { TILES, GROUPS, RULES } = D;
 const N = E.N;
 
-const fmt = n => Math.round(Number(n) || 0).toLocaleString('id-ID');
+// angka uang/jumlah: pemisah ribuan sesuai bahasa aktif (2.500 / 2,500)
+const fmt = n => fmtNum(Math.round(Number(n) || 0));
 const esc = s =>
   String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const ic = (n, cls) => '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#i-' + n + '"></use></svg>';
@@ -104,6 +106,27 @@ function leave(el, ms, deep) {
   setTimeout(() => el.remove(), ms || 260);
 }
 
+// Bahasa: prefs.lang 'auto' (ikut perangkat) | 'id' | 'en'. Memasang bahasa aktif, <html lang> & judul tab.
+// bahasa yang dipakai: pilihan di Pengaturan, atau (Otomatis) bahasa perangkat
+function wantLang() {
+  const want = App.prefs.lang === 'id' || App.prefs.lang === 'en' ? App.prefs.lang : 'auto';
+  const nav = typeof navigator !== 'undefined' ? navigator.languages || [navigator.language] : [];
+  return want === 'auto' ? detectLang(nav) : want;
+}
+// siapkan kamus bahasa yang dipakai (English dimuat terpisah, sekali)
+const prepareLang = () => loadLang(wantLang());
+function applyLang() {
+  const l = setLang(wantLang());
+  document.documentElement.lang = l;
+  document.title = t('Loveopoly · Board game keliling dunia bareng pasangan & teman');
+  // teks statis di index.html (aria-label dsb.): data-i18n = nama atribut, kunci asli disimpan di data-i18n-k
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const a = el.dataset.i18n;
+    if (!el.dataset.i18nK) el.dataset.i18nK = el.getAttribute(a) || '';
+    el.setAttribute(a, t(el.dataset.i18nK));
+  });
+  return l;
+}
 const App = {
   S: null,
   shown: null,
@@ -111,7 +134,10 @@ const App = {
   seat: -1,
   pending: [],
   animating: false,
-  prefs: Object.assign({ sound: true, speed: 'normal', aiSpeed: 'normal', theme: 'system', autoEnd: true }, store.get(KEYS.prefs, {})),
+  prefs: Object.assign(
+    { sound: true, speed: 'normal', aiSpeed: 'normal', theme: 'system', autoEnd: true, lang: 'auto' },
+    store.get(KEYS.prefs, {})
+  ),
   modal: null,
   focus: -1,
   aiTimer: null,
@@ -191,6 +217,11 @@ function pulse(el, cls, ms) {
 const avatarHTML = (p, cls) => '<span class="av ' + (cls || '') + '" style="--c:' + p.color + '"><span>' + esc(p.avatar) + '</span></span>';
 
 export {
+  applyLang,
+  getLang,
+  t,
+  tLog,
+  tile,
   $,
   $$,
   AISPD,
@@ -220,4 +251,6 @@ export {
   sleep,
   store,
   viewer,
+  prepareLang,
+  wantLang,
 };

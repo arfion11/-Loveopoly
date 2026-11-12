@@ -100,7 +100,7 @@
   <body>
     <div class="page-sky" aria-hidden="true"><span class="sky-fx sky-a"></span><span class="sky-fx sky-b"></span></div>
     <header class="hdr">
-      <a class="brand" href="#" id="brandHome" aria-label="Loveopoly, ke menu utama"
+      <a class="brand" href="#" id="brandHome" aria-label="Loveopoly, ke menu utama" data-i18n="aria-label"
         ><span class="brand-mark"></span><span class="brand-name">Loveopoly</span></a
       >
       <div class="hdr-mid" id="hdrMid"></div>
@@ -109,7 +109,7 @@
       </div>
     </header>
     <main>
-      <section class="screen" id="scrHome" aria-label="Menu utama">
+      <section class="screen" id="scrHome" aria-label="Menu utama" data-i18n="aria-label">
         <div class="empty big">
           <div class="spinner"></div>
           Memuat Loveopoly…
@@ -120,27 +120,28 @@
           </p></noscript
         >
       </section>
-      <section class="screen" id="scrSetup" aria-label="Pengaturan pemain" hidden></section>
-      <section class="screen" id="scrOnline" aria-label="Main online" hidden></section>
-      <section class="screen" id="scrGame" aria-label="Papan permainan" hidden>
+      <section class="screen" id="scrSetup" aria-label="Pengaturan pemain" data-i18n="aria-label" hidden></section>
+      <section class="screen" id="scrOnline" aria-label="Main online" data-i18n="aria-label" hidden></section>
+      <section class="screen" id="scrGame" aria-label="Papan permainan" data-i18n="aria-label" hidden>
         <div class="game" id="game">
-          <aside class="seat-col left" aria-label="Pemain">
+          <aside class="seat-col left" aria-label="Pemain" data-i18n="aria-label">
             <div class="seat" id="slotTL"></div>
             <div class="seat" id="slotBL"></div>
           </aside>
           <div class="board-col">
-            <div class="strip" id="strip" aria-label="Pemain"></div>
+            <div class="strip" id="strip" aria-label="Pemain" data-i18n="aria-label"></div>
             <div class="board-vp" id="boardVP">
               <div class="board" id="board"></div>
               <div class="cam-ctl" id="camCtl" hidden></div>
               <div class="pickbar" id="pickbar" hidden></div>
               <div class="emote" id="emote">
-                <div class="emote-pal" id="emotePal" role="group" aria-label="Pilih reaksi" hidden></div>
+                <div class="emote-pal" id="emotePal" role="group" aria-label="Pilih reaksi" data-i18n="aria-label" hidden></div>
                 <button
                   type="button"
                   class="emote-fab"
                   id="emoteBtn"
                   aria-label="Kirim reaksi"
+                  data-i18n="aria-label"
                   aria-expanded="false"
                   aria-controls="emotePal"
                 >
@@ -150,7 +151,7 @@
             </div>
             <div class="hud" id="hud"></div>
           </div>
-          <aside class="seat-col right" aria-label="Pemain">
+          <aside class="seat-col right" aria-label="Pemain" data-i18n="aria-label">
             <div class="seat" id="slotTR"></div>
             <div class="seat" id="slotBR"></div>
           </aside>

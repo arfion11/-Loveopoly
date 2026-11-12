@@ -1,21 +1,27 @@
 /* LOVEOPOLY — layar › tur singkat game pertama (dikumpulkan lewat src/ui/screens.js) */
-import { App, SND, ART, KEYS, $, store } from '../core.js';
+import { App, SND, ART, KEYS, $, store, t } from '../core.js';
 import { UI } from '../ns.js';
 
 // ---------- tur singkat di game pertama ----------
 function tourSteps(S) {
   const st = S.settings,
     steps = [];
-  const howRoll = st.diceControl
-    ? 'pilih bidikan dadu (opsional), lalu tekan Lempar. Dadu kembar = lempar lagi!'
-    : 'tekan Lempar untuk berjalan. Dadu kembar = lempar lagi!';
   const mine = UI.controls(S.turn.p);
+  // kalimat utuh per kasus (bukan potongan) supaya terjemahannya wajar
+  const n = S.players[S.turn.p].name;
   steps.push({
     sel: '#stage',
     title: 'Mulai dari sini',
     text: mine
-      ? howRoll.charAt(0).toUpperCase() + howRoll.slice(1)
-      : 'Undian giliran: ' + S.players[S.turn.p].name + ' jalan duluan. Saat giliranmu, ' + howRoll,
+      ? st.diceControl
+        ? t('Pilih bidikan dadu (opsional), lalu tekan Lempar. Dadu kembar = lempar lagi!')
+        : t('Tekan Lempar untuk berjalan. Dadu kembar = lempar lagi!')
+      : st.diceControl
+        ? t(
+            'Undian giliran: {n} jalan duluan. Saat giliranmu, pilih bidikan dadu (opsional), lalu tekan Lempar. Dadu kembar = lempar lagi!',
+            { n }
+          )
+        : t('Undian giliran: {n} jalan duluan. Saat giliranmu, tekan Lempar untuk berjalan. Dadu kembar = lempar lagi!', { n }),
   });
   steps.push({
     sel: '#boardVP',
@@ -86,7 +92,9 @@ function startTour() {
   ov.innerHTML =
     '<div class="tour-ring"></div><div class="tour-card"><span class="tour-merpi">' +
     ART.merpi('is-happy') +
-    '</span><div class="tour-step"></div><b id="tourT"></b><p id="tourP"></p><div class="tour-foot"><button type="button" class="btn ghost sm" id="tSkip"><span>Lewati</span></button><span class="grow"></span><button type="button" class="btn primary sm" id="tNext"></button></div></div>';
+    '</span><div class="tour-step"></div><b id="tourT"></b><p id="tourP"></p><div class="tour-foot"><button type="button" class="btn ghost sm" id="tSkip"><span>' +
+    t('Lewati') +
+    '</span></button><span class="grow"></span><button type="button" class="btn primary sm" id="tNext"></button></div></div>';
   document.body.appendChild(ov);
   const ring = $('.tour-ring', ov),
     card = $('.tour-card', ov);
@@ -113,10 +121,10 @@ function startTour() {
   };
   const showStep = () => {
     const st = steps[k];
-    $('.tour-step', ov).textContent = 'Tur singkat · ' + (k + 1) + '/' + steps.length;
-    $('#tourT', ov).textContent = st.title;
-    $('#tourP', ov).textContent = st.text;
-    $('#tNext', ov).innerHTML = '<span>' + (k === steps.length - 1 ? 'Mulai main!' : 'Lanjut') + '</span>';
+    $('.tour-step', ov).textContent = t('Tur singkat · {a}/{b}', { a: k + 1, b: steps.length });
+    $('#tourT', ov).textContent = t(st.title);
+    $('#tourP', ov).textContent = t(st.text);
+    $('#tNext', ov).innerHTML = '<span>' + t(k === steps.length - 1 ? 'Mulai main!' : 'Lanjut') + '</span>';
     card.classList.remove('in');
     void card.offsetWidth;
     card.classList.add('in');

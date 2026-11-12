@@ -32,7 +32,9 @@ online (host-authoritative) dan satu HP akan berbeda hasilnya.
    kursi tertentu butuh keputusan pemilik produk.
 2. **Tulis aturan di engine.** Kejadian ronde: tandai di state (mis. `S.moment = S.round`) saat `startRound`, lalu
    bertindak di `beginTurn` — keputusan yang disimpan di state membuat semua pemain di ronde itu konsisten walau ada yang
-   bangkrut di tengah ronde. Pakai `log()` untuk riwayat dan `ev(S, { t: 'nama' })` untuk animasi UI.
+   bangkrut di tengah ronde. Pakai `log(S, tx('{n} …', { n: p.name, k: { tile: i } }))` untuk riwayat (netral bahasa: tiap HP menerjemahkan; tambah
+   terjemahannya di `src/i18n/en/engine.js`) dan `ev(S, { t: 'nama' })` untuk animasi UI. Teks data baru (kartu,
+   tantangan, kabar) di `data.js` juga butuh English di `src/i18n/en/content*.js` (`npm run test:i18n`).
 3. **Setelan baru → `create.js`.** Pernah terjadi: sakelar `moment` tidak disalin `E.create`, jadi mematikannya tidak
    berpengaruh; simulasi yang menemukannya. Tambahkan `nama: st.nama !== false` (atau validasi angka dengan `clampInt`).
    Setelan setup lokal juga ikut `KEYS.last` (`enterGame` di `screens/game.js`) & `lastSetup()` di `screens/setup.js`.

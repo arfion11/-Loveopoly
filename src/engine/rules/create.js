@@ -1,6 +1,6 @@
 /* LOVEOPOLY — engine aturan › pembuatan game (dikumpulkan lewat src/engine/engine.js) */
 import { D } from '../data.js';
-import { AI_LEVELS, CARDS, PL, RULES, TILES, clampInt, log, rint, shuffle } from './base.js';
+import { AI_LEVELS, CARDS, PL, RULES, TILES, clampInt, log, rint, shuffle, tx } from './base.js';
 import { chDecks } from './challenges.js';
 
 // ---------- pembuatan game ----------
@@ -125,8 +125,8 @@ function create(setup) {
     CARDS.map(c => c.id)
   );
   chDecks(S);
-  log(S, 'Permainan dimulai. Selamat keliling dunia berdua!', 'heart');
-  if (setup.first === 'random') log(S, 'Undian giliran: ' + PL(S, first).name + ' jalan duluan!', 'dice', first);
+  log(S, tx('Permainan dimulai. Selamat keliling dunia berdua!'), 'heart');
+  if (setup.first === 'random') log(S, tx('Undian giliran: {n} jalan duluan!', { n: PL(S, first).name }), 'dice', first);
   return S;
 }
 

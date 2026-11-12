@@ -46,6 +46,7 @@ const PREFS = {
   board: v => typeof v === 'string' && /^[a-z]{2,12}$/.test(v),
   power: v => v === 'auto' || v === 'save' || v === 'full',
   haptics: v => typeof v === 'boolean',
+  lang: v => v === 'auto' || v === 'id' || v === 'en',
 };
 function pickPrefs(o) {
   const out = {};

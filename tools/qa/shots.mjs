@@ -1,6 +1,7 @@
 // Screenshot QA: skenario × 4 ukuran wajib (CLAUDE.md) × tema terang/gelap, plus error konsol. Butuh `npm run build`.
 // Contoh: npm run shots -- --preset momen            (semua ukuran & tema)
 //         npm run shots -- --preset home-lama --webkit   (+ WebKit/iPhone 390×844)
+//         npm run shots -- --preset game --lang en       (bahasa perangkat English; bawaan id)
 // Hasil: test/out/shots/<preset>-<tema>-<lebar>x<tinggi>.png. Keluar dengan kode 1 bila ada error konsol.
 import { chromium, webkit } from 'playwright';
 import fs from 'node:fs';
@@ -8,7 +9,8 @@ import path from 'node:path';
 import { serveDist } from '../../test/helpers/serve.js';
 import { args } from '../balance/args.mjs';
 
-const o = args({ preset: 'home', themes: 'light,dark', webkit: 'false', out: 'test/out/shots' });
+const o = args({ preset: 'home', themes: 'light,dark', webkit: 'false', lang: 'id', out: 'test/out/shots' });
+const LOCALE = o.lang === 'en' ? 'en-US' : 'id-ID';
 const SIZES = [
   [1366, 768],
   [820, 1180],
@@ -62,6 +64,7 @@ for (const [bt, theme, w, h, tag] of runs) {
   const page = await b.newPage({
     viewport: { width: w, height: h },
     colorScheme: theme,
+    locale: LOCALE,
     deviceScaleFactor: 1,
     isMobile: mobile && bt !== webkit,
     hasTouch: mobile,
@@ -95,7 +98,7 @@ for (const [bt, theme, w, h, tag] of runs) {
   }
   if (pre.run) await pre.run(page);
   await page.waitForTimeout(1400);
-  const file = path.join(OUT, `${o.preset}-${theme}-${w}x${h}${tag}.png`);
+  const file = path.join(OUT, `${o.preset}${o.lang === 'en' ? '-en' : ''}-${theme}-${w}x${h}${tag}.png`);
   await page.screenshot({ path: file });
   const sw = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   console.log(

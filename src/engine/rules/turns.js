@@ -11,7 +11,6 @@ import {
   citiesOf,
   ev,
   fail,
-  fmt,
   fullGroups,
   log,
   momentGap,
@@ -24,6 +23,8 @@ import {
   rint,
   sellValue,
   spotsOf,
+  tx,
+  sub,
 } from './base.js';
 import { returnPowerCard } from './move.js';
 import { chItem } from './challenges.js';
@@ -41,7 +42,7 @@ function charge(S, i, amt, to, reason, opts) {
   }
   qadd(S, { type: 'DEBT', p: i, to, amount: amt, reason, rent: !!opts.rent, tile: opts.tile == null ? -1 : opts.tile });
   p.stats.debts++;
-  log(S, p.name + ' kekurangan uang untuk ' + reason + ' (' + fmt(amt) + ').', 'alert', i);
+  log(S, tx('{n} kekurangan uang untuk {r} ({a}).', { n: p.name, r: sub(reason), a: amt }), 'alert', i);
   return false;
 }
 function transfer(S, from, to, amt, opts) {
@@ -80,10 +81,10 @@ function bankrupt(S, i, creditor) {
   p.stats.bankruptRound = S.round;
   log(
     S,
-    p.name +
-      ' bangkrut! Semua kotanya dijual ke bank' +
-      (cr >= 0 ? ' dan hasilnya (' + fmt(total) + ') untuk ' + PL(S, cr).name : '') +
-      '.',
+    tx('{n} bangkrut! Semua kotanya dijual ke bank{x}.', {
+      n: p.name,
+      x: cr >= 0 ? { t: ' dan hasilnya ({a}) untuk {c}', p: { a: total, c: PL(S, cr).name } } : '',
+    }),
     'alert',
     i
   );
@@ -112,7 +113,7 @@ function beginTurn(S, p) {
   const pl = PL(S, p);
   if (pl.skip > 0) {
     pl.skip--;
-    log(S, pl.name + ' kehilangan giliran ini.', 'pause', p);
+    log(S, tx('{n} kehilangan giliran ini.', { n: pl.name }), 'pause', p);
     ev(S, { t: 'skip', p });
     nextTurn(S);
     return;
@@ -152,20 +153,20 @@ function startRound(S) {
     return true;
   }
   if (S.news && S.round > S.news.to) {
-    log(S, 'Kabar Merpi "' + NEWS_LABEL[S.news.id] + '" selesai.', 'dot');
+    log(S, tx('Kabar Merpi "{x}" selesai.', { x: { t: NEWS_LABEL[S.news.id] } }), 'dot');
     S.news = null;
   }
   const gap = newsGap(S);
   if (S.settings.news !== false && S.round >= gap && S.round % gap === 0 && !peakOn(S)) drawNews(S);
   if (S.settings.roundLimit && S.round === S.settings.roundLimit - RULES.peakRounds + 1) {
-    log(S, 'Musim Puncak! ' + RULES.peakRounds + ' ronde terakhir: semua tol ×' + String(RULES.peakMult).replace('.', ',') + '.', 'bolt');
+    log(S, tx('Musim Puncak! {r} ronde terakhir: semua tol ×{m}.', { r: RULES.peakRounds, m: RULES.peakMult }), 'bolt');
     ev(S, { t: 'peak', rounds: RULES.peakRounds, mult: RULES.peakMult });
   }
   if (momentRound(S)) {
     S.moment = S.round;
     log(
       S,
-      'Momen Berdua! Ronde ini tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu. Berhasil = hadiah untuk berdua.',
+      tx('Momen Berdua! Ronde ini tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu. Berhasil = hadiah untuk berdua.'),
       'heart'
     );
     ev(S, { t: 'moment' });
@@ -203,15 +204,17 @@ const NEWS_TEXT = {
   bonus: 'gaji START +100',
   love: 'Ketemuan & lewat START bonus Love berlipat',
 };
+const NEWS_CAP = Object.fromEntries(Object.entries(NEWS_TEXT).map(([k, v]) => [k, v.charAt(0).toUpperCase() + v.slice(1)]));
 function drawNews(S) {
   const ids = Object.keys(NEWS_LABEL).filter(id => !S.news || id !== S.news.id);
   const id = ids[rint(S, ids.length)];
   const side = id === 'rain' || id === 'holiday' ? SIDES[rint(S, SIDES.length)].id : null;
   S.news = { id, side, from: S.round, to: S.round + RULES.newsLasts - 1 };
   const text = NEWS_TEXT[id].replace('{s}', side ? sideName(side) : '');
+  const sp = { s: side ? { t: sideName(side) } : '' };
   log(
     S,
-    'Kabar Merpi: ' + NEWS_LABEL[id] + '! ' + text.charAt(0).toUpperCase() + text.slice(1) + ' selama ' + RULES.newsLasts + ' ronde.',
+    tx('Kabar Merpi: {l}! {x} selama {r} ronde.', { l: { t: NEWS_LABEL[id] }, x: { t: NEWS_CAP[id], p: sp }, r: RULES.newsLasts }),
     'sparkle'
   );
   ev(S, { t: 'news', id, side, label: NEWS_LABEL[id], text, rounds: RULES.newsLasts });
@@ -223,6 +226,9 @@ function newsInfo(S) {
     side: S.news.side,
     label: NEWS_LABEL[S.news.id],
     text: NEWS_TEXT[S.news.id].replace('{s}', S.news.side ? sideName(S.news.side) : ''),
+    // untuk UI: templat + data supaya bisa diterjemahkan (t(tpl, tp))
+    tpl: NEWS_TEXT[S.news.id],
+    tp: { s: S.news.side ? { t: sideName(S.news.side) } : '' },
     left: S.news.to - S.round + 1,
   };
 }
@@ -255,11 +261,16 @@ function finish(S, reason, winner, detail) {
   };
   S.queue = [];
   S._new = [];
-  log(S, PL(S, winner).name + ' menang (' + winReason(S.over) + ')!', 'trophy', winner);
+  log(S, tx('{n} menang ({r})!', { n: PL(S, winner).name, r: sub(winReasonTx(S.over)) }), 'trophy', winner);
   ev(S, { t: 'gameover', winner, reason });
 }
 function sideName(id) {
   return (SIDE_TILES.find(x => x.id === id) || {}).name || 'satu jalur';
+}
+// alasan menang sebagai tx (untuk riwayat & UI yang diterjemahkan)
+function winReasonTx(o) {
+  if (o.reason === 'line') return o.detail ? tx('Raja {s}', { s: { t: sideName(o.detail.side) } }) : tx('Raja Jalur');
+  return tx(winReason(o));
 }
 function winReason(o) {
   return (
@@ -329,7 +340,7 @@ function checkAchievements(S) {
     Object.keys(cond).forEach(id => {
       if (cond[id] && !p.achievements.includes(id)) {
         p.achievements.push(id);
-        log(S, 'Achievement: ' + p.name + ' membuka "' + ACH[id].name + '".', 'trophy', p.i);
+        log(S, tx('Achievement: {n} membuka "{a}".', { n: p.name, a: { t: ACH[id].name } }), 'trophy', p.i);
         ev(S, { t: 'achievement', p: p.i, id });
       }
     });
@@ -382,4 +393,5 @@ export {
   sideName,
   transfer,
   winReason,
+  winReasonTx,
 };

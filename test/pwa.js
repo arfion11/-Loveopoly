@@ -10,7 +10,7 @@ const results = [];
 const errors = [];
 const ok = (name, cond, detail) => results.push((cond ? 'PASS ' : 'FAIL ') + name + (detail ? ' — ' + detail : ''));
 try {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const ctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(() => {
     localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false, speed: 'fast', aiSpeed: 'fast' }));
     localStorage.setItem('loveopoly.v1.profile', JSON.stringify({ skipped: true }));

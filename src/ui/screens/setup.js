@@ -1,5 +1,5 @@
 /* LOVEOPOLY — layar › setup lokal / lawan AI (dikumpulkan lewat src/ui/screens.js) */
-import { D, E, SND, RULES, KEYS, esc, ic, $, $$, store, avatarHTML } from '../core.js';
+import { D, E, SND, RULES, KEYS, fmt, esc, ic, $, $$, store, avatarHTML, t } from '../core.js';
 import { seg, show } from './base.js';
 import { passport } from './passport.js';
 import { renderHome } from './home.js';
@@ -7,6 +7,22 @@ import { enterGame } from './game.js';
 
 // ---------- setup lokal / AI ----------
 let setup = null;
+// nama bawaan "Pemain n" (bahasa aktif); nama bawaan dikenali di kedua bahasa (setelan lama bisa berbahasa lain)
+const playerN = n => t('Pemain {n}', { n });
+const isDefaultName = nm => /^(Pemain|Player) \d$/.test(nm);
+// baris sakelar aturan: judul + keterangan; nama aksesibel = judul yang terlihat
+const toggle = (id, title, note, on) =>
+  '<div class="toggle-row"><div><b>' +
+  esc(t(title)) +
+  '</b><div class="tiny muted">' +
+  esc(note) +
+  '</div></div><button type="button" class="switch" role="switch" id="' +
+  id +
+  '" aria-checked="' +
+  !!on +
+  '" aria-label="' +
+  esc(t(title)) +
+  '"></button></div>';
 function defaultSetup(kind) {
   const base = store.get(KEYS.setup, null);
   const s = {
@@ -14,12 +30,12 @@ function defaultSetup(kind) {
     players:
       kind === 'ai'
         ? [
-            { name: 'Kamu', avatar: '🐻', color: D.TOKEN_COLORS[0], kind: 'human', ai: 'normal' },
-            { name: D.AI_NAMES[0], avatar: '🐰', color: D.TOKEN_COLORS[1], kind: 'ai', ai: 'normal' },
+            { name: t('Kamu§nama'), avatar: '🐻', color: D.TOKEN_COLORS[0], kind: 'human', ai: 'normal' },
+            { name: t(D.AI_NAMES[0]), avatar: '🐰', color: D.TOKEN_COLORS[1], kind: 'ai', ai: 'normal' },
           ]
         : [
-            { name: 'Pemain 1', avatar: '🐻', color: D.TOKEN_COLORS[0], kind: 'human', ai: 'normal' },
-            { name: 'Pemain 2', avatar: '🐰', color: D.TOKEN_COLORS[1], kind: 'human', ai: 'normal' },
+            { name: playerN(1), avatar: '🐻', color: D.TOKEN_COLORS[0], kind: 'human', ai: 'normal' },
+            { name: playerN(2), avatar: '🐰', color: D.TOKEN_COLORS[1], kind: 'human', ai: 'normal' },
           ],
     startCash: RULES.startCash,
     roundLimit: 25,
@@ -44,7 +60,7 @@ function applyPassport(s) {
     Object.assign(p0, { name: pp.name, avatar: pp.avatar, color: pp.color, kind: 'human' });
     s.players.slice(1).forEach((q, k) => {
       if (q.name.trim().toLowerCase() === pp.name.toLowerCase())
-        q.name = q.kind === 'ai' ? D.AI_NAMES[k % D.AI_NAMES.length] : 'Pemain ' + (k + 2);
+        q.name = q.kind === 'ai' ? t(D.AI_NAMES[k % D.AI_NAMES.length]) : playerN(k + 2);
       const usedA = s.players.filter(x => x !== q).map(x => x.avatar),
         usedC = s.players.filter(x => x !== q).map(x => x.color);
       if (usedA.includes(q.avatar)) q.avatar = D.AVATARS.find(a => !usedA.includes(a));
@@ -86,7 +102,7 @@ function lastSetup() {
 function lastSetupText(s) {
   const who = p => p.avatar + ' ' + p.name + (p.kind === 'ai' ? ' (' + { easy: 'Easy', normal: 'Normal', hard: 'Hard' }[p.ai] + ')' : '');
   const ps = s.players.map(who);
-  return (ps.length === 2 ? ps.join(' vs ') : ps.join(', ')) + ' · ' + (s.roundLimit ? s.roundLimit + ' ronde' : 'Bebas');
+  return (ps.length === 2 ? ps.join(' vs ') : ps.join(', ')) + ' · ' + (s.roundLimit ? t('{n} ronde', { n: s.roundLimit }) : t('Bebas'));
 }
 function quickReplay() {
   const s = lastSetup();
@@ -104,11 +120,11 @@ function setupErrors(s0) {
   const names = s.players.map(p => p.name.trim().toLowerCase());
   s.players.forEach((p, i) => {
     const n = p.name.trim();
-    if (!n) errs['name' + i] = 'Nama wajib diisi.';
-    else if (n.length > 16) errs['name' + i] = 'Maksimal 16 karakter.';
-    else if (names.indexOf(n.toLowerCase()) !== i) errs['name' + i] = 'Nama sudah dipakai pemain lain.';
+    if (!n) errs['name' + i] = t('Nama wajib diisi.');
+    else if (n.length > 16) errs['name' + i] = t('Maksimal 16 karakter.');
+    else if (names.indexOf(n.toLowerCase()) !== i) errs['name' + i] = t('Nama sudah dipakai pemain lain.');
   });
-  if (!s.players.some(p => p.kind === 'human')) errs.humans = 'Minimal satu pemain manusia.';
+  if (!s.players.some(p => p.kind === 'human')) errs.humans = t('Minimal satu pemain manusia.');
   return errs;
 }
 function renderSetup() {
@@ -125,8 +141,8 @@ function renderSetup() {
         avatarHTML(p, 'lg') +
         '<div class="field grow"><label for="pn' +
         i +
-        '">Pemain ' +
-        (i + 1) +
+        '">' +
+        esc(playerN(i + 1)) +
         '</label><input class="input' +
         (errs['name' + i] ? ' invalid' : '') +
         '" id="pn' +
@@ -139,10 +155,18 @@ function renderSetup() {
         (errs['name' + i] ? '<div class="err">' + esc(errs['name' + i]) + '</div>' : '') +
         '</div>' +
         (s.players.length > 2
-          ? '<button type="button" class="icon-btn" data-rm="' + i + '" aria-label="Hapus pemain ' + (i + 1) + '">' + ic('x') + '</button>'
+          ? '<button type="button" class="icon-btn" data-rm="' +
+            i +
+            '" aria-label="' +
+            esc(t('Hapus pemain {n}', { n: i + 1 })) +
+            '">' +
+            ic('x') +
+            '</button>'
           : '') +
         '</div>' +
-        '<div class="pick-row" aria-label="Avatar">' +
+        '<div class="pick-row" aria-label="' +
+        esc(t('Avatar')) +
+        '">' +
         D.AVATARS.map(
           a =>
             '<button type="button" class="avbtn" data-av="' +
@@ -206,13 +230,16 @@ function renderSetup() {
     '<div class="setup">' +
     '<div class="setup-head"><button type="button" class="btn ghost" id="sBack">' +
     ic('back') +
-    '<span>Kembali</span></button><h2>' +
-    (s.kind === 'ai' ? 'Lawan AI' : 'Main Bareng') +
+    '<span>' +
+    esc(t('Kembali')) +
+    '</span></button><h2>' +
+    esc(t(s.kind === 'ai' ? 'Lawan AI' : 'Main Bareng')) +
     '</h2></div>' +
     '<div class="setup-grid">' +
     '<div class="panel"><h3>' +
     ic('users') +
-    'Pemain <span class="muted">' +
+    esc(t('Pemain')) +
+    ' <span class="muted">' +
     s.players.length +
     '/4</span></h3><div class="seat-list">' +
     seats +
@@ -221,15 +248,22 @@ function renderSetup() {
     (s.players.length < 4
       ? '<div class="add-row"><button type="button" class="btn soft" id="sAddH">' +
         ic('user') +
-        '<span>Tambah pemain</span></button><button type="button" class="btn soft" id="sAddA">' +
+        '<span>' +
+        esc(t('Tambah pemain')) +
+        '</span></button><button type="button" class="btn soft" id="sAddA">' +
         ic('bot') +
-        '<span>Tambah AI</span></button></div>'
+        '<span>' +
+        esc(t('Tambah AI')) +
+        '</span></button></div>'
       : '') +
     '</div>' +
     '<div class="panel"><h3>' +
     ic('sliders') +
-    'Aturan</h3><div class="opt-list">' +
-    '<div class="opt"><span class="label">Durasi</span>' +
+    esc(t('Aturan')) +
+    '</h3><div class="opt-list">' +
+    '<div class="opt"><span class="label">' +
+    esc(t('Durasi')) +
+    '</span>' +
     seg(
       'rounds',
       [
@@ -241,50 +275,59 @@ function renderSetup() {
       s.roundLimit
     ) +
     '<div class="tiny muted">' +
-    (s.roundLimit ? 'Setelah ' + s.roundLimit + ' ronde, aset terbesar menang.' : 'Main sampai ada yang menang instan atau bangkrut.') +
+    esc(
+      s.roundLimit
+        ? t('Setelah {n} ronde, aset terbesar menang.', { n: s.roundLimit })
+        : t('Main sampai ada yang menang instan atau bangkrut.')
+    ) +
     '</div></div>' +
-    '<div class="opt"><span class="label">Uang awal</span>' +
+    '<div class="opt"><span class="label">' +
+    esc(t('Uang awal')) +
+    '</span>' +
     seg(
       'cash',
       [
-        [2000, '2.000'],
-        [2500, '2.500'],
-        [3000, '3.000'],
+        [2000, fmt(2000)],
+        [2500, fmt(2500)],
+        [3000, fmt(3000)],
       ],
       s.startCash
     ) +
     '</div>' +
-    '<div class="toggle-row"><div><b>Ambil alih kota</b><div class="tiny muted">Setelah bayar tol, rebut kota lawan seharga 2× nilainya. Landmark & wisata kebal.</div></div><button type="button" class="switch" role="switch" id="sTakeover" aria-checked="' +
-    s.takeover +
-    '" aria-label="Ambil alih kota"></button></div>' +
-    '<div class="toggle-row"><div><b>Menang instan</b><div class="tiny muted">Trio Warna, Raja Jalur, atau Kolektor Wisata = langsung menang.</div></div><button type="button" class="switch" role="switch" id="sInstant" aria-checked="' +
-    s.instantWin +
-    '" aria-label="Menang instan"></button></div>' +
-    '<div class="toggle-row"><div><b>Kontrol dadu</b><div class="tiny muted">Bidik hasil kecil, sedang, atau besar sebelum melempar.</div></div><button type="button" class="switch" role="switch" id="sAimCtl" aria-checked="' +
-    s.diceControl +
-    '" aria-label="Kontrol dadu"></button></div>' +
-    '<div class="toggle-row"><div><b>Momen Berdua</b><div class="tiny muted">' +
-    (s.players.filter(p => p.kind === 'human').length >= 2
-      ? 'Tiap ' +
-        RULES.momentGap.short +
-        '–' +
-        RULES.momentGap.long +
-        ' ronde, tiap pemain dapat satu tantangan kerja sama. Berhasil = hadiah untuk berdua.'
-      : 'Tantangan kerja sama tiap beberapa ronde. Butuh minimal 2 pemain manusia.') +
-    '</div></div><button type="button" class="switch" role="switch" id="sMoment" aria-checked="' +
-    (s.moment !== false) +
-    '" aria-label="Momen Berdua"></button></div>' +
+    toggle(
+      'sTakeover',
+      'Ambil alih kota',
+      t('Setelah bayar tol, rebut kota lawan seharga 2× nilainya. Landmark & wisata kebal.'),
+      s.takeover
+    ) +
+    toggle('sInstant', 'Menang instan', t('Trio Warna, Raja Jalur, atau Kolektor Wisata = langsung menang.'), s.instantWin) +
+    toggle('sAimCtl', 'Kontrol dadu', t('Bidik hasil kecil, sedang, atau besar sebelum melempar.'), s.diceControl) +
+    toggle(
+      'sMoment',
+      'Momen Berdua',
+      s.players.filter(p => p.kind === 'human').length >= 2
+        ? t('Tiap {a}–{b} ronde, tiap pemain dapat satu tantangan kerja sama. Berhasil = hadiah untuk berdua.', {
+            a: RULES.momentGap.short,
+            b: RULES.momentGap.long,
+          })
+        : t('Tantangan kerja sama tiap beberapa ronde. Butuh minimal 2 pemain manusia.'),
+      s.moment !== false
+    ) +
     (!s.takeover && !s.instantWin && !s.diceControl && s.players.some(p => p.kind === 'ai')
       ? '<div class="note gold">' +
         ic('dice') +
-        ' Tanpa ketiga aturan ini permainan lebih banyak ditentukan keberuntungan dadu, jadi level AI hanya sedikit berpengaruh.</div>'
+        ' ' +
+        esc(t('Tanpa ketiga aturan ini permainan lebih banyak ditentukan keberuntungan dadu, jadi level AI hanya sedikit berpengaruh.')) +
+        '</div>'
       : '') +
     '</div></div></div>' +
     '<div class="setup-foot sticky-cta"><button type="button" class="btn go" id="sStart"' +
     (Object.keys(errs).length ? ' disabled' : '') +
     '>' +
     ic('heart') +
-    '<span>Mulai Main!</span></button></div>' +
+    '<span>' +
+    esc(t('Mulai Main!')) +
+    '</span></button></div>' +
     '</div>';
   bindSetup();
 }
@@ -340,7 +383,7 @@ function bindSetup() {
           if (name.startsWith('kind')) {
             const p = s.players[Number(name.slice(4))];
             p.kind = v;
-            if (v === 'ai' && /^Pemain \d$/.test(p.name)) p.name = D.AI_NAMES[Number(name.slice(4)) % 4];
+            if (v === 'ai' && isDefaultName(p.name)) p.name = t(D.AI_NAMES[Number(name.slice(4)) % 4]);
           } else if (name.startsWith('ai')) s.players[Number(name.slice(2))].ai = v;
           else if (name === 'cash') s.startCash = Number(v);
           else if (name === 'rounds') s.roundLimit = Number(v);
@@ -354,7 +397,7 @@ function bindSetup() {
       usedA = s.players.map(p => p.avatar);
     const n = s.players.length;
     s.players.push({
-      name: kind === 'ai' ? D.AI_NAMES[n % 4] : 'Pemain ' + (n + 1),
+      name: kind === 'ai' ? t(D.AI_NAMES[n % 4]) : playerN(n + 1),
       avatar: D.AVATARS.find(a => !usedA.includes(a)),
       color: D.TOKEN_COLORS.find(c => !usedC.includes(c)),
       kind,
@@ -419,4 +462,4 @@ function startSetup(s) {
   enterGame('local', -1, S);
 }
 
-export { lastSetup, lastSetupText, openSetup, quickReplay };
+export { lastSetup, lastSetupText, openSetup, quickReplay, renderSetup };

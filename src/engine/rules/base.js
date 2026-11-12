@@ -1,7 +1,22 @@
 /* LOVEOPOLY — engine aturan › konstanta, RNG, helper, kepemilikan & nilai, registri handler (dikumpulkan lewat src/engine/engine.js) */
 import { D } from '../data.js';
 
-const { RULES, SIDES, GROUPS, TILES, CARDS, CHALLENGES, CH_TYPES, ACHIEVEMENTS, POWER, AUTO_TYPES, HEART_QS, CHARADES, EMOJI_CLUES } = D;
+const {
+  RULES,
+  SIDES,
+  GROUPS,
+  TILES,
+  CARDS,
+  CHALLENGES,
+  CH_TYPES,
+  ACHIEVEMENTS,
+  POWER,
+  AUTO_TYPES,
+  HEART_QS,
+  CHARADES,
+  CHARADES_EN,
+  EMOJI_CLUES,
+} = D;
 
 const CARD = Object.fromEntries(CARDS.map(c => [c.id, c]));
 const CH = Object.fromEntries(CHALLENGES.map(c => [c.id, c]));
@@ -27,14 +42,43 @@ const AIM_LABEL = { low: 'kecil', mid: 'sedang', high: 'besar' };
 const AI_LEVELS = ['easy', 'normal', 'hard'];
 const LEVEL_NAME = D.LEVELS.map(l => l.name);
 
-class RuleError extends Error {}
+class RuleError extends Error {
+  constructor(msg) {
+    super(msg);
+    /** @type {{ k: string, a: any } | null} templat pesan untuk diterjemahkan UI */
+    this.t = null;
+  }
+}
+// msg = teks atau tx(templat, data); dispatch mengembalikan { error: teks Indonesia, errorT: { k, a } }
 function fail(msg) {
-  throw new RuleError(msg);
+  const e = new RuleError(msg && typeof msg === 'object' ? msg.text : msg);
+  if (msg && typeof msg === 'object') e.t = { k: msg.k, a: msg.a };
+  throw e;
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const clampInt = (v, a, b) => clamp(Math.round(Number(v) || 0), a, b);
 const fmt = n => Math.round(n).toLocaleString('id-ID');
 const r5 = x => Math.round(x / 5) * 5;
+// ---------- teks netral bahasa (riwayat & pesan) ----------
+// tx('{n} membeli {kota}.', { n: nama, kota: { tile: 2 } }) → { text: kalimat Indonesia jadi, k: templat, a: data }.
+// text dipakai kode & uji yang membaca riwayat; UI menerjemahkan k + a di tiap perangkat (src/i18n/i18n.js), jadi
+// pemain online beda bahasa melihat riwayat yang sama dalam bahasanya masing-masing. Data: string apa adanya, angka,
+// { tile: i } (nama petak), { t: 'teks', p } (teks lain yang ikut diterjemahkan).
+function txVal(v) {
+  if (typeof v === 'number')
+    return Number.isInteger(v) ? fmt(v) : v.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  if (v && typeof v === 'object') {
+    if ('tile' in v) return TILES[v.tile] ? TILES[v.tile].name : '';
+    if ('t' in v) return txFill(v.t, v.p);
+  }
+  return v == null ? '' : String(v);
+}
+function txFill(tpl, p) {
+  return String(tpl).replace(/\{(\w+)\}/g, (m, k) => (p && p[k] !== undefined ? txVal(p[k]) : m));
+}
+const tx = (tpl, p) => ({ text: txFill(tpl, p), k: tpl, a: p || null });
+// sisipkan teks / tx lain sebagai parameter yang ikut diterjemahkan
+const sub = o => (o && typeof o === 'object' ? { t: o.k, p: o.a } : { t: o == null ? '' : String(o) });
 
 // ---------- RNG (mulberry32, state disimpan di game state) ----------
 function rnd(S) {
@@ -68,7 +112,13 @@ const tierInfo = love => RULES.loveTiers[tierOf(love)];
 
 function log(S, text, icon, p) {
   S.logN = (S.logN || 0) + 1;
-  S.log.push({ n: S.logN, r: S.round, text, icon: icon || 'dot', p: p == null ? -1 : p });
+  const o = text && typeof text === 'object' ? text : null;
+  const e = { n: S.logN, r: S.round, text: o ? o.text : text, icon: icon || 'dot', p: p == null ? -1 : p };
+  if (o) {
+    e.k = o.k;
+    if (o.a) e.a = o.a;
+  }
+  S.log.push(e);
   if (S.log.length > 80) S.log.splice(0, S.log.length - 80);
 }
 const ev = (S, e) => {
@@ -205,6 +255,7 @@ export {
   CH,
   CHALLENGES,
   CHARADES,
+  CHARADES_EN,
   CH_TYPES,
   CITIES,
   EMOJI_CLUES,
@@ -240,6 +291,8 @@ export {
   ev,
   fail,
   fmt,
+  sub,
+  tx,
   fullGroups,
   levelCost,
   liquidation,

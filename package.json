@@ -18,7 +18,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -p jsconfig.json",
     "check": "npm run lint && npm run format:check && npm run typecheck",
-    "test": "npm run build && npm run test:sim && npm run test:progress && npm run test:flows && npm run test:online && npm run test:ui && npm run test:a11y && npm run test:pwa && npm run test:analytics && npm run test:migrate && npm run test:rules && npm run test:backend",
+    "test": "npm run build && npm run test:sim && npm run test:progress && npm run test:i18n && npm run test:flows && npm run test:online && npm run test:ui && npm run test:a11y && npm run test:pwa && npm run test:analytics && npm run test:migrate && npm run test:rules && npm run test:backend",
     "test:sim": "node test/sim.js 200",
     "test:progress": "node test/progress.js",
     "test:flows": "node test/flows.js",
@@ -38,7 +38,9 @@
     "balance:flow": "node tools/balance/flow.mjs",
     "balance:couple": "node tools/balance/couple.mjs",
     "balance:seat": "node tools/balance/seat.mjs",
-    "shots": "node tools/qa/shots.mjs"
+    "shots": "node tools/qa/shots.mjs",
+    "test:i18n": "node test/i18n.js",
+    "i18n:keys": "node tools/i18n/keys.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

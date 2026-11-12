@@ -1,7 +1,12 @@
 /* LOVEOPOLY 2.0 — Buku Panduan bergambar dengan adegan animasi, dipandu Merpi */
 import { UI } from './ns.js';
 import { track } from '../analytics.js';
-import { App, D, SND, ART, TILES, RULES, esc, ic, $, $$, coin } from './core.js';
+import { App, D, SND, ART, TILES, RULES, esc, ic, $, $$, coin, t } from './core.js';
+import { fmtNum } from '../i18n/i18n.js';
+
+// teks halaman: string atau [templat, parameter] (diterjemahkan saat tampil, jadi ganti bahasa langsung berlaku)
+const L = x => (Array.isArray(x) ? t(x[0], x[1]) : t(x));
+const T = x => esc(t(x));
 
 const pawn = (c, av, cls) =>
   '<span class="g-pawn ' + (cls || '') + '" style="--c:' + c + '"><span class="tk-pin"></span><span class="tk-av">' + av + '</span></span>';
@@ -13,7 +18,7 @@ const mtile = (art, name, cls, extra) =>
   '><span class="gt-band"></span><span class="gt-art">' +
   ART.art(art) +
   '</span><b>' +
-  esc(name) +
+  esc(t(name)) +
   '</b></span>';
 const dice = () =>
   '<span class="g-dice"><span class="g-die d1"><i></i><i></i><i></i><i></i></span><span class="g-die d2"><i></i><i></i><i></i></span></span>';
@@ -49,13 +54,19 @@ const PAGES = [
     say: 'Dadu kembar? Lempar lagi!',
     pts: [
       'Tekan Lempar, pion jalan searah jarum jam.',
-      'Kontrol dadu: bidik Kecil 2–5, Sedang 6–8, atau Besar 9–12 (berhasil ' + Math.round(RULES.aimChance * 100) + '%).',
-      'Lewat START = gaji ' + RULES.salary + '. Tiga kali kembar berturut-turut = Pulau Rindu.',
+      ['Kontrol dadu: bidik Kecil 2–5, Sedang 6–8, atau Besar 9–12 (berhasil {p}%).', { p: Math.round(RULES.aimChance * 100) }],
+      ['Lewat START = gaji {s}. Tiga kali kembar berturut-turut = Pulau Rindu.', { s: RULES.salary }],
     ],
     scene: () =>
       '<div class="sc sc-dice">' +
       dice() +
-      '<div class="g-aim"><span>Kecil</span><span class="on">Sedang</span><span>Besar</span></div><div class="g-row">' +
+      '<div class="g-aim"><span>' +
+      T('Kecil') +
+      '</span><span class="on">' +
+      T('Sedang') +
+      '</span><span>' +
+      T('Besar') +
+      '</span></div><div class="g-row">' +
       ['kotatua', 'bandung', 'card', 'jogja', 'ferris']
         .map((a, k) => mtile(a, TILES.find(t => t.art === a).short, 'sm', ' style="--k:' + k + '"'))
         .join('') +
@@ -85,7 +96,9 @@ const PAGES = [
       '</span><span class="gb-b b3">' +
       ART.art('b3') +
       '</span></span>' +
-      '<div class="g-steps"><span class="s0">Tanah</span><span class="s1">Villa</span><span class="s2">Gedung</span><span class="s3">Hotel</span></div><span class="g-cost">' +
+      '<div class="g-steps">' +
+      ['Tanah', 'Villa', 'Gedung', 'Hotel'].map((x, j) => '<span class="s' + j + '">' + T(x) + '</span>').join('') +
+      '</div><span class="g-cost">' +
       coin +
       '−585</span></div>',
   },
@@ -111,7 +124,9 @@ const PAGES = [
       sparks(10) +
       '</span><span class="g-shield">' +
       ic('shield') +
-      '<b>Kebal</b></span></div>',
+      '<b>' +
+      T('Kebal') +
+      '</b></span></div>',
   },
   {
     id: 'toll',
@@ -119,7 +134,7 @@ const PAGES = [
     say: 'Bayar dulu, lalu rebut kotanya!',
     pts: [
       'Mendarat di kota lawan = bayar tol ke pemiliknya.',
-      'Setelah bayar, kamu boleh merebut kota itu seharga ' + RULES.takeoverMult + '× nilainya. Bangunan ikut pindah.',
+      ['Setelah bayar, kamu boleh merebut kota itu seharga {m}× nilainya. Bangunan ikut pindah.', { m: RULES.takeoverMult }],
       'Kartu Malaikat Cinta membebaskan tol, Kupon memotongnya setengah.',
     ],
     scene: () =>
@@ -129,11 +144,15 @@ const PAGES = [
       mtile('seoul', 'Seoul', 'lg owned') +
       '<span class="gb-b b2">' +
       ART.art('b2') +
-      '</span><span class="g-stamp">DIAMBIL ALIH</span></span>' +
+      '</span><span class="g-stamp">' +
+      T('DIAMBIL ALIH') +
+      '</span></span>' +
       pawn(PINK, '🐻', 'drop') +
       '<span class="g-coins">' +
       coins(5) +
-      '</span><span class="g-toll">Tol 450</span></div>',
+      '</span><span class="g-toll">' +
+      esc(t('Tol {n}', { n: 450 })) +
+      '</span></div>',
   },
   {
     id: 'spots',
@@ -141,7 +160,7 @@ const PAGES = [
     say: 'Kumpulkan kelimanya = menang!',
     pts: [
       'Bianglala, Kebun Bunga, Kereta Gantung, Balon Udara, dan Kapal Pesiar.',
-      'Tol wisata naik sesuai jumlah wisata yang kamu punya (' + RULES.spotRent.join(' / ') + ').',
+      ['Tol wisata naik sesuai jumlah wisata yang kamu punya ({r}).', { r: RULES.spotRent.join(' / ') }],
       'Wisata tidak bisa diambil alih. Punya kelimanya = Kolektor Wisata!',
     ],
     scene: () =>
@@ -151,7 +170,9 @@ const PAGES = [
         .join('') +
       '</div><span class="g-trophy">' +
       ic('trophy') +
-      '<b>MENANG!</b></span></div>',
+      '<b>' +
+      T('MENANG!') +
+      '</b></span></div>',
   },
   {
     id: 'fest',
@@ -180,7 +201,7 @@ const PAGES = [
     title: 'World Tour',
     say: 'Kencangkan sabuk pengaman~',
     pts: [
-      'Berhenti di World Tour: giliran berikutnya kamu boleh terbang ke petak mana pun (tiket ' + RULES.travelFee + ').',
+      ['Berhenti di World Tour: giliran berikutnya kamu boleh terbang ke petak mana pun (tiket {f}).', { f: RULES.travelFee }],
       'Pilih tujuan langsung dengan mengetuk papan.',
       'Lewat START tetap dapat gaji. Boleh juga lempar dadu biasa.',
     ],
@@ -200,8 +221,8 @@ const PAGES = [
     title: 'Pulau Rindu',
     say: 'Hiks… tapi ada banyak cara pulang!',
     pts: [
-      'Terdampar maksimal ' + RULES.islandTurns + ' giliran.',
-      'Dadu kembar = langsung keluar dan jalan. Atau bayar perahu ' + RULES.islandFee + ', atau pakai Tiket Pulang.',
+      ['Terdampar maksimal {n} giliran.', { n: RULES.islandTurns }],
+      ['Dadu kembar = langsung keluar dan jalan. Atau bayar perahu {f}, atau pakai Tiket Pulang.', { f: RULES.islandFee }],
       'Rindu Challenge (sekali per terdampar): selesaikan satu tantangan. Lulus = keluar gratis, gagal = tetap di pulau.',
     ],
     scene: () =>
@@ -211,21 +232,24 @@ const PAGES = [
       pawn(PINK, '🐻', 'bob') +
       '<span class="g-waves"><i></i><i></i></span><div class="g-opts"><span>' +
       ic('dice') +
-      'Kembar</span><span>' +
+      T('Kembar') +
+      '</span><span>' +
       ic('boat') +
       RULES.islandFee +
       '</span><span>' +
       ic('heart') +
-      'Tantangan</span></div></div>',
+      T('Tantangan') +
+      '</span></div></div>',
   },
   {
     id: 'cards',
     title: 'Kartu Cinta',
     say: 'Kartu apa ya kali ini?',
     pts: [
-      'Berhenti di petak Kartu Cinta untuk mengambil 1 dari ' +
-        D.CARDS.length +
-        ' kartu: rezeki, masalah LDR, perjalanan, aksi, dan tantangan.',
+      [
+        'Berhenti di petak Kartu Cinta untuk mengambil 1 dari {n} kartu: rezeki, masalah LDR, perjalanan, aksi, dan tantangan.',
+        { n: D.CARDS.length },
+      ],
       'Simpan: Malaikat Cinta, Kupon Tol 50%, Tiket Pulang. Aksi: Badai Rindu, Tukar Kota, Festival Kilat, Renovasi Gratis.',
       'Ada juga pilihan nekat, misalnya Taruhan Nekat: dapat 200 tapi ke Pulau Rindu.',
     ],
@@ -245,9 +269,9 @@ const PAGES = [
             '</span><span class="gc-front">' +
             ic(c[2]) +
             '<b>' +
-            c[0] +
+            T(c[0]) +
             '</b><small>' +
-            c[1] +
+            T(c[1]) +
             '</small></span></span>'
         )
         .join('') +
@@ -266,17 +290,28 @@ const PAGES = [
       '<div class="sc sc-proof">' +
       '<span class="gp-card c1"><span class="gp-tag">' +
       ic('clock') +
-      'Dinilai game</span><span class="gp-timer"><i></i></span><span class="gp-emoji">🗼🥐💕</span><b class="gp-res">4/4 benar · 17,3 dtk</b></span>' +
+      T('Dinilai game') +
+      '</span><span class="gp-timer"><i></i></span><span class="gp-emoji">🗼🥐💕</span><b class="gp-res">' +
+      esc(t('{a}/{b} benar · {s} dtk', { a: 4, b: 4, s: 17.3 })) +
+      '</b></span>' +
       '<span class="gp-card c2"><span class="gp-tag">' +
       ic('users') +
-      'Lawan ikut main</span><span class="gp-duo"><span class="gp-av" style="--c:' +
+      T('Lawan ikut main') +
+      '</span><span class="gp-duo"><span class="gp-av" style="--c:' +
       PINK +
       '">🐻</span><b>?</b><span class="gp-av" style="--c:' +
       VIOLET +
-      '">🐰</span></span><b class="gp-res">2/3 cocok</b></span>' +
+      '">🐰</span></span><b class="gp-res">' +
+      esc(t('{a}/{b} cocok', { a: 2, b: 3 })) +
+      '</b></span>' +
       '<span class="gp-card c3"><span class="gp-tag">' +
       ic('check') +
-      'Disahkan lawan</span><span class="gp-stamp">SAH!</span><b class="gp-res">Aksi Berani</b></span></div>',
+      T('Disahkan lawan') +
+      '</span><span class="gp-stamp">' +
+      T('SAH!') +
+      '</span><b class="gp-res">' +
+      T('Aksi Berani') +
+      '</b></span></div>',
   },
   {
     id: 'photo',
@@ -293,7 +328,9 @@ const PAGES = [
       '</span><b class="gph-cd"><i>3</i><i>2</i><i>1</i></b><span class="gph-flash"></span></span>' +
       '<span class="gph-board"></span><span class="gph-pola"><span class="gph-img">' +
       ART.merpi('is-love') +
-      '</span><small>Arfi ✓ Sah</small></span></div>',
+      '</span><small>Arfi ✓ ' +
+      T('Sah') +
+      '</small></span></div>',
   },
   {
     id: 'love',
@@ -303,18 +340,19 @@ const PAGES = [
       'Love naik dari tantangan yang lulus, kartu manis, dan lewat START. Melewati tantangan mengurangi Love.',
       'Jadian, Bucin, Soulmate: gaji +20/+30/+40 dan tol +5–15%.',
       'Penilai yang adil juga ikut dapat Love, jadi main jujur itu menguntungkan.',
-      'Momen Berdua: tiap ' +
-        RULES.momentGap.short +
-        '–' +
-        RULES.momentGap.long +
-        ' ronde (bila ada minimal 2 pemain manusia), tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu. Berhasil = +' +
-        RULES.momentReward.gain +
-        ' dan Love untuk pemain itu dan pasangannya.',
+      [
+        'Momen Berdua: tiap {a}–{b} ronde (bila ada minimal 2 pemain manusia), tiap pemain dapat satu tantangan kerja sama sebelum melempar dadu. Berhasil = +{g} dan Love untuk pemain itu dan pasangannya.',
+        { a: RULES.momentGap.short, b: RULES.momentGap.long, g: RULES.momentReward.gain },
+      ],
     ],
     scene: () =>
       '<div class="sc sc-love"><div class="g-meter">' +
       ic('heart') +
-      '<span class="gm-bar"><i></i></span><span class="gm-tiers"><b>PDKT</b><b>Jadian</b><b>Bucin</b><b>Soulmate</b></span></div><div class="g-note">Tebak Isi Hati: 2/3 cocok! Kalian berdua dapat hadiah.</div><span class="g-reward">' +
+      '<span class="gm-bar"><i></i></span><span class="gm-tiers">' +
+      ['PDKT', 'Jadian', 'Bucin', 'Soulmate'].map(x => '<b>' + T(x) + '</b>').join('') +
+      '</span></div><div class="g-note">' +
+      T('Tebak Isi Hati: 2/3 cocok! Kalian berdua dapat hadiah.') +
+      '</div><span class="g-reward">' +
       coin +
       '+140 · ' +
       ic('heart') +
@@ -325,27 +363,25 @@ const PAGES = [
     title: 'Kejutan di jalan',
     say: 'Tiap ronde bisa beda ceritanya!',
     pts: [
-      'Ketemuan! Berhenti di petak yang sama dengan pemain lain: kalian berdua dapat ' +
-        RULES.meetCash +
-        ' dan Love +' +
-        RULES.meetLove +
-        '.',
-      'Kabar Merpi tiap ' +
-        RULES.newsGap.short +
-        '–' +
-        RULES.newsGap.long +
-        ' ronde (makin panjang durasi, makin jarang): Musim Hujan, Musim Liburan, Diskon Properti, Promo Maskapai, Bonus Tahunan, Pekan Kasih Sayang (berlaku ' +
-        RULES.newsLasts +
-        ' ronde).',
-      'Musim Puncak: ' +
-        RULES.peakRounds +
-        ' ronde terakhir semua tol ×1,5, jadi masih bisa menyalip. Kirim reaksi 😂😍😱 kapan saja lewat tombol di pojok papan.',
+      [
+        'Ketemuan! Berhenti di petak yang sama dengan pemain lain: kalian berdua dapat {c} dan Love +{l}.',
+        { c: RULES.meetCash, l: RULES.meetLove },
+      ],
+      [
+        'Kabar Merpi tiap {a}–{b} ronde (makin panjang durasi, makin jarang): Musim Hujan, Musim Liburan, Diskon Properti, Promo Maskapai, Bonus Tahunan, Pekan Kasih Sayang (berlaku {n} ronde).',
+        { a: RULES.newsGap.short, b: RULES.newsGap.long, n: RULES.newsLasts },
+      ],
+      [
+        'Musim Puncak: {n} ronde terakhir semua tol ×{m}, jadi masih bisa menyalip. Kirim reaksi 😂😍😱 kapan saja lewat tombol di pojok papan.',
+        { n: RULES.peakRounds, m: RULES.peakMult },
+      ],
     ],
     scene: () =>
       '<div class="sc sc-proof">' +
       '<span class="gp-card c1"><span class="gp-tag">' +
       ic('heart') +
-      'Ketemuan!</span><span class="gp-duo"><span class="gp-av" style="--c:' +
+      T('Ketemuan!') +
+      '</span><span class="gp-duo"><span class="gp-av" style="--c:' +
       PINK +
       '">🐻</span><b>❤</b><span class="gp-av" style="--c:' +
       VIOLET +
@@ -356,10 +392,20 @@ const PAGES = [
       '</b></span>' +
       '<span class="gp-card c2"><span class="gp-tag">' +
       ic('sparkle') +
-      'Kabar Merpi</span><span class="gp-emoji">☀️🏖️</span><b class="gp-res">Musim Liburan<br>tol ×1,5</b></span>' +
+      T('Kabar Merpi') +
+      '</span><span class="gp-emoji">☀️🏖️</span><b class="gp-res">' +
+      T('Musim Liburan') +
+      '<br>' +
+      esc(t('tol ×{m}', { m: 1.5 })) +
+      '</b></span>' +
       '<span class="gp-card c3"><span class="gp-tag">' +
       ic('bolt') +
-      'Musim Puncak</span><span class="gp-stamp">×1,5</span><b class="gp-res">3 ronde terakhir</b></span></div>',
+      T('Musim Puncak') +
+      '</span><span class="gp-stamp">×' +
+      fmtNum(RULES.peakMult) +
+      '</span><b class="gp-res">' +
+      esc(t('{n} ronde terakhir', { n: RULES.peakRounds })) +
+      '</b></span></div>',
   },
   {
     id: 'win',
@@ -376,17 +422,23 @@ const PAGES = [
       ic('trophy') +
       '</span>' +
       ['#FF8FB1', '#2EC4B6', '#4D96FF'].map((c, k) => '<i style="--c:' + c + ';--k:' + k + '"></i>').join('') +
-      '<b>Trio</b></div>' +
+      '<b>' +
+      T('Trio') +
+      '</b></div>' +
       '<div class="g-wrow r2"><span class="gw-ic">' +
       ic('map') +
       '</span>' +
       Array.from({ length: 6 }, (_, k) => '<i style="--c:#FFC93C;--k:' + k + '"></i>').join('') +
-      '<b>Jalur</b></div>' +
+      '<b>' +
+      T('Jalur') +
+      '</b></div>' +
       '<div class="g-wrow r3"><span class="gw-ic">' +
       ic('ferris') +
       '</span>' +
       Array.from({ length: 5 }, (_, k) => '<i style="--c:#B79CFF;--k:' + k + '"></i>').join('') +
-      '<b>Wisata</b></div><span class="g-merpi sm">' +
+      '<b>' +
+      T('Wisata') +
+      '</b></div><span class="g-merpi sm">' +
       ART.merpi('is-love') +
       '</span></div>',
   },
@@ -401,17 +453,15 @@ function render() {
   const pg = PAGES[k];
   $('.g-scene', ov).innerHTML = pg.scene();
   $('.g-step', ov).textContent = k + 1 + ' / ' + PAGES.length;
-  $('#gTitle', ov).textContent = pg.title;
-  $('.g-say', ov).textContent = pg.say;
-  $('.g-pts', ov).innerHTML = pg.pts.map(x => '<li>' + esc(x) + '</li>').join('');
+  $('#gTitle', ov).textContent = t(pg.title);
+  $('.g-say', ov).textContent = t(pg.say);
+  $('.g-pts', ov).innerHTML = pg.pts.map(x => '<li>' + esc(L(x)) + '</li>').join('');
   $('.g-dots', ov).innerHTML = PAGES.map(
     (p, j) =>
       '<button type="button" data-g="' +
       j +
-      '" aria-label="Halaman ' +
-      (j + 1) +
-      ': ' +
-      esc(p.title) +
+      '" aria-label="' +
+      esc(t('Halaman {n}: {t}', { n: j + 1, t: { t: p.title } })) +
       '" aria-current="' +
       (j === k) +
       '"></button>'
@@ -420,8 +470,8 @@ function render() {
   $('#gPrev', ov).disabled = k === 0;
   $('#gNext', ov).innerHTML =
     k === PAGES.length - 1
-      ? ic('check') + '<span>' + (App.S ? 'Lanjut main' : 'Siap main!') + '</span>'
-      : '<span>Lanjut</span>' + ic('chevron');
+      ? ic('check') + '<span>' + T(App.S ? 'Lanjut main' : 'Siap main!') + '</span>'
+      : '<span>' + T('Lanjut') + '</span>' + ic('chevron');
   const card = $('.g-card', ov);
   card.classList.remove('flip-in');
   void card.offsetWidth;
@@ -459,15 +509,22 @@ function openGuide(start) {
   ov.innerHTML =
     '<div class="g-card"><div class="g-top"><span class="g-book">' +
     ic('book') +
-    'Buku Panduan</span><span class="g-step"></span><button type="button" class="icon-btn" id="gClose" aria-label="Tutup panduan">' +
+    T('Buku Panduan') +
+    '</span><span class="g-step"></span><button type="button" class="icon-btn" id="gClose" aria-label="' +
+    T('Tutup panduan') +
+    '">' +
     ic('x') +
     '</button></div>' +
     '<div class="g-body"><div class="g-scene" aria-hidden="true"></div><div class="g-text"><div class="g-merpi-say"><span class="gm">' +
     ART.merpi('is-happy') +
     '</span><span class="g-say"></span></div><h2 id="gTitle"></h2><ul class="g-pts"></ul></div></div>' +
-    '<div class="g-nav"><button type="button" class="btn ghost" id="gPrev" aria-label="Kembali ke halaman sebelumnya">' +
+    '<div class="g-nav"><button type="button" class="btn ghost" id="gPrev" aria-label="' +
+    T('Kembali ke halaman sebelumnya') +
+    '">' +
     ic('back') +
-    '<span>Kembali</span></button><div class="g-dots"></div><button type="button" class="btn primary" id="gNext"></button></div></div>';
+    '<span>' +
+    T('Kembali') +
+    '</span></button><div class="g-dots"></div><button type="button" class="btn primary" id="gNext"></button></div></div>';
   document.body.appendChild(ov);
   $('#gClose', ov).onclick = close;
   $('#gPrev', ov).onclick = () => go(k - 1);

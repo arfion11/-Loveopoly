@@ -10,7 +10,6 @@ import {
   SPOTS,
   TILES,
   activeIdx,
-  fmt,
   fullGroups,
   log,
   ownsGroup,
@@ -23,6 +22,7 @@ import {
   tileValue,
   upgradeCost,
   upgradeLevels,
+  tx,
 } from './base.js';
 import { NEWS_LABEL, sideName } from './turns.js';
 
@@ -37,34 +37,34 @@ function rentInfo(S, ti) {
   if (t.type === 'spot') {
     const n = spotsOf(S, o).length;
     r = RULES.spotRent[Math.max(0, n - 1)];
-    parts.push({ k: 'base', label: 'Tol wisata (' + n + ' dimiliki)', v: r });
+    parts.push({ k: 'base', label: tx('Tol wisata ({n} dimiliki)', { n }), v: r });
   } else {
     r = t.price * RULES.rentMult[st.level];
-    parts.push({ k: 'base', label: 'Tol ' + LEVEL_NAME[st.level], v: Math.round(r) });
+    parts.push({ k: 'base', label: tx('Tol {l}', { l: { t: LEVEL_NAME[st.level] } }), v: Math.round(r) });
     if (ownsGroup(S, o, t.group)) {
       r *= RULES.groupMult;
-      parts.push({ k: 'group', label: 'Grup ' + GROUPS[t.group].name + ' penuh', m: RULES.groupMult });
+      parts.push({ k: 'group', label: tx('Grup {g} penuh', { g: { t: GROUPS[t.group].name } }), m: RULES.groupMult });
     }
     if (S.festival.tile === ti) {
       r *= S.festival.mult;
-      parts.push({ k: 'fest', label: 'Festival Cinta', m: S.festival.mult });
+      parts.push({ k: 'fest', label: tx('Festival Cinta'), m: S.festival.mult });
     }
   }
   if (S.news && S.round <= S.news.to && S.news.side && sideOfTile(ti) === S.news.side) {
     const m = S.news.id === 'rain' ? RULES.newsRain : S.news.id === 'holiday' ? RULES.newsHoliday : 1;
     if (m !== 1) {
       r *= m;
-      parts.push({ k: 'news', label: NEWS_LABEL[S.news.id] + ' (' + sideName(S.news.side) + ')', m });
+      parts.push({ k: 'news', label: tx('{l} ({s})', { l: { t: NEWS_LABEL[S.news.id] }, s: { t: sideName(S.news.side) } }), m });
     }
   }
   if (peakOn(S)) {
     r *= RULES.peakMult;
-    parts.push({ k: 'peak', label: 'Musim Puncak', m: RULES.peakMult });
+    parts.push({ k: 'peak', label: tx('Musim Puncak'), m: RULES.peakMult });
   }
   const pct = tierInfo(PL(S, o).love).rentPct;
   if (pct) {
     r *= 1 + pct / 100;
-    parts.push({ k: 'love', label: 'Love Meter ' + tierInfo(PL(S, o).love).name, pct });
+    parts.push({ k: 'love', label: tx('Love Meter {t}', { t: { t: tierInfo(PL(S, o).love).name } }), pct });
   }
   return { amount: r5(r), parts };
 }
@@ -123,7 +123,7 @@ function canTakeover(S, i, ti) {
   if (t.type === 'spot') return { ok: false, reason: 'Tempat wisata tidak bisa diambil alih.', spot: true };
   if (st.level >= 4) return { ok: false, reason: 'Landmark kebal diambil alih.', landmark: true };
   const price = takeoverPrice(S, ti);
-  if (PL(S, i).cash < price) return { ok: false, reason: 'Uang kurang (butuh ' + fmt(price) + ').', price };
+  if (PL(S, i).cash < price) return { ok: false, reason: tx('Uang kurang (butuh {a}).', { a: price }), price };
   return { ok: true, price };
 }
 function offerTakeover(S, i, ti) {
@@ -135,7 +135,12 @@ function offerUpgrade(S, i, ti, src) {
   const lv = upgradeLevels(S, i, ti);
   if (!lv.length) return false;
   if (PL(S, i).cash < upgradeCost(S, i, ti, lv[0])) {
-    log(S, PL(S, i).name + ' belum cukup uang untuk membangun ' + LEVEL_NAME[lv[0]] + ' di ' + TILES[ti].name + '.', 'dot', i);
+    log(
+      S,
+      tx('{n} belum cukup uang untuk membangun {l} di {k}.', { n: PL(S, i).name, l: { t: LEVEL_NAME[lv[0]] }, k: { tile: ti } }),
+      'dot',
+      i
+    );
     return false;
   }
   qadd(S, { type: 'UPGRADE', p: i, tile: ti, src: src || 'visit' });

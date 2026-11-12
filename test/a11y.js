@@ -14,7 +14,7 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
   let checked = 0;
 
   async function page(viewport, scheme, profile, motion) {
-    const ctx = await browser.newContext({ viewport, colorScheme: scheme, reducedMotion: motion || 'reduce' });
+    const ctx = await browser.newContext({ locale: 'id-ID', viewport, colorScheme: scheme, reducedMotion: motion || 'reduce' });
     const p = await ctx.newPage();
     p.on('pageerror', e => errors.push(scheme + ' ' + viewport.width + ' pageerror: ' + e.message));
     await p.addInitScript(

@@ -2,7 +2,8 @@
    Semua progres hanya ada di browser perangkat ini. Supaya tidak hilang (pindah HP, data browser dihapus, Safari
    menghapus data situs yang lama tidak dibuka): (1) minta penyimpanan permanen saat ada progres (keepData),
    (2) tautan cadangan pribadi …/#pulihkan=… yang dibuka di HP mana pun → konfirmasi → paspor diganti. */
-import { App, SND, esc, ic, $, store, toast } from '../core.js';
+import { App, SND, esc, ic, $, store, toast, t } from '../core.js';
+import { numLocale } from '../../i18n/i18n.js';
 import { UI } from '../ns.js';
 import { makeBackup, normProfile, parseBackup } from '../backup.js';
 import { levelInfo, streakView, weekNo } from '../progress.js';
@@ -31,7 +32,8 @@ const backupLink = () =>
   location.origin +
   '/#pulihkan=' +
   makeBackup({ profile: store.get(PKEY, null), prefs: App.prefs, daily: store.get(DKEY, null) }, Date.now());
-const waHref = url => 'https://wa.me/?text=' + encodeURIComponent('Cadangan Paspor Cinta Loveopoly (simpan untuk diri sendiri): ' + url);
+const waHref = url =>
+  'https://wa.me/?text=' + encodeURIComponent(t('Cadangan Paspor Cinta Loveopoly (simpan untuk diri sendiri)') + ': ' + url);
 
 // bagikan / salin tautan cadangan (dipakai halaman paspor)
 function shareBackup() {
@@ -40,14 +42,14 @@ function shareBackup() {
     toast('Tautan cadangan disalin. Simpan di catatan atau kirim ke chat pribadimu.', { kind: 'good', icon: 'check', ms: 4200 });
   if (navigator.share)
     return navigator
-      .share({ title: 'Cadangan Paspor Cinta', text: 'Cadangan Paspor Cinta Loveopoly (simpan untuk diri sendiri)', url })
+      .share({ title: t('Cadangan Paspor Cinta'), text: t('Cadangan Paspor Cinta Loveopoly (simpan untuk diri sendiri)'), url })
       .catch(e => {
         if (e && e.name !== 'AbortError') copy(url, done);
       });
   copy(url, done);
 }
-const copy = (t, done) =>
-  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
+const copy = (txt, done) =>
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
     .then(done)
     .catch(() => toast('Tidak bisa menyalin otomatis. Pakai tombol WhatsApp ya.', { kind: 'err' }));
 
@@ -64,16 +66,10 @@ const summary = p => {
     '</b><small>Lv ' +
     lv.L +
     ' ' +
-    esc(lv.title) +
-    ' · Api Cinta ' +
-    v.n +
-    ' minggu (rekor ' +
-    p.wk.best +
-    ') · ' +
-    p.games +
-    ' main · ' +
-    p.stamps.length +
-    ' cap kota</small></span></div>'
+    esc(t(lv.title)) +
+    ' · ' +
+    esc(t('Api Cinta {n} minggu (rekor {b}) · {g} main · {c} cap kota', { n: v.n, b: p.wk.best, g: p.games, c: p.stamps.length })) +
+    '</small></span></div>'
   );
 };
 
@@ -81,26 +77,31 @@ const summary = p => {
 function openRestore(data) {
   const cur = normProfile(store.get(PKEY, null));
   const replacing = cur.name && (cur.games || cur.xp) && !(cur.name === data.p.name && cur.since === data.p.since);
-  const when = data.t ? new Date(data.t).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const when = data.t ? new Date(data.t).toLocaleDateString(numLocale(), { day: 'numeric', month: 'long', year: 'numeric' }) : '';
   UI.showModal({
     key: 'restore',
     size: 'mid',
     build: () => ({
-      kicker: ic('book') + 'Cadangan Paspor Cinta',
+      kicker: ic('book') + esc(t('Cadangan Paspor Cinta')),
       title: 'Pulihkan paspor ini?',
       body:
         summary(data.p) +
-        (when ? '<p class="muted">Dicadangkan ' + esc(when) + '.</p>' : '') +
+        (when ? '<p class="muted">' + esc(t('Dicadangkan {d}.', { d: when })) + '</p>' : '') +
         (replacing
           ? '<div class="note warn">' +
             ic('alert') +
-            '<span>Paspor di perangkat ini (' +
-            esc(cur.name) +
-            ', Lv ' +
-            levelInfo(cur.xp).L +
-            ') akan diganti. Cadangkan dulu kalau masih ingin menyimpannya.</span></div>'
+            '<span>' +
+            esc(
+              t('Paspor di perangkat ini ({n}, Lv {l}) akan diganti. Cadangkan dulu kalau masih ingin menyimpannya.', {
+                n: cur.name,
+                l: levelInfo(cur.xp).L,
+              })
+            ) +
+            '</span></div>'
           : '') +
-        '<p class="muted">Pengaturan tampilan & Pertanyaan Hari Ini ikut dipulihkan. Simpanan game yang sedang berjalan tidak ikut.</p>',
+        '<p class="muted">' +
+        esc(t('Pengaturan tampilan & Pertanyaan Hari Ini ikut dipulihkan. Simpanan game yang sedang berjalan tidak ikut.')) +
+        '</p>',
       foot:
         UI.btn('id="bkNo"', 'ghost', 'x', 'Batal') +
         '<span class="grow"></span>' +
@@ -119,10 +120,10 @@ function openRestore(data) {
         UI.closeModal(true);
         if (!App.S || $('#scrGame').hidden) UI.renderHome();
         SND.play('stamp');
-        toast('Paspor ' + p.name + ' dipulihkan. Selamat datang kembali!', {
+        toast(t('Paspor {n} dipulihkan. Selamat datang kembali!', { n: p.name }), {
           kind: 'good',
           icon: 'heart',
-          title: 'Paspor kembali',
+          title: t('Paspor kembali'),
           ms: 4500,
         });
       };

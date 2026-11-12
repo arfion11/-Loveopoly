@@ -11,7 +11,6 @@ import {
   App,
   KEYS,
   SPD,
-  TILES,
   controls,
   esc,
   fmt,
@@ -25,6 +24,8 @@ import {
   safeImg,
   sleep,
   store,
+  t,
+  tLog,
 } from './base.js';
 import { achievementFx, banner, toast } from './notify.js';
 import { camCinema, camHold, camSettle } from './camera.js';
@@ -108,7 +109,13 @@ async function animateEvents(prev, ns) {
             burst(e.tile, ['#FFD93D', '#FFF3B0', '#FFFFFF'], 16);
             camCinema(e.tile, cine(0.42, 5, 1200));
           }
-          banner('LANDMARK!', pname(e.p) + ' membangun landmark di ' + TILES[e.tile].name + '. Kebal diambil alih!', 'gold', 2400, 'b4');
+          banner(
+            'LANDMARK!',
+            t('{n} membangun landmark di {k}. Kebal diambil alih!', { n: pname(e.p), k: { tile: e.tile } }),
+            'gold',
+            2400,
+            'b4'
+          );
           merpiSay(pick(D.MERPI.landmark), 'wow', 2200);
           mascotAct('spin', 900);
           mascotEmote(ic('crown'), 2000);
@@ -124,12 +131,12 @@ async function animateEvents(prev, ns) {
         const taker = ns.players[e.p],
           from = ns.players[e.from];
         if (fresh) {
-          stampDrop(e.tile, taker.color, 'DIAMBIL ALIH');
+          stampDrop(e.tile, taker.color, t('DIAMBIL ALIH'));
           camCinema(e.tile, cine(0.34, 4, 1000));
         }
         banner(
           'AMBIL ALIH!',
-          taker.name + ' merebut ' + TILES[e.tile].name + ' dari ' + from.name + ' (' + fmt(e.price) + ').',
+          t('{n} merebut {k} dari {o} ({a}).', { n: taker.name, k: { tile: e.tile }, o: from.name, a: e.price }),
           'take',
           2400
         );
@@ -147,7 +154,7 @@ async function animateEvents(prev, ns) {
       case 'rent':
         if (fresh) {
           if (mine(e.p)) merpiSay(pick(D.MERPI.rent), 'sad', 1800);
-          else if (mine(e.to)) merpiSay('Cuan! Tol masuk ' + fmt(e.amount) + '.', 'love', 1800);
+          else if (mine(e.to)) merpiSay(t('Cuan! Tol masuk {a}.', { a: e.amount }), 'love', 1800);
           mascotEmote(ic('coins'), 1400);
         }
         break;
@@ -160,7 +167,7 @@ async function animateEvents(prev, ns) {
           fireworks(e.tile);
         }
         if (el) flashTile(e.tile);
-        banner('FESTIVAL CINTA!', TILES[e.tile].name + ' jadi tuan rumah. Tol ×' + e.mult + '!', 'party', 2400, 'festival');
+        banner('FESTIVAL CINTA!', t('{k} jadi tuan rumah. Tol ×{m}!', { k: { tile: e.tile }, m: e.mult }), 'party', 2400, 'festival');
         merpiSay(pick(D.MERPI.festival), 'love', 2000);
         if (fresh) {
           mascotAct('spin', 900);
@@ -179,7 +186,7 @@ async function animateEvents(prev, ns) {
         const el = tileEl(e.tile);
         if (el) renderTile(el, ns, true);
         flashTile(e.tile);
-        toast(TILES[e.tile].name + ' turun jadi ' + E.LEVEL_NAME[e.level] + '.', { title: 'Badai Rindu', icon: 'storm' });
+        toast(t('{k} turun jadi {l}.', { k: { tile: e.tile }, l: { t: E.LEVEL_NAME[e.level] } }), { title: 'Badai Rindu', icon: 'storm' });
         if (fresh) await sleep(400 * SPD());
         break;
       }
@@ -191,7 +198,7 @@ async function animateEvents(prev, ns) {
           flashTile(t);
           if (fresh) burst(t, [ns.players[e.p].color, '#FFFFFF'], 8);
         });
-        banner('TUKAR KOTA!', pname(e.p) + ' menukar ' + TILES[e.a].name + ' dengan ' + TILES[e.b].name + '.', 'take', 2200);
+        banner('TUKAR KOTA!', t('{n} menukar {a} dengan {b}.', { n: pname(e.p), a: { tile: e.a }, b: { tile: e.b } }), 'take', 2200);
         if (fresh) await sleep(500 * SPD());
         break;
       }
@@ -246,7 +253,7 @@ async function animateEvents(prev, ns) {
           }
           banner(
             { triple: 'TRIO WARNA!', line: 'RAJA JALUR!', spots: 'KOLEKTOR WISATA!' }[o.reason],
-            pname(o.winner) + ' menang instan!',
+            t('{n} menang instan!', { n: pname(o.winner) }),
             'gold',
             2600,
             'b4'
@@ -263,11 +270,11 @@ async function animateEvents(prev, ns) {
         break;
       case 'bankrupt':
         SND.play('bad');
-        toast(pname(e.p) + ' bangkrut.', { icon: 'alert', kind: 'err' });
-        banner('BANGKRUT!', pname(e.p) + ' keluar dari permainan.', 'warn', 2000);
+        toast(t('{n} bangkrut.', { n: pname(e.p) }), { icon: 'alert', kind: 'err' });
+        banner('BANGKRUT!', t('{n} keluar dari permainan.', { n: pname(e.p) }), 'warn', 2000);
         break;
       case 'skip':
-        toast(pname(e.p) + ' kehilangan giliran.', { icon: 'pause' });
+        toast(t('{n} kehilangan giliran.', { n: pname(e.p) }), { icon: 'pause' });
         break;
       case 'meet': {
         if (!fresh) break;
@@ -289,7 +296,17 @@ async function animateEvents(prev, ns) {
       }
       case 'news': {
         SND.play('fanfare');
-        banner('KABAR MERPI', e.label + ': ' + e.text + ' (' + e.rounds + ' ronde)', 'party', 3000, 'card');
+        banner(
+          'KABAR MERPI',
+          t('{l}: {x} ({n} {n|ronde|ronde})', {
+            l: { t: e.label },
+            x: { t: E.newsInfo(ns) ? E.newsInfo(ns).tpl : e.text, p: E.newsInfo(ns) ? E.newsInfo(ns).tp : null },
+            n: e.rounds,
+          }),
+          'party',
+          3000,
+          'card'
+        );
         if (fresh) {
           merpiSay(
             pick(['Ada kabar baru dari seluruh dunia!', 'Surat kilat! Baca dulu, ya~', 'Kabar hangat, strategi berubah!']),
@@ -324,7 +341,7 @@ async function animateEvents(prev, ns) {
         SND.play('fanfare');
         banner(
           'MUSIM PUNCAK!',
-          e.rounds + ' ronde terakhir: semua tol ×' + String(e.mult).replace('.', ',') + '. Saatnya menyalip!',
+          t('{n} ronde terakhir: semua tol ×{m}. Saatnya menyalip!', { n: e.rounds, m: e.mult }),
           'gold',
           3000,
           'festival'
@@ -347,7 +364,8 @@ async function animateEvents(prev, ns) {
           const ph = ns.photos && ns.photos[ns.photos.length - 1];
           const isPhoto = ph && D.CH_TYPES.photo.label === e.label;
           if (isPhoto) showPhotoPop(ph, ns);
-          else banner(e.ok ? 'LULUS!' : 'BELUM LULUS', pname(e.p) + ' · ' + e.label + ': ' + e.proof, e.ok ? 'gold' : 'warn', 2600);
+          else
+            banner(e.ok ? 'LULUS!' : 'BELUM LULUS', pname(e.p) + ' · ' + t(e.label) + ': ' + tLog(e.proof), e.ok ? 'gold' : 'warn', 2600);
           merpiSay(
             e.ok
               ? pick(['Terbukti! Keren banget!', 'Sah! Hadiah cair~', 'Bukti lengkap, mantap!'])
@@ -481,10 +499,12 @@ function peekCard(e) {
     ART.art('card') +
     '</span><div><small>' +
     esc(pname(e.p)) +
-    ' · Kartu Cinta</small><b>' +
-    esc(c.title) +
+    ' · ' +
+    esc(t('Kartu Cinta')) +
+    '</small><b>' +
+    esc(t(c.title)) +
     '</b><span>' +
-    esc(c.text) +
+    esc(t(c.text)) +
     '</span></div>';
   host.appendChild(el);
   flyCard(e.p, el.querySelector('.pk-art'));
@@ -583,7 +603,7 @@ function act(action) {
   else {
     const r = E.dispatch(App.S, action);
     if (!r.ok) {
-      toast(r.error, { kind: 'err' });
+      toast(r.errorT ? { text: r.error, k: r.errorT.k, a: r.errorT.a } : r.error, { kind: 'err' });
       SND.play('error');
       return false;
     }

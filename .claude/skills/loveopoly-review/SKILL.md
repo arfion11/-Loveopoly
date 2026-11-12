@@ -13,7 +13,8 @@ melaporkan selera gaya yang sudah ditangani Prettier/ESLint. Temuan tanpa skenar
 
 **Engine (`src/engine/`)**
 - Murni: tanpa DOM/`window`/`Date.now()`/`Math.random()`; acak lewat `rint(S, n)`. ESLint melarang global browser.
-- `dispatch` mengklon state; handler gagal dengan `fail('pesan')` berbahasa Indonesia, tidak mengubah state setengah jalan.
+- `dispatch` mengklon state; handler gagal dengan `fail('pesan')` / `fail(tx('templat {n}', { n }))` (teks Indonesia = kunci kamus), tidak mengubah state setengah jalan.
+- Riwayat & pesan berparameter lewat `tx()` (bukan sambungan string), sub-teks `{ t: '…' }` — supaya tiap HP menerjemahkan sendiri.
 - Setelan baru disalin di `rules/create.js`; save lama ditangani `migrate()`.
 - Simetris antar kursi ("keadilan kursi"); hadiah 3–4 pemain tidak berlipat tanpa sengaja.
 - Ada uji di `test/sim.js`; angka penting divalidasi simulasi (skill `loveopoly-keseimbangan`).
@@ -23,6 +24,13 @@ melaporkan selera gaya yang sudah ditangani Prettier/ESLint. Temuan tanpa skenar
 - Tidak membaca `const`/`let` modul lain yang ikut siklus impor di tingkat atas modul (TDZ).
 - Variabel milik modul lain diubah lewat setter.
 - Menutup dialog/overlay lewat `UI.leave`/`closeModal`, bukan `remove()` langsung.
+
+**Bahasa (i18n)**
+- Teks baru lewat `t()` (atau helper yang sudah menerjemahkan: `btn`, judul modal, `toast`, `banner`, `merpiSay`, `seg`)
+  dengan **satu templat utuh** (`t('{n} jalan duluan!', { n })`, bukan `nama + ' jalan duluan!'`); di HTML string `esc(t(...))`.
+- Tiap kunci baru punya terjemahan di `src/i18n/en/*.js`; `npm run i18n:keys` kosong & `npm run test:i18n` lulus.
+- Tidak ada variabel lokal `t`/`T` yang menutupi penerjemah di fungsi yang memanggil `t(...)` (dicek `tools/i18n/shadow.mjs`).
+- Angka lewat `fmt()`/parameter angka, tanggal `numLocale()`; kunci kembar beda arti pakai konteks `'Kota§petak'`.
 
 **Data tak tepercaya** (tautan `#tanya=`/`#pulihkan=`, state dari host online, impor, localStorage)
 - Teks ke HTML lewat `esc()`; gambar lewat `UI.safeImg()` + `cleanState()`; profil lewat `normProfile` (field baru

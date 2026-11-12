@@ -1,5 +1,5 @@
 /* LOVEOPOLY — layar › util layar: pindah layar, tema, suara (dikumpulkan lewat src/ui/screens.js) */
-import { App, SND, TILES, KEYS, esc, $$, store, wakeCalm, reduceMotion } from '../core.js';
+import { App, SND, TILES, KEYS, esc, $$, store, wakeCalm, reduceMotion, t, applyLang, prepareLang } from '../core.js';
 import { UI } from '../ns.js';
 import { levelOf, themeFor } from '../progress.js';
 
@@ -102,6 +102,24 @@ function keepGameTop() {
   document.addEventListener('focusout', () => setTimeout(fix, 300));
   if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(fix, 300));
 }
+// ganti bahasa tanpa memuat ulang: pasang bahasa baru lalu gambar ulang layar yang sedang tampil
+// ganti bahasa dari Pengaturan: muat kamus (sekali) lalu gambar ulang layar aktif
+function relang() {
+  return prepareLang().then(relangNow);
+}
+function relangNow() {
+  applyLang();
+  const scr = activeScreen();
+  if (scr === 'scrHome') UI.renderHome();
+  else if (scr === 'scrSetup') UI.renderSetup();
+  else if (scr === 'scrOnline') UI.renderLobby();
+  else if (scr === 'scrGame' && App.S) {
+    UI.relabelBoard();
+    UI.applyLayout(true);
+    UI.renderAll();
+  }
+  if (scr !== 'scrGame') UI.renderHeader(null);
+}
 function savePrefs() {
   store.set(KEYS.prefs, App.prefs);
 }
@@ -131,9 +149,11 @@ const seg = (name, opts, val) =>
   name +
   '">' +
   opts
-    .map(([k, l]) => '<button type="button" data-v="' + k + '" aria-pressed="' + (String(val) === String(k)) + '">' + esc(l) + '</button>')
+    .map(
+      ([k, l]) => '<button type="button" data-v="' + k + '" aria-pressed="' + (String(val) === String(k)) + '">' + esc(t(l)) + '</button>'
+    )
     .join('') +
   '</div>';
 const validSave = s => s && s.S && s.S.v === 2 && !s.S.over && Array.isArray(s.S.tiles) && s.S.tiles.length === TILES.length;
 
-export { activeScreen, applyTheme, keepGameTop, savePrefs, seg, show, syncSoundBtn, toggleSound, validSave };
+export { activeScreen, applyTheme, relang, keepGameTop, savePrefs, seg, show, syncSoundBtn, toggleSound, validSave };

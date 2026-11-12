@@ -1,5 +1,26 @@
 /* LOVEOPOLY — dialog permainan › tantangan terbukti, mini-game berwaktu, kamera foto bukti, galeri bukti (dikumpulkan lewat src/ui/modals.js) */
-import { App, D, E, SND, ART, TILES, RULES, esc, ic, $$, toast, controls, act, coin, avatarHTML, safeImg } from '../core.js';
+import {
+  App,
+  D,
+  E,
+  SND,
+  ART,
+  TILES,
+  RULES,
+  fmt,
+  esc,
+  ic,
+  $$,
+  toast,
+  controls,
+  act,
+  coin,
+  avatarHTML,
+  safeImg,
+  t as tr,
+  tLog,
+  getLang,
+} from '../core.js';
 import { btn, closeModal, head, on, refreshModal, showModal, whoLine } from './base.js';
 
 // ----- tantangan -----
@@ -14,7 +35,7 @@ function rewardChips(def, ch, it) {
   if (it && it.source === 'moment') {
     const m = E.momentReward(App.S),
       pair = it.judge >= 0 ? App.S.players[it.judge].name : '',
-      who = ch.type === 'charades' && isMulti(it) ? 'penebak yang benar' : pair;
+      who = ch.type === 'charades' && isMulti(it) ? tr('penebak yang benar') : pair;
     return (
       '<div class="reward-row"><span class="chip gold">' +
       coin +
@@ -25,8 +46,8 @@ function rewardChips(def, ch, it) {
       'Love +' +
       m.love +
       '</span>' +
-      (who ? '<span class="chip mint">' + ic('users') + 'Hadiah sama untuk ' + esc(who) + '</span>' : '') +
-      (def.skip && def.skip.love ? '<span class="chip plain">Lewati: Love ' + def.skip.love + '</span>' : '') +
+      (who ? '<span class="chip mint">' + ic('users') + esc(tr('Hadiah sama untuk {n}', { n: who })) + '</span>' : '') +
+      (def.skip && def.skip.love ? '<span class="chip plain">' + esc(tr('Lewati: Love {v}', { v: def.skip.love })) + '</span>' : '') +
       '</div>'
     );
   }
@@ -36,25 +57,30 @@ function rewardChips(def, ch, it) {
   const out = [];
   if (r.gain) out.push('<span class="chip gold">' + coin + '+' + r.gain + '</span>');
   if (r.love) out.push('<span class="chip rose">' + ic('heart') + 'Love +' + r.love + '</span>');
-  if (ch.type === 'dilemma') out.push('<span class="chip lilac">' + ic('scale') + 'Pilihanmu mengubah strategi</span>');
+  if (ch.type === 'dilemma') out.push('<span class="chip lilac">' + ic('scale') + esc(tr('Pilihanmu mengubah strategi')) + '</span>');
   if (jr && it && it.judge >= 0)
     out.push(
       '<span class="chip mint">' +
         ic('users') +
-        (ch.type === 'bluff'
-          ? isMulti(it)
-            ? 'Penebak benar: '
-            : 'Ketahuan: '
-          : ch.type === 'charades' && isMulti(it)
-            ? 'Penebak benar: '
-            : isMulti(it)
-              ? 'Tiap penilai: '
-              : 'Penilai juga: ') +
+        esc(
+          tr(
+            ch.type === 'bluff'
+              ? isMulti(it)
+                ? 'Penebak benar:'
+                : 'Ketahuan:'
+              : ch.type === 'charades' && isMulti(it)
+                ? 'Penebak benar:'
+                : isMulti(it)
+                  ? 'Tiap penilai:'
+                  : 'Penilai juga:'
+          )
+        ) +
+        ' ' +
         [jr.gain ? '+' + jr.gain : '', jr.love ? 'Love +' + jr.love : ''].filter(Boolean).join(' ') +
         '</span>'
     );
-  if (it && it.isle) out.push('<span class="chip lilac">' + ic('island') + 'Lulus = keluar dari Pulau Rindu</span>');
-  if (s.love) out.push('<span class="chip plain">Lewati: Love ' + s.love + '</span>');
+  if (it && it.isle) out.push('<span class="chip lilac">' + ic('island') + esc(tr('Lulus = keluar dari Pulau Rindu')) + '</span>');
+  if (s.love) out.push('<span class="chip plain">' + esc(tr('Lewati: Love {v}', { v: s.love })) + '</span>');
   return '<div class="reward-row">' + out.join('') + '</div>';
 }
 const VERIFY_TXT = {
@@ -66,13 +92,34 @@ const VERIFY_TXT = {
 // Momen Berdua = kerja sama: yang menilai disebut pasangan, bukan lawan
 const MOMENT_VERIFY = { duel: 'Main berdua · dinilai game', judge: 'Disahkan pasangan' };
 const nameList = arr => (arr.length <= 1 ? arr[0] || '' : arr.slice(0, -1).join(', ') + ' & ' + arr[arr.length - 1]);
+// pilihan kuis: nama (kota/grup/jalur) diterjemahkan; harga (teks angka format Indonesia dari engine) diformat ulang
+const optTxt = o => (/^[\d.]+$/.test(String(o)) ? fmt(Number(String(o).replace(/\./g, ''))) : tr(o));
+// Susun Nama Kota di bahasa lain: huruf acak dari nama terjemahan (acak tetap per soal, hanya tampilan;
+// engine menerima nama dalam kedua bahasa)
+function scrambleShown(x) {
+  const nm = tr(TILES[x.s].name);
+  if (getLang() === 'id' || nm === TILES[x.s].name) return x.w;
+  let h = 7;
+  for (const c of x.w) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const word = w => {
+    const a = w.split('');
+    for (let i = a.length - 1; i > 0; i--) {
+      h = (h * 1103515245 + 12345) >>> 0;
+      const j = h % (i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    const y = a.join('');
+    return y.toLowerCase() === w.toLowerCase() && w.length > 2 ? w.slice(1) + w[0] : y;
+  };
+  return nm.split(' ').map(word).join(' ').toUpperCase();
+}
 const judgeList = it => (it.judges || []).map(j => App.S.players[j].name);
 // all = true: {j} jadi semua lawan yang ikut (penjelasan cara main di 3–4 pemain); teks tantangan tetap memakai penilai utama
 const chFill = (txt, it, all) =>
-  String(txt || '')
+  tr(String(txt || ''))
     .replace(
       /\{j\}/g,
-      all && (it.judges || []).length > 1 ? nameList(judgeList(it)) : it.judge >= 0 ? App.S.players[it.judge].name : 'lawanmu'
+      all && (it.judges || []).length > 1 ? nameList(judgeList(it)) : it.judge >= 0 ? App.S.players[it.judge].name : tr('lawanmu')
     )
     .replace(/\{n\}/g, App.S.players[it.p].name);
 const isMulti = it => (it.judges || []).length > 1;
@@ -95,7 +142,9 @@ function clockOf(it, tag, secs) {
 const timerBar = (left, secs) =>
   '<div class="ch-timer' +
   (left < 5000 ? ' hurry' : '') +
-  '" role="timer" aria-label="Sisa waktu"><i style="--v:' +
+  '" role="timer" aria-label="' +
+  esc(tr('Sisa waktu')) +
+  '"><i style="--v:' +
   Math.max(0, (left / (secs * 1000)) * 100).toFixed(1) +
   '%"></i><b>' +
   Math.ceil(left / 1000) +
@@ -105,11 +154,14 @@ const voteNote = it =>
   isMulti(it)
     ? '<div class="note gold">' +
       ic('users') +
-      '<span>Penilai ' +
-      (Object.keys((it.pz && it.pz.votes) || {}).length + 1) +
-      ' dari ' +
-      it.judges.length +
-      '. Pilihanmu rahasia; mayoritas menentukan (seri = sah).</span></div>'
+      '<span>' +
+      esc(
+        tr('Penilai {a} dari {b}. Pilihanmu rahasia; mayoritas menentukan (seri = sah).', {
+          a: Object.keys((it.pz && it.pz.votes) || {}).length + 1,
+          b: it.judges.length,
+        })
+      ) +
+      '</span></div>'
     : '';
 function dChallenge(key) {
   const local = {
@@ -139,13 +191,17 @@ function dChallenge(key) {
   const bluffOk = () => bluffFilled() === 3 && local.lie >= 0;
   // label tombol kirim = langkah yang masih kurang (tombol mati tidak pernah tanpa alasan)
   const bluffLabel = jn =>
-    bluffFilled() < 3 ? 'Isi 3 pernyataan (' + bluffFilled() + '/3)' : local.lie < 0 ? 'Ketuk Bohong dulu' : 'Kirim ke ' + jn;
+    bluffFilled() < 3
+      ? tr('Isi 3 pernyataan ({n}/3)', { n: bluffFilled() })
+      : local.lie < 0
+        ? tr('Ketuk Bohong dulu')
+        : tr('Kirim ke {n}', { n: jn });
   const bluffChecks = () =>
     [
-      { ok: bluffFilled() === 3, label: 'Isi 3 pernyataan (' + bluffFilled() + '/3)' },
+      { ok: bluffFilled() === 3, label: tr('Isi 3 pernyataan ({n}/3)', { n: bluffFilled() }) },
       {
         ok: local.lie >= 0,
-        label: local.lie >= 0 ? 'Yang bohong: pernyataan ' + (local.lie + 1) : 'Ketuk Bohong di salah satu pernyataan',
+        label: local.lie >= 0 ? tr('Yang bohong: pernyataan {n}', { n: local.lie + 1 }) : tr('Ketuk Bohong di salah satu pernyataan'),
       },
     ]
       .map(c => '<li class="' + (c.ok ? 'ok' : '') + '">' + ic(c.ok ? 'check' : 'dot') + esc(c.label) + '</li>')
@@ -171,9 +227,9 @@ function dChallenge(key) {
       const J = it.judge >= 0 ? S.players[it.judge] : null;
       const kicker =
         ic(def.icon || 'heart') +
-        esc(it.source === 'island' ? 'Rindu Challenge' : it.source === 'moment' ? 'Momen Berdua' : 'Kartu Cinta') +
+        esc(tr(it.source === 'island' ? 'Rindu Challenge' : it.source === 'moment' ? 'Momen Berdua' : 'Kartu Cinta')) +
         ' · ' +
-        ((it.source === 'moment' && MOMENT_VERIFY[def.verify]) || VERIFY_TXT[def.verify]);
+        esc(tr((it.source === 'moment' && MOMENT_VERIFY[def.verify]) || VERIFY_TXT[def.verify]));
       const hero = '<span class="hero-art">' + ART.merpi(it.who === it.p ? 'is-wow' : 'is-think') + '</span>';
       const ownerPhase = it.who === it.p;
       // layar serah-HP (main bersama di satu perangkat)
@@ -190,11 +246,13 @@ function dChallenge(key) {
           body:
             '<div class="ch-gate"><p><b>' +
             esc(nameList(judgeList(it))) +
-            '</b>: tebak peragaan ' +
-            esc(owner.name) +
-            '.</p><p class="muted">Siapa cepat dia dapat! Tiap penebak punya ' +
-            (it.pz.max || 3) +
-            ' kesempatan. Pilih namamu sebelum mengetik tebakan.</p></div>',
+            '</b>: ' +
+            esc(tr('tebak peragaan {n}.', { n: owner.name })) +
+            '</p><p class="muted">' +
+            esc(
+              tr('Siapa cepat dia dapat! Tiap penebak punya {k} kesempatan. Pilih namamu sebelum mengetik tebakan.', { k: it.pz.max || 3 })
+            ) +
+            '</p></div>',
           foot: '<span class="grow"></span>' + btn('id="bGate" data-focus', 'primary big', 'check', 'Mulai menebak'),
         };
       }
@@ -202,7 +260,7 @@ function dChallenge(key) {
         local.gate = true;
         return {
           kicker,
-          title: 'Serahkan ke ' + me.name,
+          title: tr('Serahkan ke {n}', { n: me.name }),
           who: whoLine(it.who, ownerPhase ? 'giliran menjawab' : 'penilai'),
           hero,
           body:
@@ -210,14 +268,18 @@ function dChallenge(key) {
             avatarHTML(me, 'lg') +
             '<p><b>' +
             esc(me.name) +
-            '</b>, sekarang giliranmu' +
-            (ownerPhase ? '' : ' menilai tantangan ' + esc(owner.name)) +
-            '.</p><p class="muted">' +
-            (ch.type === 'secret' || ch.type === 'charades'
-              ? 'Yang lain jangan mengintip layar, ya!'
-              : 'Pegang perangkatnya, lalu lanjut.') +
+            '</b>, ' +
+            esc(ownerPhase ? tr('sekarang giliranmu.') : tr('sekarang giliranmu menilai tantangan {n}.', { n: owner.name })) +
+            '</p><p class="muted">' +
+            esc(
+              tr(
+                ch.type === 'secret' || ch.type === 'charades'
+                  ? 'Yang lain jangan mengintip layar, ya!'
+                  : 'Pegang perangkatnya, lalu lanjut.'
+              )
+            ) +
             '</p></div>',
-          foot: '<span class="grow"></span>' + btn('id="bGate" data-focus', 'primary big', 'check', 'Aku ' + me.name + ', lanjut'),
+          foot: '<span class="grow"></span>' + btn('id="bGate" data-focus', 'primary big', 'check', tr('Aku {n}, lanjut', { n: me.name })),
         };
       }
       local.gate = false;
@@ -225,7 +287,7 @@ function dChallenge(key) {
       const first =
         ownerPhase && (D.AUTO_TYPES.includes(ch.type) ? !local.started : ['intro', 'write', 'act', 'do', 'choose'].includes(it.phase));
       const ownerBtns = ownerPhase
-        ? (first ? btn('id="bRedraw"', 'ghost', 'refresh', 'Ganti (' + redrawLeft + ')', redrawLeft <= 0) : '') +
+        ? (first ? btn('id="bRedraw"', 'ghost', 'refresh', tr('Ganti ({n})', { n: redrawLeft }), redrawLeft <= 0) : '') +
           btn('id="bSkip"', 'ghost', '', 'Lewati')
         : '';
       const task = '<div class="notepaper">' + esc(chFill(ch.text, it)) + '</div>';
@@ -236,9 +298,11 @@ function dChallenge(key) {
         esc(chFill(def.how, it, ch.type !== 'secret')) +
         (isMulti(it) && ch.type !== 'secret'
           ? ' ' +
-            (ch.verify === 'judge' || ch.type === 'message' || def.verify === 'judge'
-              ? 'Semua lawan menilai bergantian; mayoritas menentukan (seri = sah).'
-              : 'Semua lawan ikut menebak.')
+            tr(
+              ch.verify === 'judge' || ch.type === 'message' || def.verify === 'judge'
+                ? 'Semua lawan menilai bergantian; mayoritas menentukan (seri = sah).'
+                : 'Semua lawan ikut menebak.'
+            )
           : '') +
         '</div>';
       let body,
@@ -250,17 +314,17 @@ function dChallenge(key) {
         if (!local.started) {
           const need =
             ch.type === 'recall'
-              ? 'Ulangi ' + z.seq.length + ' gambar persis'
-              : 'Butuh ' + z.need + ' dari ' + (z.qs || z.items).length + ' benar';
+              ? tr('Ulangi {n} gambar persis', { n: z.seq.length })
+              : tr('Butuh {a} dari {b} benar', { a: z.need, b: (z.qs || z.items).length });
           body =
             task +
             how +
             '<div class="ch-stats"><span>' +
             ic('clock') +
-            z.secs +
-            ' detik</span><span>' +
+            esc(tr('{n} detik', { n: z.secs })) +
+            '</span><span>' +
             ic('target') +
-            need +
+            esc(need) +
             '</span></div>' +
             rewardChips(def, ch, it);
           foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChGo" data-focus', 'go big', 'play', 'Mulai!');
@@ -268,8 +332,8 @@ function dChallenge(key) {
           body = '<div id="chGame" class="ch-game"></div>';
           foot =
             '<span class="tiny muted">' +
-            esc(owner.name) +
-            ' sedang beraksi…</span><span class="grow"></span>' +
+            esc(tr('{n} sedang beraksi…', { n: owner.name })) +
+            '</span><span class="grow"></span>' +
             btn('id="bChGiveUp"', 'ghost', 'x', 'Menyerah');
         }
         // saat bermain, Merpi di kepala dialog disembunyikan supaya soal & tombol lega di HP
@@ -284,25 +348,29 @@ function dChallenge(key) {
           '</div>';
         return { kicker, title, who: whoLine(it.p), body, foot: ownerBtns, hero };
       }
-      const jName = J ? J.name : 'lawan';
+      const jName = J ? J.name : tr('lawan');
       if (ch.type === 'secret') {
         const qs = it.pz.qs.map(q => D.HEART_QS[q]);
         if (it.phase === 'intro') {
           body = task + how + rewardChips(def, ch, it);
           foot =
-            ownerBtns + '<span class="grow"></span>' + btn('id="bChStep" data-focus', 'primary big', 'chevron', jName + ' menjawab dulu');
+            ownerBtns +
+            '<span class="grow"></span>' +
+            btn('id="bChStep" data-focus', 'primary big', 'chevron', tr('{n} menjawab dulu', { n: jName }));
         } else {
           const secretPh = it.phase === 'secret';
-          title = secretPh ? 'Jawaban rahasia ' + me.name : 'Tebak isi hati ' + jName;
+          title = secretPh ? tr('Jawaban rahasia {n}', { n: me.name }) : tr('Tebak isi hati {n}', { n: jName });
           body =
             '<div class="note ' +
             (secretPh ? 'warn' : 'good') +
             '">' +
             ic(secretPh ? 'lock' : 'heart') +
             ' ' +
-            (secretPh
-              ? 'Jawab jujur tentang dirimu. ' + esc(owner.name) + ' tidak bisa melihatnya.'
-              : 'Tebak jawaban ' + esc(jName) + '. Butuh ' + it.pz.need + ' cocok.') +
+            esc(
+              secretPh
+                ? tr('Jawab jujur tentang dirimu. {n} tidak bisa melihatnya.', { n: owner.name })
+                : tr('Tebak jawaban {n}. Butuh {k} cocok.', { n: jName, k: it.pz.need })
+            ) +
             '</div>' +
             qs
               .map(
@@ -322,7 +390,7 @@ function dChallenge(key) {
                         '" aria-pressed="' +
                         (local.answers[qi] === oi) +
                         '">' +
-                        esc(o) +
+                        esc(tr(o)) +
                         '</button>'
                     )
                     .join('') +
@@ -344,22 +412,25 @@ function dChallenge(key) {
             rewardChips(def, ch, it) +
             '<div class="note">' +
             ic('info') +
-            '<span>Tulis 3 hal tentang dirimu, lalu ketuk <b>Bohong</b> di samping yang palsu. ' +
-            esc(jName) +
-            ' tidak melihat tandanya.</span></div>' +
+            '<span>' +
+            tr('Tulis 3 hal tentang dirimu, lalu ketuk {b} di samping yang palsu. {n} tidak melihat tandanya.', {
+              b: '<b>' + esc(tr('Bohong')) + '</b>',
+              n: esc(jName),
+            }) +
+            '</span></div>' +
             [0, 1, 2]
               .map(
                 i =>
                   '<div class="bluff-row"><label class="sr-only" for="bl' +
                   i +
-                  '">Pernyataan ' +
-                  (i + 1) +
+                  '">' +
+                  esc(tr('Pernyataan {n}', { n: i + 1 })) +
                   '</label><input class="input" id="bl' +
                   i +
                   '" maxlength="90" autocomplete="off" enterkeyhint="' +
                   (i < 2 ? 'next' : 'done') +
                   '" placeholder="' +
-                  ['mis. Aku pernah ke Bali', 'mis. Aku takut kucing', 'mis. Aku bisa main gitar'][i] +
+                  esc(tr(['mis. Aku pernah ke Bali', 'mis. Aku takut kucing', 'mis. Aku bisa main gitar'][i])) +
                   '" value="' +
                   esc(local.lines[i]) +
                   '"><button type="button" class="lie-btn" data-lie="' +
@@ -368,7 +439,9 @@ function dChallenge(key) {
                   (local.lie === i) +
                   '">' +
                   ic(local.lie === i ? 'check' : 'question') +
-                  '<span>Bohong</span></button></div>'
+                  '<span>' +
+                  esc(tr('Bohong')) +
+                  '</span></button></div>'
               )
               .join('') +
             '<ul class="ch-checks" id="blChecks">' +
@@ -384,17 +457,20 @@ function dChallenge(key) {
             (isMulti(it)
               ? '<div class="note gold">' +
                 ic('users') +
-                '<span>Penebak ' +
-                (Object.keys(it.pz.picks || {}).length + 1) +
-                ' dari ' +
-                it.judges.length +
-                '. Tebakanmu rahasia; hanya yang benar dapat hadiah.</span></div>'
+                '<span>' +
+                esc(
+                  tr('Penebak {a} dari {b}. Tebakanmu rahasia; hanya yang benar dapat hadiah.', {
+                    a: Object.keys(it.pz.picks || {}).length + 1,
+                    b: it.judges.length,
+                  })
+                ) +
+                '</span></div>'
               : '') +
             '<div class="note">' +
             ic('question') +
             ' ' +
-            esc(owner.name) +
-            ' menulis 3 pernyataan. Satu bohong. Tebak yang mana!</div><div class="bluff-pick">' +
+            esc(tr('{n} menulis 3 pernyataan. Satu bohong. Tebak yang mana!', { n: owner.name })) +
+            '</div><div class="bluff-pick">' +
             it.pz.lines
               .map(
                 (l, i) =>
@@ -427,13 +503,13 @@ function dChallenge(key) {
             local.reveal +
             '">' +
             (local.reveal
-              ? '<b>' + esc(z.word) + '</b><span class="tiny">Ketuk untuk menyembunyikan</span>'
-              : ic('lock') + '<span>Ketuk untuk melihat kata rahasia</span>') +
+              ? '<b>' + esc(tr(z.word)) + '</b><span class="tiny">' + esc(tr('Ketuk untuk menyembunyikan')) + '</span>'
+              : ic('lock') + '<span>' + esc(tr('Ketuk untuk melihat kata rahasia')) + '</span>') +
             '</button>';
           foot = ownerBtns + '<span class="grow"></span>' + btn('id="bChStep"', 'go big', 'play', 'Mulai peragakan!');
         } else {
           const c = clockOf(it, 'cr', z.secs);
-          title = 'Tebak peragaan ' + owner.name;
+          title = tr('Tebak peragaan {n}', { n: owner.name });
           if (isMulti(it)) {
             const open = E.chActors(S),
               mine = open.filter(j => controls(j));
@@ -441,7 +517,9 @@ function dChallenge(key) {
             const left = j => (z.max || 3) - ((z.triesBy || {})[j] || 0);
             const pickRow =
               mine.length > 1
-                ? '<div class="field"><span class="label">Siapa yang menebak?</span><div class="partner-pick">' +
+                ? '<div class="field"><span class="label">' +
+                  esc(tr('Siapa yang menebak?')) +
+                  '</span><div class="partner-pick">' +
                   mine
                     .map(
                       j =>
@@ -464,11 +542,13 @@ function dChallenge(key) {
               '<div class="note">' +
               ic('users') +
               '<span>' +
-              esc(owner.name) +
-              ' memperagakan tanpa suara. Siapa cepat dia dapat! ' +
-              (local.guesser >= 0
-                ? esc(S.players[local.guesser].name) + ': ' + left(local.guesser) + ' kesempatan lagi.'
-                : 'Kesempatanmu sudah habis, tunggu yang lain.') +
+              esc(tr('{n} memperagakan tanpa suara. Siapa cepat dia dapat!', { n: owner.name })) +
+              ' ' +
+              esc(
+                local.guesser >= 0
+                  ? tr('{n}: {k} kesempatan lagi.', { n: S.players[local.guesser].name, k: left(local.guesser) })
+                  : tr('Kesempatanmu sudah habis, tunggu yang lain.')
+              ) +
               '</span></div>' +
               (z.guesses.length
                 ? '<div class="ch-guesses">' +
@@ -486,8 +566,8 @@ function dChallenge(key) {
                 : '') +
               pickRow +
               (local.guesser >= 0
-                ? '<div class="field"><label for="chGuess">Tebakan ' +
-                  esc(S.players[local.guesser].name) +
+                ? '<div class="field"><label for="chGuess">' +
+                  esc(tr('Tebakan {n}', { n: S.players[local.guesser].name })) +
                   '</label><input class="input" id="chGuess" maxlength="40" autocomplete="off" value="' +
                   esc(local.guess) +
                   '"></div>'
@@ -497,7 +577,7 @@ function dChallenge(key) {
                 ? btn('id="bChGiveUp"', 'ghost', 'x', 'Menyerah') +
                   '<span class="grow"></span>' +
                   btn('id="bChSend"', 'primary big', 'target', 'Tebak!', !local.guess.trim())
-                : '<span class="tiny muted">Menunggu penebak lain…</span>';
+                : '<span class="tiny muted">' + esc(tr('Menunggu penebak lain…')) + '</span>';
             return { kicker, title, who: whoLine(it.p, 'memperagakan'), body, foot, hero };
           }
           body =
@@ -505,16 +585,16 @@ function dChallenge(key) {
             '<div class="note">' +
             ic('users') +
             ' ' +
-            esc(owner.name) +
-            ' memperagakan tanpa suara. Ketik tebakanmu (' +
-            (z.max - z.tries) +
-            ' kesempatan lagi).</div>' +
+            esc(tr('{n} memperagakan tanpa suara. Ketik tebakanmu ({k} kesempatan lagi).', { n: owner.name, k: z.max - z.tries })) +
+            '</div>' +
             (z.guesses.length
               ? '<div class="ch-guesses">' +
                 z.guesses.map(g => '<span class="chip plain">' + ic('x') + esc(g) + '</span>').join('') +
                 '</div>'
               : '') +
-            '<div class="field"><label for="chGuess">Tebakan</label><input class="input" id="chGuess" maxlength="40" autocomplete="off" value="' +
+            '<div class="field"><label for="chGuess">' +
+            esc(tr('Tebakan')) +
+            '</label><input class="input" id="chGuess" maxlength="40" autocomplete="off" value="' +
             esc(local.guess) +
             '"></div>';
           foot =
@@ -531,25 +611,35 @@ function dChallenge(key) {
           body =
             task +
             rewardChips(def, ch, it) +
-            '<div class="field"><label for="chText">Pesanmu (tiap baris = Enter)</label><textarea class="input" id="chText" maxlength="400" rows="5" placeholder="Tulis di sini…">' +
+            '<div class="field"><label for="chText">' +
+            esc(tr('Pesanmu (tiap baris = Enter)')) +
+            '</label><textarea class="input" id="chText" maxlength="400" rows="5" placeholder="' +
+            esc(tr('Tulis di sini…')) +
+            '">' +
             esc(local.text) +
             '</textarea></div>' +
             '<ul class="ch-checks" id="chChecks">' +
-            checks.map(c => '<li class="' + (c.ok ? 'ok' : '') + '">' + ic(c.ok ? 'check' : 'dot') + esc(c.label) + '</li>').join('') +
+            checks
+              .map(c => '<li class="' + (c.ok ? 'ok' : '') + '">' + ic(c.ok ? 'check' : 'dot') + esc(tLog(c.label)) + '</li>')
+              .join('') +
             '</ul>';
           foot =
             ownerBtns +
             '<span class="grow"></span>' +
-            btn('id="bChSend"', 'primary big', 'letter', J ? 'Kirim ke ' + J.name : 'Kirim', !allOk);
+            btn('id="bChSend"', 'primary big', 'letter', J ? tr('Kirim ke {n}', { n: J.name }) : 'Kirim', !allOk);
         } else {
-          title = 'Sahkan surat ' + owner.name + '?';
+          title = tr('Sahkan surat {n}?', { n: owner.name });
           body =
             voteNote(it) +
             '<div class="note good">' +
             ic('check') +
-            ' Semua syarat sudah lolos cek otomatis.</div><div class="notepaper ch-letter">' +
+            ' ' +
+            esc(tr('Semua syarat sudah lolos cek otomatis.')) +
+            '</div><div class="notepaper ch-letter">' +
             esc(it.pz.text).replace(/\n/g, '<br>') +
-            '</div><div class="tiny muted">Tantangan: ' +
+            '</div><div class="tiny muted">' +
+            esc(tr('Tantangan:')) +
+            ' ' +
             esc(chFill(ch.text, it)) +
             '</div>';
           foot =
@@ -560,7 +650,14 @@ function dChallenge(key) {
         return { kicker, title, who: whoLine(it.who), body, foot, hero };
       }
       if (ch.type === 'dare' || ch.type === 'photo') {
-        const crit = '<div class="ch-crit">' + ic('check') + '<span><b>Syarat sah:</b> ' + esc(chFill(ch.crit, it)) + '</span></div>';
+        const crit =
+          '<div class="ch-crit">' +
+          ic('check') +
+          '<span><b>' +
+          esc(tr('Syarat sah:')) +
+          '</b> ' +
+          esc(chFill(ch.crit, it)) +
+          '</span></div>';
         if (it.phase === 'do') {
           body = task + crit + how + rewardChips(def, ch, it);
           if (ch.type === 'dare') {
@@ -570,23 +667,22 @@ function dChallenge(key) {
               ? timerBar(c.left, secs)
               : '<div class="ch-stats"><span>' +
                 ic('clock') +
-                secs +
-                ' detik</span><span>' +
+                esc(tr('{n} detik', { n: secs })) +
+                '</span><span>' +
                 ic('users') +
-                'Dinilai ' +
-                esc(jName) +
+                esc(tr('Dinilai {n}', { n: jName })) +
                 '</span></div>';
             foot =
               ownerBtns +
               '<span class="grow"></span>' +
               (c ? '' : btn('id="bDareTime"', 'soft', 'clock', 'Mulai timer')) +
-              btn('id="bChStep"', 'primary', 'check', 'Minta penilaian ' + jName);
+              btn('id="bChStep"', 'primary', 'check', tr('Minta penilaian {n}', { n: jName }));
           } else {
             body += '<div id="camHost" class="cam-host"></div>';
             foot =
               ownerBtns +
               '<span class="grow"></span>' +
-              btn('id="bChSend"', 'primary big', 'polaroid', 'Kirim foto ke ' + jName, !local.photo);
+              btn('id="bChSend"', 'primary big', 'polaroid', tr('Kirim foto ke {n}', { n: jName }), !local.photo);
           }
         } else {
           title = 'Sah atau tidak?';
@@ -595,18 +691,22 @@ function dChallenge(key) {
             (ch.type === 'photo'
               ? '<figure class="proof-photo"><img src="' +
                 safeImg(it.pz.photo) +
-                '" alt="Foto bukti dari ' +
-                esc(owner.name) +
-                '"><figcaption>Foto bukti ' +
-                esc(owner.name) +
+                '" alt="' +
+                esc(tr('Foto bukti dari {n}', { n: owner.name })) +
+                '"><figcaption>' +
+                esc(tr('Foto bukti {n}', { n: owner.name })) +
                 '</figcaption></figure>'
               : '') +
             task +
             crit +
             '<div class="tiny muted">' +
-            (isMulti(it)
-              ? 'Nilai dengan adil. Tiap penilai dapat Love, apa pun hasilnya.'
-              : 'Nilai dengan adil. Kalau sah, kamu juga dapat Love.') +
+            esc(
+              tr(
+                isMulti(it)
+                  ? 'Nilai dengan adil. Tiap penilai dapat Love, apa pun hasilnya.'
+                  : 'Nilai dengan adil. Kalau sah, kamu juga dapat Love.'
+              )
+            ) +
             '</div>';
           foot =
             btn('id="bJudgeNo"', 'soft', 'x', 'Tidak sah') +
@@ -697,7 +797,7 @@ function dChallenge(key) {
           if (sb) {
             sb.disabled = !bluffOk();
             const t = sb.querySelector('span');
-            if (t) t.textContent = bluffLabel(sb.dataset.jn || 'lawan');
+            if (t) t.textContent = bluffLabel(sb.dataset.jn || tr('lawan'));
           }
           const ul = m.querySelector('#blChecks');
           if (ul) ul.innerHTML = bluffChecks();
@@ -748,7 +848,7 @@ function dChallenge(key) {
           const ul = m.querySelector('#chChecks');
           if (ul)
             ul.innerHTML = checks
-              .map(c => '<li class="' + (c.ok ? 'ok' : '') + '">' + ic(c.ok ? 'check' : 'dot') + esc(c.label) + '</li>')
+              .map(c => '<li class="' + (c.ok ? 'ok' : '') + '">' + ic(c.ok ? 'check' : 'dot') + esc(tLog(c.label)) + '</li>')
               .join('');
           const sb = m.querySelector('#bChSend');
           if (sb) sb.disabled = !checks.every(c => c.ok);
@@ -847,12 +947,15 @@ function autoGame(host, it, ch, done) {
       ch.type === 'price'
         ? Math.abs(Number(v) - sol[idx]) <= sol[idx] * z.tol
         : ch.type === 'scramble'
-          ? String(v)
-              .toLowerCase()
-              .replace(/[^a-z]/g, '') ===
-            String(sol[idx])
-              .toLowerCase()
-              .replace(/[^a-z]/g, '')
+          ? [sol[idx], tr(sol[idx])].some(
+              ans =>
+                String(v)
+                  .toLowerCase()
+                  .replace(/[^a-z]/g, '') ===
+                String(ans)
+                  .toLowerCase()
+                  .replace(/[^a-z]/g, '')
+            )
           : Number(v) === sol[idx];
     feedback(ok);
     idx++;
@@ -865,11 +968,11 @@ function autoGame(host, it, ch, done) {
   const head2 = () =>
     timerBar(left(), secs) +
     '<div class="ch-prog"><span>' +
-    (ch.type === 'recall'
-      ? phase === 'show'
-        ? 'Hafalkan!'
-        : 'Ulangi urutannya'
-      : 'Soal ' + Math.min(idx + 1, items.length) + '/' + items.length) +
+    esc(
+      ch.type === 'recall'
+        ? tr(phase === 'show' ? 'Hafalkan!' : 'Ulangi urutannya')
+        : tr('Soal {a}/{b}', { a: Math.min(idx + 1, items.length), b: items.length })
+    ) +
     '</span>' +
     (streak >= 2 ? '<span class="ch-streak">' + ic('bolt') + 'Combo ×' + streak + '</span>' : '') +
     '</div>';
@@ -880,40 +983,64 @@ function autoGame(host, it, ch, done) {
       const q = items[idx];
       h +=
         (ch.type === 'emoji'
-          ? '<div class="ch-emoji" aria-label="Petunjuk emoji">' + q.e + '</div><div class="ch-qtxt">Tempat mana ini?</div>'
-          : '<div class="ch-qtxt">' + esc(q.t) + '</div>') +
+          ? '<div class="ch-emoji" aria-label="' +
+            esc(tr('Petunjuk emoji')) +
+            '">' +
+            q.e +
+            '</div><div class="ch-qtxt">' +
+            esc(tr('Tempat mana ini?')) +
+            '</div>'
+          : '<div class="ch-qtxt">' + esc(q.tt ? tr(q.tt.k, q.tt.a) : tr(q.t)) + '</div>') +
         '<div class="ch-opts grid">' +
-        q.o.map((o, k) => '<button type="button" class="ch-opt big" data-ans="' + k + '">' + esc(o) + '</button>').join('') +
+        q.o.map((o, k) => '<button type="button" class="ch-opt big" data-ans="' + k + '">' + esc(optTxt(o)) + '</button>').join('') +
         '</div>';
     } else if (ch.type === 'price') {
-      const t = TILES[items[idx]];
+      const tl = TILES[items[idx]];
       h +=
         '<div class="ch-city"><span class="cc-art">' +
-        ART.art(t.art) +
+        ART.art(tl.art) +
         '</span><b>' +
-        esc(t.name) +
-        '</b></div><form class="ch-in" id="chForm"><label class="sr-only" for="chNum">Harga ' +
-        esc(t.name) +
-        '</label><input class="input num" id="chNum" inputmode="numeric" autocomplete="off" placeholder="Harga beli…"><button class="btn primary" type="submit">' +
+        esc(tr(tl.name)) +
+        '</b></div><form class="ch-in" id="chForm"><label class="sr-only" for="chNum">' +
+        esc(tr('Harga {k}', { k: { tile: tl.i } })) +
+        '</label><input class="input num" id="chNum" inputmode="numeric" autocomplete="off" placeholder="' +
+        esc(tr('Harga beli…')) +
+        '"><button class="btn primary" type="submit">' +
         ic('check') +
-        '<span>Kunci</span></button></form>';
+        '<span>' +
+        esc(tr('Kunci')) +
+        '</span></button></form>';
     } else if (ch.type === 'math') {
       h +=
         '<div class="ch-qtxt big">' +
-        esc(items[idx].t) +
-        '</div><form class="ch-in" id="chForm"><label class="sr-only" for="chNum">Jawaban</label><input class="input num" id="chNum" inputmode="numeric" autocomplete="off" placeholder="Jawaban…"><button class="btn primary" type="submit">' +
+        esc(items[idx].tt ? tr(items[idx].tt.k, items[idx].tt.a) : tr(items[idx].t)) +
+        '</div><form class="ch-in" id="chForm"><label class="sr-only" for="chNum">' +
+        esc(tr('Jawaban')) +
+        '</label><input class="input num" id="chNum" inputmode="numeric" autocomplete="off" placeholder="' +
+        esc(tr('Jawaban…')) +
+        '"><button class="btn primary" type="submit">' +
         ic('check') +
-        '<span>Kunci</span></button></form>';
+        '<span>' +
+        esc(tr('Kunci')) +
+        '</span></button></form>';
     } else if (ch.type === 'scramble') {
       h +=
-        '<div class="ch-tiles" aria-label="Huruf acak">' +
-        items[idx].w
+        '<div class="ch-tiles" aria-label="' +
+        esc(tr('Huruf acak')) +
+        '">' +
+        scrambleShown(items[idx])
           .split('')
           .map(c => (c === ' ' ? '<i class="sp"></i>' : '<span>' + esc(c) + '</span>'))
           .join('') +
-        '</div><form class="ch-in" id="chForm"><label class="sr-only" for="chNum">Nama tempat</label><input class="input" id="chNum" autocomplete="off" autocapitalize="words" placeholder="Nama tempat…"><button class="btn primary" type="submit">' +
+        '</div><form class="ch-in" id="chForm"><label class="sr-only" for="chNum">' +
+        esc(tr('Nama tempat')) +
+        '</label><input class="input" id="chNum" autocomplete="off" autocapitalize="words" placeholder="' +
+        esc(tr('Nama tempat…')) +
+        '"><button class="btn primary" type="submit">' +
         ic('check') +
-        '<span>Kunci</span></button></form>';
+        '<span>' +
+        esc(tr('Kunci')) +
+        '</span></button></form>';
     } else if (ch.type === 'recall') {
       if (phase === 'show')
         h +=
@@ -932,7 +1059,7 @@ function autoGame(host, it, ch, done) {
                 '<button type="button" class="rc-btn" data-rc="' +
                 k +
                 '" aria-label="' +
-                esc((TILES.find(t => t.art === k) || {}).name || k) +
+                esc(tr((TILES.find(x => x.art === k) || {}).name || k)) +
                 '">' +
                 ART.art(k) +
                 '</button>'
@@ -1058,7 +1185,7 @@ function cameraBox(host, onShot) {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nocam');
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false });
     } catch (e) {
-      err = 'Kamera tidak bisa dibuka. Pakai tombol unggah foto di bawah.';
+      err = tr('Kamera tidak bisa dibuka. Pakai tombol unggah foto di bawah.');
     }
     draw();
   }
@@ -1069,10 +1196,10 @@ function cameraBox(host, onShot) {
       (url ? ' shot' : '') +
       '">' +
       (url
-        ? '<img src="' + safeImg(url) + '" alt="Foto bukti">'
+        ? '<img src="' + safeImg(url) + '" alt="' + esc(tr('Foto bukti')) + '">'
         : live
           ? '<video id="camVid" playsinline muted autoplay></video>'
-          : '<div class="cam-empty">' + ic('polaroid') + '<span>' + esc(err || 'Buka kamera untuk foto bukti') + '</span></div>') +
+          : '<div class="cam-empty">' + ic('polaroid') + '<span>' + esc(err || tr('Buka kamera untuk foto bukti')) + '</span></div>') +
       (counting ? '<b class="cam-cd" aria-live="assertive">' + counting + '</b>' : '') +
       '</div>' +
       '<div class="cam-bar">' +
@@ -1083,10 +1210,16 @@ function cameraBox(host, onShot) {
           : btn('id="camOpen"', 'primary', 'polaroid', 'Buka kamera')) +
       '<label class="btn ghost cam-file">' +
       ic('plus') +
-      '<span>Unggah foto</span><input type="file" accept="image/*" capture="user" id="camFile" class="sr-only"></label></div>' +
+      '<span>' +
+      esc(tr('Unggah foto')) +
+      '</span><input type="file" accept="image/*" capture="user" id="camFile" class="sr-only"></label></div>' +
       '<p class="cam-note">' +
       ic('shield') +
-      '<span>Foto dikecilkan dan hanya dilihat pemain di permainan ini. Online: foto tersimpan di room bersama permainan. <button type="button" class="link-btn" id="camPriv">Privasi</button></span></p>';
+      '<span>' +
+      esc(tr('Foto dikecilkan dan hanya dilihat pemain di permainan ini. Online: foto tersimpan di room bersama permainan.')) +
+      ' <button type="button" class="link-btn" id="camPriv">' +
+      esc(tr('Privasi')) +
+      '</button></span></p>';
     const v = el.querySelector('#camVid');
     if (v && stream) {
       v.srcObject = stream;
@@ -1144,7 +1277,7 @@ function cameraBox(host, onShot) {
         img.onload = async () => {
           url = await shrink(img);
           URL.revokeObjectURL(img.src);
-          if (!url) err = 'Foto terlalu besar, coba lagi.';
+          if (!url) err = tr('Foto terlalu besar, coba lagi.');
           stop();
           onShot(url);
           draw();
@@ -1162,6 +1295,14 @@ function cameraBox(host, onShot) {
   };
 }
 
+// teks tantangan foto (bahasa perangkat bila id tantangannya tersimpan; save lama: teks Indonesia apa adanya)
+function photoText(S, x) {
+  const ch = x.ch && E.CH[x.ch];
+  if (!ch) return tr(x.text);
+  return tr(ch.text)
+    .replace(/\{j\}/g, x.judge >= 0 && S.players[x.judge] ? S.players[x.judge].name : tr('lawanmu'))
+    .replace(/\{n\}/g, S.players[x.p] ? S.players[x.p].name : '');
+}
 // galeri foto bukti (dibuka dari polaroid di papan & layar akhir)
 function openProofs() {
   showModal({
@@ -1182,25 +1323,25 @@ function openProofs() {
                 (x.ok ? '' : ' no') +
                 '"><img src="' +
                 safeImg(x.img) +
-                '" alt="Foto bukti ' +
-                esc(S.players[x.p].name) +
+                '" alt="' +
+                esc(tr('Foto bukti {n}', { n: S.players[x.p].name })) +
                 '"><figcaption><span class="pc-who"><b>' +
                 esc(S.players[x.p].name) +
-                '</b> · ronde ' +
-                x.r +
+                '</b> · ' +
+                esc(tr('ronde {r}', { r: x.r })) +
                 '</span><span class="' +
                 (x.ok ? 'ok' : 'bad') +
                 '">' +
                 ic(x.ok ? 'check' : 'x') +
-                (x.ok ? 'Disahkan' : 'Ditolak') +
+                esc(tr(x.ok ? 'Disahkan' : 'Ditolak')) +
                 (x.judge >= 0 ? ' ' + esc(S.players[x.judge].name) : '') +
                 '</span><small>' +
-                esc(x.text) +
+                esc(photoText(S, x)) +
                 '</small></figcaption></figure>'
             )
             .join('') +
           '</div>'
-        : '<div class="empty">' + ic('polaroid') + 'Belum ada foto bukti. Kartu Foto Bukti membuka kamera.</div>';
+        : '<div class="empty">' + ic('polaroid') + esc(tr('Belum ada foto bukti. Kartu Foto Bukti membuka kamera.')) + '</div>';
       const list = pr.length
         ? '<ul class="proof-list">' +
           pr
@@ -1216,18 +1357,18 @@ function openProofs() {
                 '<span><b>' +
                 esc(S.players[x.p].name) +
                 '</b> · ' +
-                esc(x.label) +
+                esc(tr(x.label)) +
                 '<small>' +
-                esc(x.proof) +
+                esc(x.pt ? tr(x.pt.k, x.pt.a) : tr(x.proof)) +
                 '</small></span></li>'
             )
             .join('') +
           '</ul>'
         : '';
       return {
-        kicker: ic('polaroid') + 'Bukti tantangan',
+        kicker: ic('polaroid') + esc(tr('Bukti tantangan')),
         title: 'Galeri Bukti',
-        body: photos + (list ? '<h3 class="mini-h">Riwayat tantangan</h3>' + list : ''),
+        body: photos + (list ? '<h3 class="mini-h">' + esc(tr('Riwayat tantangan')) + '</h3>' + list : ''),
         foot: '<span class="grow"></span>' + btn('id="bPfClose" data-focus', 'primary', 'check', 'Tutup'),
       };
     },

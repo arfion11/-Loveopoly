@@ -4,7 +4,7 @@ import { SND } from '../../assets/audio.js';
 import { Icons } from '../../assets/icons.js';
 import { D } from '../../engine/data.js';
 import { E } from '../../engine/engine.js';
-import { $, $$, App, SPD, avatarHTML, controls, esc, ic, pulse, reduceMotion } from './base.js';
+import { $, $$, App, SPD, avatarHTML, controls, esc, ic, pulse, reduceMotion, t, tLog } from './base.js';
 import { tweens } from './effects.js';
 import { merpiSay, merpiTimer, pick } from './mascot.js';
 import { endPick } from './pick.js';
@@ -22,9 +22,11 @@ function toast(text, opts) {
     '<span class="t-ic">' +
     ic(opts.icon || (opts.kind === 'err' ? 'alert' : 'heart')) +
     '</span><div>' +
-    (opts.title ? '<b>' + esc(opts.title) + '</b>' : '') +
+    // jaring pengaman bahasa: teks tetap (kunci kamus) diterjemahkan di sini; teks yang sudah diterjemahkan pemanggil
+    // tidak ada di kamus sehingga lewat apa adanya. tLog juga menerima pesan engine { text, k, a }
+    (opts.title ? '<b>' + esc(t(opts.title)) + '</b>' : '') +
     '<span>' +
-    esc(text) +
+    esc(tLog(text)) +
     '</span></div>';
   host.appendChild(el);
   // batasi 3 toast biasa; kartu achievement di host yang sama tidak ikut terbuang
@@ -50,9 +52,9 @@ function banner(title, sub, kind, ms, artName) {
     '<div class="bn-in">' +
     (artName ? '<span class="bn-art">' + ART.art(artName) + '</span>' : '') +
     '<div class="bn-txt"><b>' +
-    esc(title) +
+    esc(t(title)) +
     '</b>' +
-    (sub ? '<span>' + esc(sub) + '</span>' : '') +
+    (sub ? '<span>' + esc(t(sub)) + '</span>' : '') +
     '</div></div>';
   host.appendChild(el);
   bannerTimer = setTimeout(() => {
@@ -103,7 +105,7 @@ function achievementFx(e, ns, fresh) {
   } else if (p.kind === 'human') {
     // pencapaian pasangan (online): cukup kabar singkat
     SND.play('ding');
-    toast(a.name + ' — ' + a.text, { title: p.name + ' dapat achievement!', icon: achIcon(e.id), kind: 'gold' });
+    toast(t(a.name) + ' — ' + t(a.text), { title: t('{n} dapat achievement!', { n: p.name }), icon: achIcon(e.id), kind: 'gold' });
   }
 }
 function achKick(ms) {
@@ -146,19 +148,23 @@ function showAch(it) {
     ic('sparkle') +
     '</span></span>' +
     '<span class="ap-txt">' +
-    '<span class="ap-kick">Achievement terbuka!</span>' +
+    '<span class="ap-kick">' +
+    esc(t('Achievement terbuka!')) +
+    '</span>' +
     '<b class="ap-name">' +
-    esc(a.name) +
+    esc(t(a.name)) +
     '</b>' +
     '<span class="ap-desc">' +
-    esc(a.text) +
+    esc(t(a.text)) +
     '</span>' +
     '<span class="ap-foot"><span class="ap-who">' +
     avatarHTML(p, 'xs') +
     '<span>' +
     esc(p.name) +
     '</span></span>' +
-    '<span class="ap-prog" title="Koleksi achievement"><span class="meter gold"><i style="--v:' +
+    '<span class="ap-prog" title="' +
+    esc(t('Koleksi achievement')) +
+    '"><span class="meter gold"><i style="--v:' +
     pct(it.n - 1) +
     '%"></i></span><b>' +
     it.n +
@@ -288,7 +294,9 @@ function clearAch() {
   achCur = null;
   $$('.ach-pop, .ap-fly').forEach(x => x.remove());
 }
-const winLabel = x => (x.kind === 'triple' ? 'Trio Warna' : x.kind === 'spots' ? 'Kolektor Wisata' : 'Raja ' + E.sideName(x.side));
+// label cara menang (bahasa aktif): Trio Warna / Kolektor Wisata / Raja <jalur>
+const winLabel = x =>
+  x.kind === 'triple' ? t('Trio Warna') : x.kind === 'spots' ? t('Kolektor Wisata') : t('Raja {s}', { s: { t: E.sideName(x.side) } });
 function clearFx() {
   const bn = $('#boardVP .banner');
   if (bn) bn.remove();

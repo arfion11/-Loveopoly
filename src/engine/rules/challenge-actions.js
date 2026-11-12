@@ -1,5 +1,22 @@
 /* LOVEOPOLY — engine aturan › handler aksi tantangan (dikumpulkan lewat src/engine/engine.js) */
-import { AUTO_TYPES, CH, CH_TYPES, H, HEART_QS, PL, RULES, clampInt, ev, fail, log, loveAdd } from './base.js';
+import {
+  AUTO_TYPES,
+  CH,
+  CH_TYPES,
+  CHARADES,
+  CHARADES_EN,
+  H,
+  HEART_QS,
+  PL,
+  RULES,
+  clampInt,
+  ev,
+  fail,
+  log,
+  loveAdd,
+  sub,
+  tx,
+} from './base.js';
 import { applyFx } from './move.js';
 import {
   PHOTO_KEEP,
@@ -15,7 +32,6 @@ import {
   messageChecks,
   multiJudge,
   normWord,
-  secsTxt,
   setupCh,
 } from './challenges.js';
 import { head } from './turns.js';
@@ -54,16 +70,19 @@ function judgeVote(S, it, okVote, p) {
   return {
     ok,
     vs,
-    txt:
-      (ok ? 'disahkan ' : 'tidak disahkan ') +
-      yes +
-      ' dari ' +
-      vs.length +
-      ' penilai (' +
-      vs.map(j => PL(S, j).name + (it.pz.votes[j] ? ' ✓' : ' ✗')).join(', ') +
-      ')',
+    txt: tx(ok ? 'disahkan {y} dari {c} penilai ({l})' : 'tidak disahkan {y} dari {c} penilai ({l})', {
+      y: yes,
+      c: vs.length,
+      l: vs.map(j => PL(S, j).name + (it.pz.votes[j] ? ' ✓' : ' ✗')).join(', '),
+    }),
   };
 }
+// kata Peragakan! cocok? (bahasa Indonesia atau padanan English di CHARADES_EN)
+const wordHit = (g, word) => {
+  const k = CHARADES.indexOf(word),
+    alt = k >= 0 ? CHARADES_EN[k] : '';
+  return normWord(g) === normWord(word) || (!!alt && normWord(g) === normWord(alt));
+};
 H.CH_ANSWER = (S, a) => {
   const it0 = S.queue[0];
   const it = charadesOpen(S, it0) && chActors(S).includes(a.p) ? it0 : head(S, 'CHALLENGE', a.p);
@@ -76,8 +95,18 @@ H.CH_ANSWER = (S, a) => {
     const late = ms > z.secs * 1000 + 2000;
     const got = late ? 0 : gradeAuto(it, a.answers);
     const total = ch.type === 'recall' ? z.seq.length : (z.qs || z.items).length;
-    const shown = ch.type === 'recall' ? (got ? 'urutan ' + total + ' gambar tepat' : 'urutan keliru') : got + '/' + total + ' benar';
-    chFinish(S, it, !late && got >= z.need, late ? 'waktu habis' : shown + ' dalam ' + secsTxt(ms));
+    const shown =
+      ch.type === 'recall'
+        ? got
+          ? tx('urutan {n} gambar tepat', { n: total })
+          : tx('urutan keliru')
+        : tx('{g}/{n} benar', { g: got, n: total });
+    chFinish(
+      S,
+      it,
+      !late && got >= z.need,
+      late ? tx('waktu habis') : tx('{x} dalam {s} dtk', { x: sub(shown), s: Math.round(ms / 100) / 10 })
+    );
     return;
   }
   if (ch.type === 'secret') {
@@ -98,14 +127,14 @@ H.CH_ANSWER = (S, a) => {
     const hit = A.reduce((c, v, k) => c + (v === it.pz.secret[k] ? 1 : 0), 0);
     it.pz.guess = A;
     const ok = hit >= it.pz.need;
-    chFinish(S, it, ok, hit + '/' + n + ' cocok dengan jawaban rahasia ' + J, ok);
+    chFinish(S, it, ok, tx('{h}/{n} cocok dengan jawaban rahasia {j}', { h: hit, n, j: J }), ok);
     return;
   }
   if (ch.type === 'bluff') {
     if (it.phase === 'write') {
       const L = (Array.isArray(a.lines) ? a.lines : []).map(x => cleanText(x, 90));
       if (L.length !== 3 || L.some(x => x.length < RULES.bluffMin))
-        fail('Tulis 3 pernyataan, masing-masing minimal ' + RULES.bluffMin + ' huruf.');
+        fail(tx('Tulis 3 pernyataan, masing-masing minimal {n} huruf.', { n: RULES.bluffMin }));
       const lie = Number(a.lie);
       if (!(lie >= 0 && lie < 3)) fail('Tandai pernyataan yang bohong.');
       it.pz = { lines: L, lie };
@@ -131,12 +160,12 @@ H.CH_ANSWER = (S, a) => {
         S,
         it,
         okB,
-        fooled +
-          ' dari ' +
-          gs.length +
-          ' tertipu, yang bohong #' +
-          (it.pz.lie + 1) +
-          (caught.length ? ' · ketahuan ' + caught.map(j => PL(S, j).name).join(' & ') : ''),
+        tx('{f} dari {g} tertipu, yang bohong #{l}{c}', {
+          f: fooled,
+          g: gs.length,
+          l: it.pz.lie + 1,
+          c: caught.length ? { t: ' · ketahuan {x}', p: { x: caught.map(j => PL(S, j).name).join(' & ') } } : '',
+        }),
         caught
       );
       return;
@@ -147,7 +176,12 @@ H.CH_ANSWER = (S, a) => {
       S,
       it,
       fooled,
-      J + ' menebak #' + (pick + 1) + ', yang bohong #' + (it.pz.lie + 1) + (fooled ? ' (berhasil mengecoh)' : ' (ketahuan)'),
+      tx('{j} menebak #{a}, yang bohong #{b}{x}', {
+        j: J,
+        a: pick + 1,
+        b: it.pz.lie + 1,
+        x: { t: fooled ? ' (berhasil mengecoh)' : ' (ketahuan)' },
+      }),
       !fooled
     );
     return;
@@ -168,7 +202,10 @@ H.CH_ANSWER = (S, a) => {
           S,
           it,
           false,
-          'waktu habis, tidak ada yang menebak "' + z.word + '"' + (z.guesses.length ? ' (' + z.guesses.length + ' tebakan)' : ''),
+          tx('waktu habis, tidak ada yang menebak "{w}"{g}', {
+            w: { t: z.word },
+            g: z.guesses.length ? { t: ' ({n} tebakan)', p: { n: z.guesses.length } } : '',
+          }),
           false
         );
         return;
@@ -181,14 +218,14 @@ H.CH_ANSWER = (S, a) => {
         z.gby.push(a.p);
         z.tries++;
         z.triesBy[a.p] = (z.triesBy[a.p] || 0) + 1;
-        if (normWord(g) === normWord(z.word)) {
-          chFinish(S, it, true, nm + ' menebak "' + z.word + '" di tebakan ke-' + z.triesBy[a.p], [a.p]);
+        if (wordHit(g, z.word)) {
+          chFinish(S, it, true, tx('{n} menebak "{w}" di tebakan ke-{k}', { n: nm, w: { t: z.word }, k: z.triesBy[a.p] }), [a.p]);
           return;
         }
       }
       const left = chActors(S);
       if (!left.length) {
-        chFinish(S, it, false, 'semua penebak kehabisan kesempatan, jawabannya "' + z.word + '"', false);
+        chFinish(S, it, false, tx('semua penebak kehabisan kesempatan, jawabannya "{w}"', { w: { t: z.word } }), false);
         return;
       }
       if (!left.includes(it.who)) it.who = left[0];
@@ -199,7 +236,11 @@ H.CH_ANSWER = (S, a) => {
         S,
         it,
         false,
-        J + ' tidak berhasil menebak "' + z.word + '"' + (z.guesses.length ? ' (' + z.guesses.length + ' tebakan)' : ''),
+        tx('{j} tidak berhasil menebak "{w}"{g}', {
+          j: J,
+          w: { t: z.word },
+          g: z.guesses.length ? { t: ' ({n} tebakan)', p: { n: z.guesses.length } } : '',
+        }),
         false
       );
       return;
@@ -208,18 +249,18 @@ H.CH_ANSWER = (S, a) => {
     if (!normWord(g)) fail('Ketik tebakanmu.');
     z.guesses.push(g);
     z.tries++;
-    if (normWord(g) === normWord(z.word)) {
-      chFinish(S, it, true, J + ' menebak "' + z.word + '" di tebakan ke-' + z.tries, true);
+    if (wordHit(g, z.word)) {
+      chFinish(S, it, true, tx('{j} menebak "{w}" di tebakan ke-{k}', { j: J, w: { t: z.word }, k: z.tries }), true);
       return;
     }
-    if (z.tries >= z.max) chFinish(S, it, false, J + ' salah ' + z.tries + ' kali, jawabannya "' + z.word + '"', false);
+    if (z.tries >= z.max) chFinish(S, it, false, tx('{j} salah {k} kali, jawabannya "{w}"', { j: J, k: z.tries, w: { t: z.word } }), false);
     return;
   }
   if (ch.type === 'message') {
     if (it.phase === 'write') {
       const text = cleanText(a.text, 400);
       const bad = messageChecks(ch.rule || {}, text).filter(c => !c.ok);
-      if (bad.length) fail('Belum lolos syarat: ' + bad.map(c => c.label).join(', ') + '.');
+      if (bad.length) fail(tx('Belum lolos syarat: {x}.', { x: bad.map(c => c.label.text).join(', ') }));
       it.pz = { text };
       if (it.judge >= 0) {
         it.phase = 'judge';
@@ -230,13 +271,13 @@ H.CH_ANSWER = (S, a) => {
       const v = judgeVote(S, it, a.ok, a.p);
       if (!v) return;
       if (!v.ok) {
-        chFinish(S, it, false, 'lolos syarat, tapi ' + v.txt, v.vs);
+        chFinish(S, it, false, tx('lolos syarat, tapi {x}', { x: sub(v.txt) }), v.vs);
         return;
       }
       it.pz.voteTxt = v.txt;
       it.pz.voters = v.vs;
     } else if (!a.ok) {
-      chFinish(S, it, false, 'lolos syarat, tapi tidak disahkan ' + J, false);
+      chFinish(S, it, false, tx('lolos syarat, tapi tidak disahkan {j}', { j: J }), false);
       return;
     }
     const text = it.pz.text,
@@ -249,7 +290,13 @@ H.CH_ANSWER = (S, a) => {
       S,
       it,
       true,
-      'lolos semua syarat' + (it.pz.voteTxt ? ' · ' + it.pz.voteTxt : it.judge >= 0 ? ' · disahkan ' + J : ' (dicek otomatis)'),
+      tx('lolos semua syarat{x}', {
+        x: it.pz.voteTxt
+          ? { t: ' · {v}', p: { v: sub(it.pz.voteTxt) } }
+          : it.judge >= 0
+            ? { t: ' · disahkan {j}', p: { j: J } }
+            : { t: ' (dicek otomatis)' },
+      }),
       it.pz.voters || it.judge >= 0
     );
     return;
@@ -266,7 +313,7 @@ H.CH_ANSWER = (S, a) => {
       if (v) chFinish(S, it, v.ok, v.txt, v.vs);
       return;
     }
-    chFinish(S, it, !!a.ok, a.ok ? 'disahkan oleh ' + J : 'tidak disahkan oleh ' + J, !!a.ok);
+    chFinish(S, it, !!a.ok, tx(a.ok ? 'disahkan oleh {j}' : 'tidak disahkan oleh {j}', { j: J }), !!a.ok);
     return;
   }
   if (ch.type === 'photo') {
@@ -280,17 +327,18 @@ H.CH_ANSWER = (S, a) => {
     }
     // foto disimpan (maksimal 4 terakhir) dan dipajang di papan; yang ditolak tetap tersimpan sebagai bukti
     let okP = !!a.ok,
-      txtP = (a.ok ? 'foto disahkan oleh ' : 'foto tidak disahkan oleh ') + J,
+      txtP = tx(a.ok ? 'foto disahkan oleh {j}' : 'foto tidak disahkan oleh {j}', { j: J }),
       shareP = okP;
     if (multi) {
       const v = judgeVote(S, it, a.ok, a.p);
       if (!v) return;
       okP = v.ok;
-      txtP = 'foto ' + v.txt;
+      txtP = tx('foto {x}', { x: sub(v.txt) });
       shareP = v.vs;
     }
     S.photos = S.photos || [];
-    S.photos.push({ p: it.p, img: it.pz.photo, text: ch.text.replace(/\{j\}/g, J), ok: okP, judge: it.judge, r: S.round });
+    // ch = id tantangan: UI menampilkan teks tantangan dalam bahasa perangkat (text = Indonesia, untuk save lama)
+    S.photos.push({ p: it.p, img: it.pz.photo, text: ch.text.replace(/\{j\}/g, J), ch: it.ch, ok: okP, judge: it.judge, r: S.round });
     while (S.photos.length > PHOTO_KEEP) S.photos.shift();
     chFinish(S, it, okP, txtP, shareP);
     return;
@@ -308,7 +356,7 @@ H.CH_RESOLVE = (S, a) => {
     const opt = ch.options[a.choice];
     if (!opt) fail('Pilih salah satu opsi.');
     S.queue.shift();
-    log(S, p.name + ' memilih: ' + opt.label + '.', 'scale', a.p);
+    log(S, tx('{n} memilih: {o}.', { n: p.name, o: { t: opt.label } }), 'scale', a.p);
     p.stats.challenges++;
     applyFx(S, a.p, opt.fx);
     ev(S, { t: 'challenge', p: a.p, ok: true, dilemma: true });
@@ -319,7 +367,12 @@ H.CH_RESOLVE = (S, a) => {
     const sk = def.skip || {};
     if (sk.love) loveAdd(S, a.p, sk.love);
     p.stats.skipped++;
-    log(S, p.name + ' melewati ' + def.label + (sk.love ? ' (Love ' + sk.love + ')' : '') + '.', 'dot', a.p);
+    log(
+      S,
+      tx('{n} melewati {c}{l}.', { n: p.name, c: { t: def.label }, l: sk.love ? { t: ' (Love {v})', p: { v: sk.love } } : '' }),
+      'dot',
+      a.p
+    );
     return;
   }
   // "complete"/"fail" dari pemain sendiri tidak diterima lagi: hasil harus dibuktikan lewat CH_ANSWER

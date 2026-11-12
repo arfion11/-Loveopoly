@@ -2,7 +2,10 @@
    untuk dibagikan (Web Share API) atau disimpan. Kartu PRIBADI: tokoh utamanya pemain yang membuka (online: kursi
    sendiri; satu HP: bisa dipilih), juara bermahkota, yang lain dengan peringkat & statistiknya sendiri. */
 import { Icons } from '../../assets/icons.js';
-import { App, ART, TILES, fmt, esc, ic, $, $$, toast, safeImg, reduceMotion, avatarHTML } from '../core.js';
+import { App, ART, TILES, esc, ic, $, $$, toast, safeImg, reduceMotion, avatarHTML, t } from '../core.js';
+import { numLocale } from '../../i18n/i18n.js';
+
+const T = x => esc(t(x));
 import { holderSeat, passport } from './passport.js';
 import { goldEdition, levelInfo } from '../progress.js';
 import { UI } from '../ns.js';
@@ -112,9 +115,9 @@ function cardData(S, info, pi) {
   const words = me.msg ? { msg: me.msg, author: me } : { msg: info.msg, author: info.author };
   const st = me.stats || {};
   const stats = [
-    ['🪙', me.bankrupt ? 'Bangkrut' : 'Aset ' + fmt(o.worth ? o.worth[pi] : 0)],
-    ['🏙️', mine.length + ' kota'],
-    ['🎯', (st.challenges || 0) + ' tantangan'],
+    ['🪙', me.bankrupt ? t('Bangkrut') : t('Aset {n}', { n: o.worth ? o.worth[pi] : 0 })],
+    ['🏙️', t('{n} kota', { n: mine.length })],
+    ['🎯', t('{n} tantangan', { n: st.challenges || 0 })],
     ['💗', 'Love ' + (me.love || 0)],
   ];
   return {
@@ -202,7 +205,7 @@ function goldRibbon(x) {
   x.fillStyle = '#5A3A00';
   x.font = '800 26px ' + FB;
   x.textAlign = 'center';
-  x.fillText('EDISI EMAS', 0, 9);
+  x.fillText(t('EDISI EMAS'), 0, 9);
   x.restore();
 }
 
@@ -252,7 +255,11 @@ async function drawCard(S, info, pi) {
   x.textAlign = 'center';
   x.fillStyle = d.gold ? '#9A6A00' : C.ink2;
   x.font = '800 30px ' + FB;
-  x.fillText(d.gold ? 'EDISI EMAS · LV ' + d.gold.L + ' ' + d.gold.title.toUpperCase() : 'KENANGAN KELILING DUNIA', W / 2, 206);
+  x.fillText(
+    d.gold ? t('EDISI EMAS · LV {l} {t}', { l: d.gold.L, t: t(d.gold.title).toUpperCase() }) : t('KENANGAN KELILING DUNIA'),
+    W / 2,
+    206
+  );
 
   // tata letak vertikal: hitung tinggi isi dulu (bagian bawah gugur bila tidak muat: foto > kota > peringkat),
   // lalu letakkan di tengah ruang antara judul & kaki supaya tidak ada ruang kosong besar
@@ -298,7 +305,7 @@ async function drawCard(S, info, pi) {
   x.textBaseline = 'alphabetic';
   if (d.winner) crown(x, W / 2, ay - 138, 88);
   else {
-    const label = d.me.bankrupt ? 'BANGKRUT' : 'PERINGKAT ' + d.rank + ' DARI ' + d.ranking.length;
+    const label = d.me.bankrupt ? t('BANGKRUT') : t('PERINGKAT {r} DARI {n}', { r: d.rank, n: d.ranking.length });
     x.font = '800 28px ' + FB;
     const pw = x.measureText(label).width + 56;
     x.fillStyle = d.me.bankrupt ? '#B8282E' : C.ink;
@@ -315,9 +322,9 @@ async function drawCard(S, info, pi) {
   x.fillText(d.me.name, W / 2, ay + 206);
   x.fillStyle = C.brand;
   x.font = '800 38px ' + FB;
-  x.fillText(d.o.titles[d.pi] || (d.winner ? 'Juragan Cinta' : 'Penjelajah Cinta'), W / 2, ay + 264);
+  x.fillText(t(d.o.titles[d.pi] || (d.winner ? 'Juragan Cinta' : 'Penjelajah Cinta')), W / 2, ay + 264);
   x.fillStyle = C.ink2;
-  const sub = d.winner ? d.reason : 'Juara kali ini: ' + d.w.name;
+  const sub = d.winner ? d.reason : t('Juara kali ini: {n}', { n: d.w.name });
   fitText(x, sub, '700 {s}px ' + FB, 30, W - 160);
   x.fillText(sub, W / 2, ay + 312);
 
@@ -392,11 +399,11 @@ async function drawCard(S, info, pi) {
       x.fillStyle = C.ink;
       x.textAlign = 'center';
       x.font = '700 24px ' + FB;
-      const cap = wrapLines(x, ph.text || 'Foto bukti', iw, 2);
+      const cap = wrapLines(x, t(ph.text || 'Foto bukti'), iw, 2);
       cap.forEach((l, j) => x.fillText(l, 0, -PH / 2 + 16 + ih + 36 + j * 28));
       x.fillStyle = ph.ok ? '#1F7A4A' : '#B8282E';
       x.font = '800 22px ' + FB;
-      x.fillText((ph.ok ? '✓ Disahkan' : '✗ Ditolak') + ' · Ronde ' + (ph.r || '-'), 0, PH / 2 - 18);
+      x.fillText((ph.ok ? '✓ ' + t('Disahkan') : '✗ ' + t('Ditolak')) + ' · ' + t('Ronde {r}', { r: String(ph.r || '-') }), 0, PH / 2 - 18);
       x.restore();
     });
     y += PH + 34;
@@ -406,8 +413,9 @@ async function drawCard(S, info, pi) {
   if (plan.cities) {
     x.fillStyle = C.ink2;
     x.font = '800 28px ' + FB;
-    fitText(x, 'KOTA ' + d.me.name.toUpperCase(), '800 {s}px ' + FB, 28, W - 200);
-    x.fillText('KOTA ' + d.me.name.toUpperCase(), W / 2, y + 24);
+    const cityT = t('KOTA {n}', { n: d.me.name.toUpperCase() });
+    fitText(x, cityT, '800 {s}px ' + FB, 28, W - 200);
+    x.fillText(cityT, W / 2, y + 24);
     const gap = 18,
       total = d.owned.length * TS + (d.owned.length - 1) * gap;
     const arts = await Promise.all(d.owned.map(o => svgImage(ART.art(o.d.art), TS - 22, TS - 22).catch(() => null)));
@@ -432,8 +440,9 @@ async function drawCard(S, info, pi) {
       x.stroke();
       if (arts[i]) x.drawImage(arts[i], tx + 11, ty + 9, TS - 22, TS - 22);
       x.fillStyle = C.ink;
-      fitText(x, o.d.short || o.d.name, '700 {s}px ' + FB, 22, TS + gap - 4);
-      x.fillText(o.d.short || o.d.name, tx + TS / 2, ty + TS + 30);
+      const cn = t(o.d.short || o.d.name);
+      fitText(x, cn, '700 {s}px ' + FB, 22, TS + gap - 4);
+      x.fillText(cn, tx + TS / 2, ty + TS + 30);
     });
     y += TS + 96;
   }
@@ -454,9 +463,9 @@ async function drawCard(S, info, pi) {
   // kaki: ronde, tanggal, ajakan main
   x.fillStyle = C.ink2;
   x.font = '700 30px ' + FB;
-  const date = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  x.fillText(d.o.round + ' ronde · ' + date, W / 2, H - 150 - fy);
-  const cta = 'Main gratis bareng pasangan & teman · ' + SITE;
+  const date = new Date().toLocaleDateString(numLocale(), { day: 'numeric', month: 'long', year: 'numeric' });
+  x.fillText(t('{n} ronde', { n: d.o.round }) + ' · ' + date, W / 2, H - 150 - fy);
+  const cta = t('Main gratis bareng pasangan & teman · {s}', { s: SITE });
   x.font = '800 30px ' + FB;
   const cw = x.measureText(cta).width + 80;
   x.fillStyle = C.brand;
@@ -482,7 +491,9 @@ async function openMemoryCard(S, info) {
   const choices = App.mode === 'online' ? [] : S.players.filter(p => p.kind === 'human');
   const picker =
     choices.length > 1
-      ? '<div class="mem-who"><span class="label" id="memWhoL">Kartu untuk</span><div class="partner-pick" role="group" aria-labelledby="memWhoL">' +
+      ? '<div class="mem-who"><span class="label" id="memWhoL">' +
+        T('Kartu untuk') +
+        '</span><div class="partner-pick" role="group" aria-labelledby="memWhoL">' +
         choices
           .map(
             p =>
@@ -507,19 +518,29 @@ async function openMemoryCard(S, info) {
   ov.innerHTML =
     '<div class="mem-card"><div class="mem-head"><h2 id="memT">' +
     ic('polaroid') +
-    'Kartu Kenangan <span class="mem-gold" id="memGold" hidden>' +
+    T('Kartu Kenangan') +
+    ' <span class="mem-gold" id="memGold" hidden>' +
     ic('sparkle') +
-    'Edisi Emas</span></h2><button type="button" class="icon-btn" id="memClose" aria-label="Tutup">' +
+    T('Edisi Emas') +
+    '</span></h2><button type="button" class="icon-btn" id="memClose" aria-label="' +
+    T('Tutup') +
+    '">' +
     ic('x') +
     '</button></div>' +
     picker +
     '<div class="mem-prev"></div>' +
-    '<p class="mem-note muted">Bagikan ke Story atau chat. Foto bukti ikut tampil, jadi pastikan semua pemain nyaman.</p>' +
+    '<p class="mem-note muted">' +
+    T('Bagikan ke Story atau chat. Foto bukti ikut tampil, jadi pastikan semua pemain nyaman.') +
+    '</p>' +
     '<div class="mem-foot"><button type="button" class="btn soft" id="memSave" disabled>' +
     ic('download') +
-    '<span>Simpan</span></button><button type="button" class="btn primary" id="memShare" disabled>' +
+    '<span>' +
+    T('Simpan') +
+    '</span></button><button type="button" class="btn primary" id="memShare" disabled>' +
     ic('share') +
-    '<span>Bagikan</span></button></div></div>';
+    '<span>' +
+    T('Bagikan') +
+    '</span></button></div></div>';
   ($('#overlayRoot') || document.body).appendChild(ov);
   let url = '',
     file = null,
@@ -565,8 +586,8 @@ async function openMemoryCard(S, info) {
     try {
       await navigator.share({
         files: [file],
-        title: 'Kenangan Loveopoly',
-        text: 'Kami baru selesai keliling dunia di Loveopoly 💕 Main gratis: https://' + SITE,
+        title: t('Kenangan Loveopoly'),
+        text: t('Kami baru selesai keliling dunia di Loveopoly 💕 Main gratis: {u}', { u: 'https://' + SITE }),
       });
       track('memory_card', { action: 'share' });
     } catch (e) {
@@ -577,14 +598,14 @@ async function openMemoryCard(S, info) {
   async function render() {
     const my = ++seq;
     prev.setAttribute('aria-busy', 'true');
-    prev.innerHTML = '<div class="spinner"></div><span class="muted">Menyiapkan kartu…</span>';
+    prev.innerHTML = '<div class="spinner"></div><span class="muted">' + T('Menyiapkan kartu…') + '</span>';
     save.disabled = share.disabled = true;
     let res;
     try {
       res = await drawCard(S, info, pi);
     } catch (e) {
       console.warn('kartu kenangan gagal dibuat', e);
-      if (my === seq) prev.innerHTML = '<span class="muted">Kartu belum bisa dibuat di browser ini.</span>';
+      if (my === seq) prev.innerHTML = '<span class="muted">' + T('Kartu belum bisa dibuat di browser ini.') + '</span>';
       return;
     }
     if (my !== seq || !ov.isConnected) return;
@@ -598,12 +619,15 @@ async function openMemoryCard(S, info) {
     prev.innerHTML =
       '<img src="' +
       url +
-      '" alt="Kartu Kenangan ' +
-      esc(d.me.name) +
-      ': ' +
-      (d.winner ? 'juara' : 'peringkat ' + d.rank + ' dari ' + d.ranking.length) +
+      '" alt="' +
+      esc(
+        t('Kartu Kenangan {n}: {r}', {
+          n: d.me.name,
+          r: d.winner ? t('juara') : t('peringkat {r} dari {n}', { r: d.rank, n: d.ranking.length }),
+        })
+      ) +
       ', ' +
-      esc(d.o.titles[d.pi] || 'Penjelajah Cinta') +
+      esc(t(d.o.titles[d.pi] || 'Penjelajah Cinta')) +
       ', ' +
       esc(d.stats.map(st => st[1]).join(', ')) +
       '">';

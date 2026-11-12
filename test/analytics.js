@@ -12,7 +12,7 @@ const SECRET_NAME = 'Rahasia Banget',
   SECRET_MSG = 'Pesan cinta super pribadi';
 
 async function newPage() {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const ctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 1280, height: 800 } });
   const gtm = [];
   await ctx.route('https://www.googletagmanager.com/**', r => {
     gtm.push(r.request().url());

@@ -23,7 +23,7 @@ const server = await serveDist(PORT);
     errors = [];
   const ok = (n, c, d) => results.push((c ? 'PASS ' : 'FAIL ') + n + (d ? ' — ' + d : ''));
   const newCtx = async init => {
-    const ctx = await browser.newContext();
+    const ctx = await browser.newContext({ locale: 'id-ID' });
     await ctx.route(/^https:\/\/www\.gstatic\.com\/firebasejs\/10\.14\.1\/(.+)$/, r =>
       r.fulfill({ path: path.join(SDK, new URL(r.request().url()).pathname.split('/').pop()), contentType: 'application/javascript' })
     );

@@ -1,5 +1,5 @@
 /* LOVEOPOLY — layar › Paspor Cinta (dikumpulkan lewat src/ui/screens.js) */
-import { App, D, E, SND, ART, TILES, esc, ic, $, $$, store, toast } from '../core.js';
+import { App, D, E, SND, ART, TILES, esc, ic, $, $$, store, toast, t, getLang } from '../core.js';
 import { UI } from '../ns.js';
 import { renderHome } from './home.js';
 import { normProfile } from '../backup.js';
@@ -111,7 +111,7 @@ function recordPassport(S) {
   keepData(); // ada progres: minta browser tidak menghapus data situs ini
   const res = {
     xp: g.total + (week ? XP.week : 0),
-    parts: week ? g.parts.concat([['Api Cinta minggu ini', XP.week]]) : g.parts,
+    parts: week ? g.parts.concat([['Api Cinta minggu ini', XP.week]]) : g.parts, // [label (kunci kamus), XP, data templat]
     from: levelInfo(before.xp),
     to: levelInfo(p.xp),
     week,
@@ -142,12 +142,11 @@ function notePlay(S) {
   const lv = levelInfo(p.xp);
   toast(
     weekText(ev) +
-      ' +' +
-      XP.week +
-      ' XP Jam Terbang.' +
-      (lv.L > L0 ? ' Naik ke Level ' + lv.L + ': ' + lv.title + '!' : '') +
+      ' ' +
+      t('+{x} XP Jam Terbang.', { x: XP.week }) +
+      (lv.L > L0 ? ' ' + t('Naik ke Level {l}: {r}!', { l: lv.L, r: { t: lv.title } }) : '') +
       themesUnlocked(L0, lv.L)
-        .map(t => ' Tema papan ' + t.name + ' terbuka (pilih di Pengaturan).')
+        .map(x => ' ' + t('Tema papan {n} terbuka (pilih di Pengaturan).', { n: { t: x.name } }))
         .join(''),
     {
       kind: 'good',
@@ -160,71 +159,70 @@ function notePlay(S) {
 }
 function weekTitle(ev) {
   return ev.kind === 'saved'
-    ? 'Payung Rindu melindungi Api Cinta'
+    ? t('Payung Rindu melindungi Api Cinta')
     : ev.kind === 'start'
-      ? 'Api Cinta menyala'
+      ? t('Api Cinta menyala')
       : ev.kind === 'restart'
-        ? 'Api Cinta menyala lagi'
-        : 'Api Cinta: ' + ev.n + ' minggu beruntun!';
+        ? t('Api Cinta menyala lagi')
+        : t('Api Cinta: {n} minggu beruntun!', { n: ev.n });
 }
 function weekText(ev) {
-  const t =
+  const x =
     ev.kind === 'start'
-      ? 'Minggu pertama! Main tiap minggu supaya apinya terus menyala.'
+      ? t('Minggu pertama! Main tiap minggu supaya apinya terus menyala.')
       : ev.kind === 'restart'
-        ? 'Rekor terbaikmu ' + ev.best + ' minggu. Ayo kejar lagi!'
+        ? t('Rekor terbaikmu {n} minggu. Ayo kejar lagi!', { n: ev.best })
         : ev.kind === 'saved'
-          ? ev.used + ' minggu bolong tertutup. Api Cinta sekarang ' + ev.n + ' minggu.'
-          : 'Pertahankan, main lagi minggu depan ya.';
-  return t + (ev.earned ? ' Dapat Payung Rindu (punya ' + ev.umb + '/' + UMB_MAX + ').' : '');
+          ? t('{u} minggu bolong tertutup. Api Cinta sekarang {n} minggu.', { u: ev.used, n: ev.n })
+          : t('Pertahankan, main lagi minggu depan ya.');
+  return x + (ev.earned ? ' ' + t('Dapat Payung Rindu (punya {u}/{m}).', { u: ev.umb, m: UMB_MAX }) : '');
 }
-// status Api Cinta untuk kartu beranda & halaman paspor
+// status Api Cinta untuk kartu beranda & halaman paspor (teks dalam bahasa aktif)
 function streakLine(p, now) {
   const v = streakView(p.wk, weekNo(now)),
     left = daysLeft(now);
-  const sisa = left === 1 ? 'hari terakhir' : 'sisa ' + left + ' hari';
+  const sisa = left === 1 ? { t: 'hari terakhir' } : { t: 'sisa {n} hari', p: { n: left } };
   switch (v.state) {
     case 'done':
-      return { v, text: 'Minggu ini aman, sampai jumpa minggu depan' };
+      return { v, text: t('Minggu ini aman, sampai jumpa minggu depan') };
     case 'due':
-      return { v, text: 'Main minggu ini biar tetap menyala (' + sisa + ')' };
+      return { v, text: t('Main minggu ini biar tetap menyala ({s})', { s: sisa }) };
     case 'umb':
-      return { v, text: 'Payung Rindu siap melindungi, main minggu ini ya (' + sisa + ')' };
+      return { v, text: t('Payung Rindu siap melindungi, main minggu ini ya ({s})', { s: sisa }) };
     case 'out':
-      return { v, text: 'Api sempat padam (rekor ' + v.best + ' minggu). Nyalakan lagi minggu ini' };
+      return { v, text: t('Api sempat padam (rekor {n} minggu). Nyalakan lagi minggu ini', { n: v.best }) };
     default:
-      return { v, text: 'Main minggu ini untuk menyalakan Api Cinta' };
+      return { v, text: t('Main minggu ini untuk menyalakan Api Cinta') };
   }
 }
 // Merpi kangen: sekali per sesi, bila sudah ≥ 5 hari tidak membuka Loveopoly. Mencatat kunjungan sekarang.
+// Data dihitung sekali per sesi; teksnya dibuat saat ditampilkan (ikut bahasa aktif bila bahasa diganti)
 let kangenMsg = null;
 function kangenNote() {
-  if (kangenMsg !== null) return kangenMsg;
-  kangenMsg = '';
-  const raw = store.get(PKEY, null);
-  if (!raw) return kangenMsg; // pengunjung baru: belum ada yang dirindukan (paspor pertama kali muncul)
-  const p = passport(),
-    now = Date.now();
-  const away = p.seen ? daysBetween(p.seen, now) : 0;
-  if (p.seen && away >= 5) {
-    const v = streakView(p.wk, weekNo(now));
-    const hi = p.name ? 'Akhirnya ' + p.name + ' datang! ' : 'Akhirnya kalian datang! ';
-    kangenMsg =
-      v.state === 'due' || v.state === 'umb'
-        ? 'Kangen! ' +
-          away +
-          ' hari nggak ketemu. Api Cinta ' +
-          v.n +
-          ' minggu masih menyala' +
-          (v.state === 'umb' ? ' berkat Payung Rindu' : '') +
-          ', yuk main minggu ini 🔥'
-        : v.state === 'out'
-          ? hi + 'Merpi kangen 🥺 Api Cinta sempat padam (rekor ' + v.best + ' minggu), yuk nyalakan lagi.'
-          : hi + away + ' hari nggak ketemu, Merpi kangen 🥺';
+  if (kangenMsg === null) {
+    kangenMsg = '';
+    const raw = store.get(PKEY, null);
+    if (!raw) return ''; // pengunjung baru: belum ada yang dirindukan (paspor pertama kali muncul)
+    const p = passport(),
+      now = Date.now();
+    const away = p.seen ? daysBetween(p.seen, now) : 0;
+    if (p.seen && away >= 5) kangenMsg = { away, v: streakView(p.wk, weekNo(now)), name: p.name };
+    p.seen = now;
+    savePassport(p);
   }
-  p.seen = now;
-  savePassport(p);
-  return kangenMsg;
+  if (!kangenMsg) return '';
+  const { away, v, name } = kangenMsg;
+  const hi = name ? t('Akhirnya {n} datang!', { n: name }) : t('Akhirnya kalian datang!');
+  return v.state === 'due' || v.state === 'umb'
+    ? t(
+        v.state === 'umb'
+          ? 'Kangen! {d} hari nggak ketemu. Api Cinta {n} minggu masih menyala berkat Payung Rindu, yuk main minggu ini 🔥'
+          : 'Kangen! {d} hari nggak ketemu. Api Cinta {n} minggu masih menyala, yuk main minggu ini 🔥',
+        { d: away, n: v.n }
+      )
+    : v.state === 'out'
+      ? hi + ' ' + t('Merpi kangen 🥺 Api Cinta sempat padam (rekor {n} minggu), yuk nyalakan lagi.', { n: v.best })
+      : hi + ' ' + t('{d} hari nggak ketemu, Merpi kangen 🥺', { d: away });
 }
 const dismissKangen = () => (kangenMsg = '');
 // tambah XP Jam Terbang di luar game (mis. Pertanyaan Hari Ini). null bila belum punya paspor
@@ -266,24 +264,28 @@ function xpBar(pct, cls, key, from) {
 // kisi lencana di halaman paspor: tingkat sekarang + progres ke tingkat berikut
 function badgeGrid(p) {
   const v = badgeValues(p),
-    t = badgeTiers(p);
+    tiers = badgeTiers(p);
   return (
-    '<ul class="bdg-grid" aria-label="Lencana seumur hidup">' +
+    '<ul class="bdg-grid" aria-label="' +
+    esc(t('Lencana seumur hidup')) +
+    '">' +
     BADGES.map(b => {
-      const k = t[b.id],
+      const k = tiers[b.id],
         next = b.tiers[k];
-      const tierName = k ? TIER_NAMES[k - 1] : 'Belum';
+      const tierName = t(k ? TIER_NAMES[k - 1] : 'Belum');
       return (
         '<li class="bdg t' +
         k +
         '"><span class="bdg-ic" aria-hidden="true">' +
         ic(b.icon) +
         '</span><span class="bdg-txt"><b>' +
-        esc(b.name) +
+        esc(t(b.name)) +
         '</b><small>' +
-        tierName +
+        esc(tierName) +
         ' · ' +
-        (next ? Math.min(v[b.id], next) + '/' + next + ' ' + b.unit : v[b.id] + ' ' + b.unit + ', tingkat tertinggi') +
+        esc(
+          next ? Math.min(v[b.id], next) + '/' + next + ' ' + t(b.unit) : t('{n} {u}, tingkat tertinggi', { n: v[b.id], u: { t: b.unit } })
+        ) +
         '</small></span></li>'
       );
     }).join('') +
@@ -296,17 +298,15 @@ function progressSection(p) {
     sl = streakLine(p, Date.now());
   return (
     '<div class="pp-prog">' +
-    '<div class="pp-lbl">Jam Terbang & Api Cinta</div>' +
+    '<div class="pp-lbl">' +
+    esc(t('Jam Terbang & Api Cinta')) +
+    '</div>' +
     '<div class="pg-row"><span class="pg-lv">Lv ' +
     lv.L +
     '</span><span class="grow"><b>' +
-    esc(lv.title) +
+    esc(t(lv.title)) +
     '</b><small>' +
-    lv.cur +
-    '/' +
-    lv.need +
-    ' XP ke Level ' +
-    (lv.L + 1) +
+    esc(t('{a}/{b} XP ke Level {l}', { a: lv.cur, b: lv.need, l: lv.L + 1 })) +
     '</small>' +
     xpBar(lv.pct, '', 'pass') +
     '</span></div>' +
@@ -314,18 +314,18 @@ function progressSection(p) {
     sl.v.state +
     '">' +
     ic('flame') +
-    '</span><span class="grow"><b>Api Cinta ' +
-    sl.v.n +
-    ' minggu</b><small>' +
+    '</span><span class="grow"><b>' +
+    esc(t('Api Cinta {n} minggu', { n: sl.v.n })) +
+    '</b><small>' +
     esc(sl.text) +
-    ' · rekor ' +
-    sl.v.best +
-    ' · Payung Rindu ' +
-    sl.v.umb +
-    '/' +
-    UMB_MAX +
+    ' · ' +
+    esc(t('rekor {n}', { n: sl.v.best })) +
+    ' · ' +
+    esc(t('Payung Rindu {u}/{m}', { u: sl.v.umb, m: UMB_MAX })) +
     '</small></span></div>' +
-    '<div class="pp-lbl">Lencana</div>' +
+    '<div class="pp-lbl">' +
+    esc(t('Lencana')) +
+    '</div>' +
     badgeGrid(p) +
     '</div>'
   );
@@ -335,25 +335,23 @@ function stampGrid(p, cls) {
   return (
     '<div class="pp-stamps ' +
     (cls || '') +
-    '" aria-label="Cap kota: ' +
-    p.stamps.length +
-    ' dari ' +
-    CITY_TILES.length +
+    '" aria-label="' +
+    esc(t('Cap kota: {a} dari {b}', { a: p.stamps.length, b: CITY_TILES.length })) +
     '">' +
-    CITY_TILES.map((t, k) => {
-      const got = p.stamps.includes(t.i);
+    CITY_TILES.map((tl, k) => {
+      const got = p.stamps.includes(tl.i);
       return (
         '<span class="pp-st' +
         (got ? ' got' : '') +
         '" style="--k:' +
         k +
         ';--g:' +
-        D.GROUPS[t.group].color +
+        D.GROUPS[tl.group].color +
         '" title="' +
-        esc(t.name) +
-        (got ? '' : ' (belum)') +
+        esc(t(tl.name)) +
+        (got ? '' : ' (' + esc(t('belum')) + ')') +
         '">' +
-        ART.art(t.art) +
+        ART.art(tl.art) +
         '</span>'
       );
     }).join('') +
@@ -362,7 +360,9 @@ function stampGrid(p, cls) {
 }
 // bagian dalam sampul (terlihat setelah paspor terbuka): halaman pemilik + cap kota + segel, dekoratif
 function coverInside(p) {
-  const since = p.since ? new Date(p.since).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const since = p.since
+    ? new Date(p.since).toLocaleDateString(getLang() === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
   const got = p.stamps
     .slice(-6)
     .reverse()
@@ -371,44 +371,57 @@ function coverInside(p) {
   const stamps = got.length
     ? got
         .map(
-          (t, k) =>
+          (tl, k) =>
             '<span class="pp-cb-st" style="--k:' +
             k +
             ';--g:' +
-            D.GROUPS[t.group].color +
+            D.GROUPS[tl.group].color +
             '"><span class="cbs-art">' +
-            ART.art(t.art) +
+            ART.art(tl.art) +
             '</span><b>' +
-            esc(t.short || t.name) +
+            esc(t(tl.short || tl.name)) +
             '</b></span>'
         )
         .join('')
     : [0, 1, 2]
         .map(
-          k => '<span class="pp-cb-st empty" style="--k:' + k + '"><span class="cbs-art">' + ic('plane') + '</span><b>Cap kota</b></span>'
+          k =>
+            '<span class="pp-cb-st empty" style="--k:' +
+            k +
+            '"><span class="cbs-art">' +
+            ic('plane') +
+            '</span><b>' +
+            esc(t('Cap kota')) +
+            '</b></span>'
         )
         .join('');
   return (
     '<div class="pp-cv-back" aria-hidden="true"><div class="pp-cb-in">' +
-    '<span class="pp-cb-k">Halaman pemilik · Holder</span>' +
+    '<span class="pp-cb-k">' +
+    esc(t('Halaman pemilik · Holder')) +
+    '</span>' +
     '<span class="pp-cb-merpi">' +
     ART.merpi(p.name ? 'is-love' : 'is-happy') +
     '</span>' +
     '<b class="pp-cb-name">' +
-    esc(p.name || 'Calon pelancong cinta') +
+    esc(p.name || t('Calon pelancong cinta')) +
     '</b>' +
     '<span class="pp-cb-sub">' +
-    (since ? 'Pelancong cinta sejak ' + esc(since) : 'Selamat datang di Republik Rindu') +
+    esc(since ? t('Pelancong cinta sejak {d}', { d: since }) : t('Selamat datang di Republik Rindu')) +
     '</span>' +
     '<div class="pp-cb-stamps">' +
     stamps +
     '</div>' +
     '<span class="pp-cb-note">' +
-    (got.length
-      ? p.stamps.length + ' cap kota terkumpul · ' + p.games + ' main · ' + p.wins + ' menang'
-      : 'Main dan kuasai kota untuk mengumpulkan cap di sini') +
+    esc(
+      got.length
+        ? t('{a} cap kota terkumpul · {b} main · {c} menang', { a: p.stamps.length, b: p.games, c: p.wins })
+        : t('Main dan kuasai kota untuk mengumpulkan cap di sini')
+    ) +
     '</span>' +
-    '<span class="pp-cb-seal"><svg viewBox="0 0 100 100"><defs><path id="ppSealArc" d="M50 50 m-36 0 a36 36 0 1 1 72 0 a36 36 0 1 1 -72 0"/></defs><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/><text font-size="10.5" font-weight="700" letter-spacing="2" fill="currentColor"><textPath href="#ppSealArc">REPUBLIK RINDU ✦ LOVEOPOLY ✦</textPath></text><path d="M50 62c-9-7-15-12-15-18a7.5 7.5 0 0 1 15-3 7.5 7.5 0 0 1 15 3c0 6-6 11-15 18z" fill="currentColor"/></svg></span>' +
+    '<span class="pp-cb-seal"><svg viewBox="0 0 100 100"><defs><path id="ppSealArc" d="M50 50 m-36 0 a36 36 0 1 1 72 0 a36 36 0 1 1 -72 0"/></defs><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="50" r="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 3"/><text font-size="10.5" font-weight="700" letter-spacing="2" fill="currentColor"><textPath href="#ppSealArc">' +
+    esc(t('REPUBLIK RINDU')) +
+    ' ✦ LOVEOPOLY ✦</textPath></text><path d="M50 62c-9-7-15-12-15-18a7.5 7.5 0 0 1 15-3 7.5 7.5 0 0 1 15 3c0 6-6 11-15 18z" fill="currentColor"/></svg></span>' +
     '</div></div>'
   );
 }
@@ -464,11 +477,13 @@ function openPassport(opts) {
       '">' +
       // halaman dalam (formulir)
       '<form class="pp-page" id="ppForm" novalidate>' +
-      '<div class="pp-page-top"><span class="pp-k">Republik Rindu · Loveopoly</span><span class="pp-no">' +
+      '<div class="pp-page-top"><span class="pp-k">' +
+      esc(t('Republik Rindu · Loveopoly')) +
+      '</span><span class="pp-no">' +
       esc(passNo(Object.assign({}, p, { since: p.since || Date.now() }))) +
       '</span></div>' +
       '<h2 id="ppTitle" class="pp-h">' +
-      (edit ? 'Paspor Cintamu' : 'Terbitkan Paspor Cinta') +
+      esc(t(edit ? 'Paspor Cintamu' : 'Terbitkan Paspor Cinta')) +
       '</h2>' +
       '<div class="pp-id">' +
       '<div class="pp-photo" style="--c:' +
@@ -476,25 +491,41 @@ function openPassport(opts) {
       '"><span>' +
       esc(st.avatar) +
       '</span><i class="pp-holo" aria-hidden="true"></i></div>' +
-      '<div class="pp-fields"><label class="pp-lbl" for="ppName">Nama / Name</label><input class="pp-in" id="ppName" maxlength="16" autocomplete="nickname" placeholder="Nama panggilanmu" value="' +
+      '<div class="pp-fields"><label class="pp-lbl" for="ppName">' +
+      esc(t('Nama / Name')) +
+      '</label><input class="pp-in" id="ppName" maxlength="16" autocomplete="nickname" placeholder="' +
+      esc(t('Nama panggilanmu')) +
+      '" value="' +
       esc(st.name) +
       '">' +
-      '<span class="pp-lbl">Berlaku / Valid</span><b class="pp-val">Selamanya ❤</b></div></div>' +
-      '<div class="pp-lbl">Pilih wajah pionmu</div><div class="pp-avs" role="group" aria-label="Avatar">' +
+      '<span class="pp-lbl">' +
+      esc(t('Berlaku / Valid')) +
+      '</span><b class="pp-val">' +
+      esc(t('Selamanya ❤')) +
+      '</b></div></div>' +
+      '<div class="pp-lbl">' +
+      esc(t('Pilih wajah pionmu')) +
+      '</div><div class="pp-avs" role="group" aria-label="' +
+      esc(t('Avatar')) +
+      '">' +
       D.AVATARS.map(
         a =>
           '<button type="button" data-ppav="' +
           a +
           '" aria-pressed="' +
           (st.avatar === a) +
-          '" aria-label="Avatar ' +
-          a +
+          '" aria-label="' +
+          esc(t('Avatar {a}', { a })) +
           '">' +
           a +
           '</button>'
       ).join('') +
       '</div>' +
-      '<div class="pp-lbl">Warna pion</div><div class="pp-cols" role="group" aria-label="Warna pion">' +
+      '<div class="pp-lbl">' +
+      esc(t('Warna pion')) +
+      '</div><div class="pp-cols" role="group" aria-label="' +
+      esc(t('Warna pion')) +
+      '">' +
       D.TOKEN_COLORS.map(
         c =>
           '<button type="button" data-ppcol="' +
@@ -503,45 +534,45 @@ function openPassport(opts) {
           c +
           '" aria-pressed="' +
           (st.color === c) +
-          '" aria-label="Warna ' +
-          c +
+          '" aria-label="' +
+          esc(t('Warna {c}', { c })) +
           '"></button>'
       ).join('') +
       '</div>' +
-      '<label class="pp-lbl" for="ppMsg">Pesan romantis di layar kemenangan</label>' +
+      '<label class="pp-lbl" for="ppMsg">' +
+      esc(t('Pesan romantis di layar kemenangan')) +
+      '</label>' +
       '<textarea class="pp-msg" id="ppMsg" maxlength="240" rows="2" placeholder="' +
-      esc(D.WIN_MESSAGES[0]) +
+      esc(t(D.WIN_MESSAGES[0])) +
       '">' +
       esc(st.msg) +
       '</textarea>' +
-      '<p class="pp-msg-note">Opsional. Muncul di layar kemenangan setiap game. Saat main online, pesan ini juga terlihat oleh pemain lain di room.</p>' +
+      '<p class="pp-msg-note">' +
+      esc(t('Opsional. Muncul di layar kemenangan setiap game. Saat main online, pesan ini juga terlihat oleh pemain lain di room.')) +
+      '</p>' +
       (edit ? progressSection(p) : '') +
       (edit
-        ? '<div class="pp-lbl">Cap kota · ' +
-          p.stamps.length +
-          '/' +
-          CITY_TILES.length +
-          ' · ' +
-          p.games +
-          ' main · ' +
-          p.wins +
-          ' menang</div>' +
+        ? '<div class="pp-lbl">' +
+          esc(t('Cap kota · {a}/{b} · {c} main · {d} menang', { a: p.stamps.length, b: CITY_TILES.length, c: p.games, d: p.wins })) +
+          '</div>' +
           stampGrid(p, 'sm')
         : '') +
       '<div class="pp-foot">' +
       (edit
-        ? '<button type="button" class="pp-ghost" id="ppCancel">Tutup</button>'
-        : '<button type="button" class="pp-ghost" id="ppSkip">Nanti saja</button>') +
+        ? '<button type="button" class="pp-ghost" id="ppCancel">' + esc(t('Tutup')) + '</button>'
+        : '<button type="button" class="pp-ghost" id="ppSkip">' + esc(t('Nanti saja')) + '</button>') +
       '<button type="submit" class="pp-gold" id="ppGo"' +
       (valid ? '' : ' disabled') +
       '>' +
       ic('check') +
       '<span>' +
-      (edit ? 'Simpan Paspor' : 'Terbitkan Paspor') +
+      esc(t(edit ? 'Simpan Paspor' : 'Terbitkan Paspor')) +
       '</span></button></div>' +
       '<p class="pp-priv">' +
       ic('shield') +
-      '<span>Paspor hanya tersimpan di perangkat ini. Tanpa email, tanpa kata sandi.</span></p>' +
+      '<span>' +
+      esc(t('Paspor hanya tersimpan di perangkat ini. Tanpa email, tanpa kata sandi.')) +
+      '</span></p>' +
       '<div class="pp-mrz" aria-hidden="true">P&lt;LOV' +
       esc(
         (st.name || 'TAMU')
@@ -551,7 +582,9 @@ function openPassport(opts) {
       ) +
       '&lt;&lt;RINDU&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>' +
       // cap DISETUJUI + stempel karet dalam satu wadah seukuran cap (miring bersama): stempel selalu tepat menutupi cap
-      '<div class="pp-seal" aria-hidden="true"><div class="pp-stamp"><b>DISETUJUI</b><span>' +
+      '<div class="pp-seal" aria-hidden="true"><div class="pp-stamp"><b>' +
+      esc(t('DISETUJUI')) +
+      '</b><span>' +
       ic('heart') +
       ' Loveopoly</span></div><div class="pp-stamper"><svg viewBox="0 0 200 136" preserveAspectRatio="none"><ellipse cx="100" cy="22" rx="24" ry="18" fill="#c98a4b" stroke="#3a1426" stroke-width="3"/><path d="M86 14c5-6 16-7 22-3" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".45"/><rect x="90" y="37" width="20" height="34" rx="6" fill="#b5743a" stroke="#3a1426" stroke-width="3"/><rect x="64" y="67" width="72" height="15" rx="6" fill="#7a1840" stroke="#3a1426" stroke-width="3"/><rect x="8" y="80" width="184" height="38" rx="10" fill="#5b1236" stroke="#3a1426" stroke-width="3"/><path d="M20 89h70" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity=".22"/><path d="M100 110c-7-5-11-9-11-13a5.5 5.5 0 0 1 11-2.4 5.5 5.5 0 0 1 11 2.4c0 4-4 8-11 13z" fill="#f7d98b"/><rect x="12" y="116" width="176" height="15" rx="4" fill="#c0264f" stroke="#3a1426" stroke-width="3"/></svg></div></div>' +
       '</form>' +
@@ -559,11 +592,15 @@ function openPassport(opts) {
       '<div class="pp-cover" aria-hidden="' +
       st.open +
       '"><div class="pp-cv-in">' +
-      '<span class="pp-foil pp-cv-top">Republik Rindu</span>' +
+      '<span class="pp-foil pp-cv-top">' +
+      esc(t('Republik Rindu')) +
+      '</span>' +
       '<span class="pp-emblem">' +
       ART.merpi('is-happy') +
       '</span>' +
-      '<span class="pp-foil pp-cv-title">PASPOR<br>CINTA</span>' +
+      '<span class="pp-foil pp-cv-title">' +
+      t('PASPOR<br>CINTA') +
+      '</span>' +
       '<span class="pp-foil pp-cv-sub">LOVEOPOLY · PASSPORT OF LOVE</span>' +
       (edit
         ? '<span class="pp-foil pp-cv-name">' + esc(p.name.toUpperCase()) + '</span>'
@@ -572,11 +609,13 @@ function openPassport(opts) {
       (st.open ? ' tabindex="-1"' : '') +
       '>' +
       ic('book') +
-      '<span>Buka Paspor</span></button>' +
+      '<span>' +
+      esc(t('Buka Paspor')) +
+      '</span></button>' +
       '<button type="button" class="pp-ghost pp-skip-c" id="ppSkip2"' +
       (st.open ? ' tabindex="-1"' : '') +
       '>' +
-      (edit ? 'Tutup' : 'Nanti saja') +
+      esc(t(edit ? 'Tutup' : 'Nanti saja')) +
       '</button>' +
       '</div>' +
       coverInside(p) +
@@ -695,7 +734,7 @@ function openPassport(opts) {
           setTimeout(
             () => {
               close();
-              toast(edit ? 'Paspor diperbarui.' : 'Paspor terbit! Selamat datang, ' + nm + '.', {
+              toast(edit ? t('Paspor diperbarui.') : t('Paspor terbit! Selamat datang, {n}.', { n: nm }), {
                 kind: 'good',
                 icon: 'heart',
                 title: edit ? '' : 'Selamat datang',
@@ -761,7 +800,11 @@ function passportCard() {
     return (
       '<button type="button" class="pass-card empty" id="hPass"><span class="pc-book" aria-hidden="true">' +
       ic('book') +
-      '</span><span class="grow"><b>Buat Paspor Cinta</b><span>Simpan nama & pionmu, kumpulkan cap kota, Api Cinta & Jam Terbang tiap kali main.</span></span>' +
+      '</span><span class="grow"><b>' +
+      esc(t('Buat Paspor Cinta')) +
+      '</b><span>' +
+      esc(t('Simpan nama & pionmu, kumpulkan cap kota, Api Cinta & Jam Terbang tiap kali main.')) +
+      '</span></span>' +
       ic('chevron') +
       '</button>'
     );
@@ -774,32 +817,30 @@ function passportCard() {
     '" aria-hidden="true">' +
     esc(p.avatar) +
     '</span>' +
-    '<span class="grow"><span class="pc-k">Paspor Cinta · ' +
+    '<span class="grow"><span class="pc-k">' +
+    esc(t('Paspor Cinta')) +
+    ' · ' +
     esc(passNo(p)) +
-    '</span><b>Halo, ' +
-    esc(p.name) +
-    '!</b>' +
-    '<span class="pc-stats"><span><b>' +
-    p.games +
-    '</b> main</span><span><b>' +
-    p.wins +
-    '</b> menang' +
+    '</span><b>' +
+    esc(t('Halo, {n}!', { n: p.name })) +
+    '</b>' +
+    '<span class="pc-stats"><span>' +
+    t('{b} main', { b: '<b>' + p.games + '</b>', c: p.games }) +
+    '</span><span>' +
+    t('{b} menang', { b: '<b>' + p.wins + '</b>', c: p.wins }) +
     (p.games ? ' (' + rate + '%)' : '') +
-    '</span><span><b>' +
-    p.stamps.length +
-    '</b>/' +
-    CITY_TILES.length +
-    ' cap kota</span></span>' +
+    '</span><span>' +
+    t('{b}/{n} cap kota', { b: '<b>' + p.stamps.length + '</b>', n: CITY_TILES.length }) +
+    '</span></span>' +
     '<span class="pc-prog"><span class="pc-fire s-' +
     sl.v.state +
     '">' +
     ic('flame') +
-    '<b>' +
-    sl.v.n +
-    '</b> minggu</span><span class="pc-lv">Lv <b>' +
+    t('{b} minggu', { b: '<b>' + sl.v.n + '</b>', c: sl.v.n }) +
+    '</span><span class="pc-lv">Lv <b>' +
     lv.L +
     '</b> ' +
-    esc(lv.title) +
+    esc(t(lv.title)) +
     '</span>' +
     xpBar(lv.pct, 'pc-xp', 'home') +
     '</span><span class="pc-wk">' +

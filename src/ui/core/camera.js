@@ -1,7 +1,7 @@
 /* LOVEOPOLY — UI inti › kamera ponsel & kamera 3D (diekspor ulang lewat src/ui/core.js) */
 import { SND } from '../../assets/audio.js';
 import { E } from '../../engine/engine.js';
-import { $, App, N, ic, reduceMotion, setHTML, store } from './base.js';
+import { $, App, N, esc, ic, reduceMotion, setHTML, store, t } from './base.js';
 import { tileBox } from './pieces.js';
 import { newsPillHTML } from './hud.js';
 
@@ -383,9 +383,13 @@ function renderCamCtl() {
   setHTML(
     el,
     (S
-      ? '<span class="round-chip vp" title="Ronde">' +
+      ? '<span class="round-chip vp" title="' +
+        esc(t('Ronde')) +
+        '">' +
         ic('calendar') +
-        '<span><span class="rc-w">Ronde </span><b>' +
+        '<span><span class="rc-w">' +
+        esc(t('Ronde')) +
+        ' </span><b>' +
         S.round +
         '</b>' +
         (lim ? '/' + lim : '') +
@@ -395,17 +399,21 @@ function renderCamCtl() {
       '<button type="button" class="cam-btn" id="camBtn" aria-pressed="' +
       near +
       '" aria-label="' +
-      (is3d()
-        ? near
-          ? 'Lihat seluruh papan'
-          : 'Kamera dekat: ikuti pion'
-        : near
-          ? 'Kamera otomatis: lihat seluruh papan'
-          : 'Kunci kamera dekat') +
+      esc(
+        t(
+          is3d()
+            ? near
+              ? 'Lihat seluruh papan'
+              : 'Kamera dekat: ikuti pion'
+            : near
+              ? 'Kamera otomatis: lihat seluruh papan'
+              : 'Kunci kamera dekat'
+        )
+      ) +
       '">' +
       ic(near ? 'map' : 'zoomIn') +
       '<span>' +
-      (near ? 'Semua' : 'Dekat') +
+      esc(t(near ? 'Semua' : 'Dekat')) +
       '</span></button>'
   );
   const b = $('#camBtn');

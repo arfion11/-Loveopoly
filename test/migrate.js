@@ -14,7 +14,7 @@ const legacyHtml = fs.readFileSync(path.resolve(import.meta.dirname, '../legacy/
   const results = [],
     errors = [];
   const ok = (n, c, d) => results.push((c ? 'PASS ' : 'FAIL ') + n + (d ? ' — ' + d : ''));
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const ctx = await browser.newContext({ locale: 'id-ID', viewport: { width: 390, height: 844 } });
   await ctx.route(OLD + '/**', r => r.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: legacyHtml }));
   await routeDist(ctx, NEW);
   const page = await ctx.newPage();

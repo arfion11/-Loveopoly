@@ -1,6 +1,6 @@
 ---
 name: loveopoly-desain
-description: Sistem desain & identitas Loveopoly untuk desainer/pengembang UI — token warna & dua tema, tipografi Fredoka/Nunito, maskot Merpi, seni SVG orisinal, tata letak 4 mode (wide/mid/compact/land), kesan "mewah tapi ringan", aksesibilitas, dan penulisan UX Bahasa Indonesia yang hangat. Pakai saat merancang layar/komponen/dialog baru, mengubah gaya CSS, menulis teks UI/tombol/toast/error, membuat aset (ikon, og-image, ilustrasi), atau menilai apakah tampilan "sudah bagus".
+description: Sistem desain & identitas Loveopoly untuk desainer/pengembang UI — token warna & dua tema, tipografi Fredoka/Nunito, maskot Merpi, seni SVG orisinal, tata letak 4 mode (wide/mid/compact/land), kesan "mewah tapi ringan", aksesibilitas, dan penulisan UX dua bahasa (Indonesia + English) yang hangat. Pakai saat merancang layar/komponen/dialog baru, mengubah gaya CSS, menulis teks UI/tombol/toast/error, membuat aset (ikon, og-image, ilustrasi), atau menilai apakah tampilan "sudah bagus".
 ---
 
 # Desain Loveopoly

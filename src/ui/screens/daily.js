@@ -2,7 +2,7 @@
    Alur: pilih jawabanmu → tebak pilihan pasangan → kirim tautan (Bagikan / WhatsApp / salin) ATAU jawab bergantian di
    HP ini. Pasangan membuka tautan → menjawab & menebak → hasil terbuka, bisa dikirim balik. Keadaan hari ini disimpan
    di perangkat (loveopoly.v1.daily). Nama & jawaban dari tautan = data tak tepercaya: divalidasi decodeLink & di-escape. */
-import { SND, esc, ic, $, $$, store, toast } from '../core.js';
+import { SND, esc, ic, $, $$, store, toast, t } from '../core.js';
 import { UI } from '../ns.js';
 import { dailyIndex, dailyNo, dailyQ, dayNo, decodeLink, encodeLink, questionAt, score } from '../daily.js';
 import { XP } from '../progress.js';
@@ -28,17 +28,19 @@ function loadState() {
   return o;
 }
 const saveState = st => store.set(DKEY, st);
+// soal dalam bahasa perangkat (bank soal disimpan dalam bahasa Indonesia; nomor soal sama di semua bahasa)
+const trQ = q => ({ ...q, q: t(q.q), o: q.o.map(o => t(o)), tag: q.tag ? t(q.tag) : '' });
 const myName = st => passport().name || (st && st.n) || '';
 const linkFor = o => location.origin + '/#tanya=' + encodeLink(o);
 const share = (text, url) => {
   if (navigator.share)
-    return navigator.share({ title: 'Pertanyaan Hari Ini · Loveopoly', text, url }).catch(e => {
+    return navigator.share({ title: t('Pertanyaan Hari Ini · Loveopoly'), text, url }).catch(e => {
       if (e && e.name !== 'AbortError') copy(text + ' ' + url);
     });
   copy(text + ' ' + url);
 };
-const copy = t =>
-  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject())
+const copy = txt =>
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
     .then(() => toast('Tautan disalin. Tempel ke chat pasanganmu ya.', { kind: 'good', icon: 'check' }))
     .catch(() => toast('Tidak bisa menyalin otomatis. Bagikan lewat WhatsApp saja ya.', { kind: 'err' }));
 const waHref = (text, url) => 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url);
@@ -46,22 +48,22 @@ const waHref = (text, url) => 'https://wa.me/?text=' + encodeURIComponent(text +
 // kartu di beranda
 function dailyCard() {
   const today = dayNo(Date.now()),
-    q = dailyQ(today),
+    q = trQ(dailyQ(today)),
     st = loadState();
   const mine = st && st.d === today && st.a != null && st.g != null;
   const done = mine && st.p;
   const status = done
-    ? 'Tebakan cocok ' + score({ a: st.a, g: st.g, b: st.p.a, h: st.p.g }).n + '/2 · lihat hasilnya'
+    ? t('Tebakan cocok {n}/2 · lihat hasilnya', { n: score({ a: st.a, g: st.g, b: st.p.a, h: st.p.g }).n })
     : mine
-      ? 'Menunggu jawaban ' + (st.p ? st.p.n : 'pasanganmu') + '… kirim lagi tautannya'
-      : 'Jawab, lalu tebak pilihan pasanganmu';
+      ? t('Menunggu jawaban {n}… kirim lagi tautannya', { n: st.p ? st.p.n : { t: 'pasanganmu' } })
+      : t('Jawab, lalu tebak pilihan pasanganmu');
   return (
     '<button type="button" class="daily-card' +
     (done ? ' done' : '') +
     '" id="hDaily"><span class="dc-ic" aria-hidden="true">' +
     ic('letter') +
-    '</span><span class="grow"><span class="dc-k">Pertanyaan Hari Ini #' +
-    dailyNo(today) +
+    '</span><span class="grow"><span class="dc-k">' +
+    esc(t('Pertanyaan Hari Ini #{n}', { n: String(dailyNo(today)) })) +
     (q.tag ? ' · ' + esc(q.tag) : '') +
     '</span><b>' +
     esc(q.q) +
@@ -92,11 +94,9 @@ function rewardOnce(st) {
   const r = addXp(XP.daily);
   if (r)
     toast(
-      '+' +
-        XP.daily +
-        ' XP Jam Terbang.' +
-        (r.lv.L > r.L0 ? ' Naik ke Level ' + r.lv.L + ': ' + r.lv.title + '!' : '') +
-        r.themes.map(t => ' Tema papan ' + t.name + ' terbuka.').join(''),
+      t('+{n} XP Jam Terbang.', { n: XP.daily }) +
+        (r.lv.L > r.L0 ? ' ' + t('Naik ke Level {l}: {t}!', { l: r.lv.L, t: { t: r.lv.title } }) : '') +
+        r.themes.map(x => ' ' + t('Tema papan {n} terbuka.', { n: { t: x.name } })).join(''),
       { kind: 'good', icon: 'sparkle', ms: 3200 }
     );
 }
@@ -144,8 +144,8 @@ function openDaily(link) {
   const day = (ui.res && ui.res.d) || st.d;
   // nomor soal: dari tautan (soal yang dijawab pasangan) atau keadaan tersimpan, jadi semua pihak menjawab soal sama
   const qi = ui.res ? ui.res.q : ui.from ? ui.from.q : st.q;
-  const q = dailyQ(day, qi);
-  const partnerName = () => (ui.from ? ui.from.n : st.p ? st.p.n : ui.p2.n || 'pasanganmu');
+  const q = trQ(dailyQ(day, qi));
+  const partnerName = () => (ui.from ? ui.from.n : st.p ? st.p.n : ui.p2.n || t('pasanganmu'));
 
   const opts = (sel, attr, label) =>
     '<div class="dq-opts' +
@@ -172,7 +172,7 @@ function openDaily(link) {
     '</div>';
   const result = () => {
     if (ui.res) return ui.res;
-    const A = myName(st) || 'Kamu';
+    const A = myName(st) || t('Kamu');
     if (ui.from) return { d: day, A: ui.from.n, a: ui.from.a, g: ui.from.g, B: A, b: st.a, h: st.g };
     return { d: day, A, a: st.a, g: st.g, B: st.p.n, b: st.p.a, h: st.p.g };
   };
@@ -180,110 +180,133 @@ function openDaily(link) {
   const nameField = () =>
     myName(st)
       ? ''
-      : '<label class="label" for="dqName">Namamu (terlihat oleh pasangan)</label><input class="input" id="dqName" maxlength="16" autocomplete="nickname" value="' +
+      : '<label class="label" for="dqName">' +
+        esc(t('Namamu (terlihat oleh pasangan)')) +
+        '</label><input class="input" id="dqName" maxlength="16" autocomplete="nickname" value="' +
         esc(st.n || '') +
         '">';
-  const shareTextQ = () => 'Pertanyaan Hari Ini #' + dailyNo(day) + ' 💌 Aku sudah jawab & menebak pilihanmu. Giliranmu!';
+  const shareTextQ = () => t('Pertanyaan Hari Ini #{n} 💌 Aku sudah jawab & menebak pilihanmu. Giliranmu!', { n: String(dailyNo(day)) });
 
   UI.showModal({
     key: 'daily',
     size: 'mid',
     build: () => {
       const v = ui.view;
-      const step = v === 'pick' || v === 'p2pick' ? ' · Langkah 1 dari 2' : v === 'guess' || v === 'p2guess' ? ' · Langkah 2 dari 2' : '';
-      const kicker = ic('letter') + 'Pertanyaan Hari Ini #' + dailyNo(day) + (q.tag ? ' · ' + esc(q.tag) : '') + step;
+      const step =
+        v === 'pick' || v === 'p2pick'
+          ? ' · ' + t('Langkah {a} dari {b}', { a: 1, b: 2 })
+          : v === 'guess' || v === 'p2guess'
+            ? ' · ' + t('Langkah {a} dari {b}', { a: 2, b: 2 })
+            : '';
+      const kicker =
+        ic('letter') + esc(t('Pertanyaan Hari Ini #{n}', { n: String(dailyNo(day)) })) + (q.tag ? ' · ' + esc(q.tag) : '') + esc(step);
       let body = '<p class="dq-q">' + esc(q.q) + '</p>',
         foot = '',
-        title = 'Pilihanmu';
+        title = t('Pilihanmu');
+      const p2name = () => ui.p2.n || t('pasangan');
       if (v === 'pick' || v === 'p2pick') {
         const p2 = v === 'p2pick';
-        title = p2 ? 'Pilihan ' + (ui.p2.n || 'pasangan') : 'Pilihanmu';
+        title = p2 ? t('Pilihan {n}', { n: p2name() }) : t('Pilihanmu');
         if (ui.from && !p2)
           body =
             '<p class="note gold">' +
             ic('heart') +
             '<span>' +
-            esc(ui.from.n) +
-            ' sudah menjawab. Sekarang giliranmu, nanti hasilnya terbuka untuk kalian berdua.</span></p>' +
+            esc(t('{n} sudah menjawab. Sekarang giliranmu, nanti hasilnya terbuka untuk kalian berdua.', { n: ui.from.n })) +
+            '</span></p>' +
             body;
-        body += opts(p2 ? ui.p2.a : ui.tmp, 'data-dqa', 'Pilihanmu');
-        if (!p2) body += '<p class="tiny muted dq-wib">Soal baru setiap pukul 00.00 WIB, sama untuk semua pemain.</p>';
+        body += opts(p2 ? ui.p2.a : ui.tmp, 'data-dqa', t('Pilihanmu'));
+        if (!p2) body += '<p class="tiny muted dq-wib">' + esc(t('Soal baru setiap pukul 00.00 WIB, sama untuk semua pemain.')) + '</p>';
       } else if (v === 'guess' || v === 'p2guess') {
         const p2 = v === 'p2guess';
-        const who = p2 ? myName(st) || 'pasanganmu' : partnerName();
-        title = 'Tebak pilihan ' + who;
+        const who = p2 ? myName(st) || t('pasanganmu') : partnerName();
+        title = t('Tebak pilihan {n}', { n: who });
         // ringkasan langkah 1 + warna berbeda: jelas ini tebakan tentang pasangan, bukan memilih ulang
         body +=
           '<p class="dq-mine">' +
           ic('check') +
           '<span>' +
-          (p2 ? 'Pilihan ' + esc(ui.p2.n || 'pasangan') : 'Pilihanmu') +
+          esc(p2 ? t('Pilihan {n}', { n: p2name() }) : t('Pilihanmu')) +
           ': <b>' +
           esc(q.o[p2 ? ui.p2.a : st.a]) +
           '</b></span></p>' +
-          '<p class="dq-hint">Sekarang tebak: menurutmu, <b>' +
-          esc(who) +
-          '</b> pilih yang mana?</p>' +
-          opts(p2 ? ui.p2.g : ui.tmp, 'data-dqg', 'Tebakanmu tentang ' + who);
+          '<p class="dq-hint">' +
+          t('Sekarang tebak: menurutmu, {n} pilih yang mana?', { n: '<b>' + esc(who) + '</b>' }) +
+          '</p>' +
+          opts(p2 ? ui.p2.g : ui.tmp, 'data-dqg', t('Tebakanmu tentang {n}', { n: who }));
       } else if (v === 'send') {
-        title = 'Kirim ke pasanganmu';
+        title = t('Kirim ke pasanganmu');
         body +=
           '<p class="dq-mine">' +
           ic('check') +
-          '<span>Pilihanmu: <b>' +
+          '<span>' +
+          esc(t('Pilihanmu')) +
+          ': <b>' +
           esc(q.o[st.a]) +
-          '</b> · tebakanmu tentang pasangan: <b>' +
+          '</b> · ' +
+          esc(t('tebakanmu tentang pasangan')) +
+          ': <b>' +
           esc(q.o[st.g]) +
           '</b></span></p>' +
-          '<p class="muted">Kirim tautan ini. Setelah pasanganmu menjawab, hasilnya terbuka untuk kalian berdua. Jawabanmu hanya ada di tautan, tidak dikirim ke server.</p>' +
+          '<p class="muted">' +
+          esc(
+            t(
+              'Kirim tautan ini. Setelah pasanganmu menjawab, hasilnya terbuka untuk kalian berdua. Jawabanmu hanya ada di tautan, tidak dikirim ke server.'
+            )
+          ) +
+          '</p>' +
           nameField() +
           '<div class="dq-share"><button type="button" class="btn primary" id="dqShare">' +
           ic('share') +
-          '<span>Bagikan</span></button><a class="btn soft" id="dqWa" target="_blank" rel="noopener" href="' +
+          '<span>' +
+          esc(t('Bagikan')) +
+          '</span></button><a class="btn soft" id="dqWa" target="_blank" rel="noopener" href="' +
           esc(waHref(shareTextQ(), linkFor({ d: day, q: qi, n: myName(st), a: st.a, g: st.g }))) +
           '">' +
           ic('chat') +
           '<span>WhatsApp</span></a></div>';
         foot = UI.btn('id="dqHot"', 'ghost', 'users', 'Jawab bergantian di HP ini');
       } else if (v === 'gate') {
-        title = 'Serahkan ke pasanganmu';
+        title = t('Serahkan ke pasanganmu');
         body =
           '<p class="dq-gate">' +
           ic('users') +
-          '<span>Giliran pasanganmu menjawab. Jangan intip ya 🙈</span></p>' +
-          '<label class="label" for="dqP2">Nama pasangan</label><input class="input" id="dqP2" maxlength="16" autocomplete="off" value="' +
+          '<span>' +
+          esc(t('Giliran pasanganmu menjawab. Jangan intip ya 🙈')) +
+          '</span></p>' +
+          '<label class="label" for="dqP2">' +
+          esc(t('Nama pasangan')) +
+          '</label><input class="input" id="dqP2" maxlength="16" autocomplete="off" value="' +
           esc(ui.p2.n) +
           '">';
         foot = UI.btn('id="dqP2Go"', 'primary', 'play', 'Aku pasangannya, mulai');
       } else if (v === 'reveal') {
         const r = result(),
           sc = score(r);
-        title = sc.same ? 'Kalian sama-sama pilih ' + q.o[r.a] + '!' : 'Hasil Pertanyaan Hari Ini';
+        title = sc.same ? t('Kalian sama-sama pilih {o}!', { o: q.o[r.a] }) : t('Hasil Pertanyaan Hari Ini');
         const row = (who, pickI, guessWho, guessI, ok) =>
-          '<li><span class="dq-who"><b>' +
-          esc(who) +
-          '</b> pilih <b>' +
-          esc(q.o[pickI]) +
-          '</b></span><span class="dq-g ' +
+          '<li><span class="dq-who">' +
+          t('{n} pilih {o}', { n: '<b>' + esc(who) + '</b>', o: '<b>' + esc(q.o[pickI]) + '</b>' }) +
+          '</span><span class="dq-g ' +
           (ok ? 'ok' : 'no') +
           '">' +
           ic(ok ? 'check' : 'x') +
-          'tebak ' +
-          esc(guessWho) +
-          ': ' +
-          esc(q.o[guessI]) +
+          esc(t('tebak {n}: {o}', { n: guessWho, o: q.o[guessI] })) +
           '</span></li>';
         body +=
           '<ul class="dq-res">' +
           row(r.A, r.a, r.B, r.g, sc.g1) +
           row(r.B, r.b, r.A, r.h, sc.g2) +
-          '</ul><p class="dq-score"><b>Tebakan cocok ' +
-          sc.n +
-          '/2</b> · ' +
-          esc(COMMENT[sc.n]) +
+          '</ul><p class="dq-score"><b>' +
+          esc(t('Tebakan cocok {n}/2', { n: sc.n })) +
+          '</b> · ' +
+          esc(t(COMMENT[sc.n])) +
           '</p>';
-        const resText =
-          'Pertanyaan Hari Ini #' + dailyNo(r.d) + ' 💌 Tebakan kami cocok ' + sc.n + '/2' + (sc.n === 2 ? ' 💞' : '') + '. Main gratis:';
+        const resText = t('Pertanyaan Hari Ini #{d} 💌 Tebakan kami cocok {n}/2{x}. Main gratis:', {
+          d: String(dailyNo(r.d)),
+          n: sc.n,
+          x: sc.n === 2 ? ' 💞' : '',
+        });
         const site = location.origin + '/';
         // yang menjawab tautan pasangan bisa mengirim hasil balik; selain itu bagikan skor tanpa bocoran
         const back = ui.from ? linkFor({ d: r.d, q: qi, n: r.A, a: r.a, g: r.g, m: r.B, b: r.b, h: r.h }) : '';
@@ -292,18 +315,20 @@ function openDaily(link) {
           '<div class="dq-share">' +
           (back
             ? '<a class="btn primary" id="dqBack" target="_blank" rel="noopener" href="' +
-              esc(waHref('Hasil Pertanyaan Hari Ini kita sudah keluar 💌', back)) +
+              esc(waHref(t('Hasil Pertanyaan Hari Ini kita sudah keluar 💌'), back)) +
               '">' +
               ic('chat') +
-              '<span>Kirim hasil ke ' +
-              esc(r.A) +
+              '<span>' +
+              esc(t('Kirim hasil ke {n}', { n: r.A })) +
               '</span></a>'
             : '') +
           '<button type="button" class="btn ' +
           (back ? 'soft' : 'primary') +
           '" id="dqScore">' +
           ic('share') +
-          '<span>Bagikan skor</span></button></div>';
+          '<span>' +
+          esc(t('Bagikan skor')) +
+          '</span></button></div>';
         ui.shareScore = () => share(resText, site);
       }
       return { kicker, title, body, foot };
@@ -316,7 +341,7 @@ function openDaily(link) {
         const bk = $('#dqBack', m);
         if (bk && ui.from)
           bk.href = waHref(
-            'Hasil Pertanyaan Hari Ini kita sudah keluar 💌',
+            t('Hasil Pertanyaan Hari Ini kita sudah keluar 💌'),
             linkFor({ d: day, q: qi, n: ui.from.n, a: ui.from.a, g: ui.from.g, m: myName(st), b: st.a, h: st.g })
           );
       };
@@ -359,7 +384,7 @@ function openDaily(link) {
           const i = Number(b.dataset.dqg);
           if (ui.view === 'p2guess') {
             ui.p2.g = i;
-            st.p = { n: ui.p2.n || 'Pasangan', a: ui.p2.a, g: ui.p2.g };
+            st.p = { n: ui.p2.n || t('Pasangan§nama'), a: ui.p2.a, g: ui.p2.g };
             saveState(st);
             ui.view = 'reveal';
             SND.play('fanfare');

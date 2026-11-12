@@ -1,10 +1,10 @@
 /* LOVEOPOLY — layar. Isinya dipecah per bagian di src/ui/screens/*.js;
    berkas ini mengumpulkan API-nya dan mendaftarkannya di registri UI. */
 import { UI } from './ns.js';
-import { show, savePrefs, applyTheme, syncSoundBtn, toggleSound } from './screens/base.js';
+import { show, savePrefs, applyTheme, syncSoundBtn, toggleSound, relang } from './screens/base.js';
 import { passport, recordPassport, openPassport, notePlay } from './screens/passport.js';
 import { renderHome } from './screens/home.js';
-import { openSetup } from './screens/setup.js';
+import { openSetup, renderSetup } from './screens/setup.js';
 import { openOnline, renderLobby } from './screens/online.js';
 import { enterGame, exitToHome, togglePause, afterSettle, onLetter } from './screens/game.js';
 import { showWin } from './screens/win.js';
@@ -25,6 +25,8 @@ Object.assign(UI, {
   syncSoundBtn,
   renderHome,
   openSetup,
+  renderSetup,
+  relang,
   openOnline,
   renderLobby,
   enterGame,

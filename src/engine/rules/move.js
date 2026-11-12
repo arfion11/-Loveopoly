@@ -13,7 +13,6 @@ import {
   cashAdd,
   citiesOf,
   ev,
-  fmt,
   log,
   loveAdd,
   netWorth,
@@ -22,6 +21,8 @@ import {
   tierInfo,
   upgradeCost,
   upgradeLevels,
+  tx,
+  sub,
 } from './base.js';
 import { offerTakeover, offerUpgrade, rentFor } from './tolls.js';
 import { chItem } from './challenges.js';
@@ -38,7 +39,11 @@ function passStart(S, i) {
   ev(S, { t: 'salary', p: i, amount: pay, laps: p.laps });
   log(
     S,
-    p.name + ' melewati START: gaji ' + fmt(pay) + '.' + (p.laps === RULES.hotelLaps ? ' Hotel sekarang bisa dibangun!' : ''),
+    tx('{n} melewati START: gaji {g}.{x}', {
+      n: p.name,
+      g: pay,
+      x: p.laps === RULES.hotelLaps ? { t: ' Hotel sekarang bisa dibangun!' } : '',
+    }),
     'coins',
     i
   );
@@ -86,13 +91,13 @@ function sendToIsland(S, i, why) {
   loveAdd(S, i, -3);
   if (from !== ISLAND) ev(S, { t: 'move', p: i, from, to: ISLAND, steps: 0, kind: 'jump' });
   ev(S, { t: 'island', p: i });
-  log(S, p.name + ' terdampar di Pulau Rindu' + (why ? ' (' + why + ')' : '') + '.', 'island', i);
+  log(S, tx('{n} terdampar di Pulau Rindu{w}.', { n: p.name, w: why ? { t: ' ({x})', p: { x: sub(why) } } : '' }), 'island', i);
 }
 function release(S, i, how) {
   const p = PL(S, i);
   p.island = false;
   p.islandTries = 0;
-  log(S, p.name + ' meninggalkan Pulau Rindu ' + how + '.', 'boat', i);
+  log(S, tx('{n} meninggalkan Pulau Rindu {h}.', { n: p.name, h: sub(how) }), 'boat', i);
   ev(S, { t: 'free', p: i });
 }
 function nearestTile(pos, kind) {
@@ -119,17 +124,13 @@ function meetUp(S, i) {
   });
   log(
     S,
-    'Ketemuan! ' +
-      p.name +
-      ' bertemu ' +
-      others.map(q => q.name).join(' & ') +
-      ' di ' +
-      TILES[p.pos].name +
-      ': masing-masing +' +
-      fmt(RULES.meetCash * k) +
-      ' dan Love +' +
-      RULES.meetLove * k +
-      '.',
+    tx('Ketemuan! {n} bertemu {o} di {k}: masing-masing +{c} dan Love +{l}.', {
+      n: p.name,
+      o: others.map(q => q.name).join(' & '),
+      k: { tile: p.pos },
+      c: RULES.meetCash * k,
+      l: RULES.meetLove * k,
+    }),
     'heart',
     i
   );
@@ -150,7 +151,7 @@ function land(S, i) {
     case 'tax': {
       const amt = Math.round((netWorth(S, i) * RULES.taxRate) / 10) * 10;
       if (amt > 0) qadd(S, { type: 'TAX', p: i, amount: amt });
-      else log(S, p.name + ' bebas Pajak Rindu (aset kosong).', 'dot', i);
+      else log(S, tx('{n} bebas Pajak Rindu (aset kosong).', { n: p.name }), 'dot', i);
       break;
     }
     case 'start':
@@ -167,7 +168,7 @@ function land(S, i) {
       if (S.turn.p === i) {
         S.turn.canRollAgain = false;
       }
-      log(S, p.name + ' tiba di World Tour. Giliran depan bisa terbang ke mana saja!', 'plane', i);
+      log(S, tx('{n} tiba di World Tour. Giliran depan bisa terbang ke mana saja!', { n: p.name }), 'plane', i);
       ev(S, { t: 'tour', p: i });
       break;
     default:
@@ -179,7 +180,7 @@ function landOwnable(S, i, t) {
   const p = PL(S, i);
   if (st.owner === -1) {
     if (p.cash < buyCost(S, i, t.i, 0)) {
-      log(S, p.name + ' belum cukup uang untuk membeli ' + t.name + '.', 'dot', i);
+      log(S, tx('{n} belum cukup uang untuk membeli {k}.', { n: p.name, k: { tile: t.i } }), 'dot', i);
       return;
     }
     qadd(S, { type: 'BUY', p: i, tile: t.i });
@@ -230,7 +231,7 @@ const TARGET_NONE = {
 function offerTarget(S, i, kind, src) {
   const c = targetCandidates(S, i, kind);
   if (!c.length || (kind === 'swap' && !swapTargets(S, i).length)) {
-    log(S, PL(S, i).name + ' ' + TARGET_NONE[kind] + '.', 'dot', i);
+    log(S, tx('{n} {x}.', { n: PL(S, i).name, x: { t: TARGET_NONE[kind] } }), 'dot', i);
     return false;
   }
   qadd(S, { type: 'TARGET', p: i, kind, src: src || 'card' });
@@ -241,7 +242,7 @@ function offerTarget(S, i, kind, src) {
 function drawCard(S, i) {
   const d = S.decks.card;
   if (!d.length) {
-    log(S, 'Tumpukan Kartu Cinta sedang kosong.', 'dot', i);
+    log(S, tx('Tumpukan Kartu Cinta sedang kosong.'), 'dot', i);
     return;
   }
   const id = d.shift();
@@ -266,20 +267,20 @@ function applyFx(S, i, fx) {
   const p = PL(S, i);
   for (const e of fx) {
     if (e.gain != null) cashAdd(S, i, e.gain);
-    if (e.pay != null) charge(S, i, e.pay, -1, 'biaya kartu');
+    if (e.pay != null) charge(S, i, e.pay, -1, tx('biaya kartu'));
     if (e.love != null) loveAdd(S, i, e.love);
     if (e.collectEach != null)
       activeIdx(S).forEach(j => {
-        if (j !== i) charge(S, j, e.collectEach, i, 'hadiah untuk ' + p.name);
+        if (j !== i) charge(S, j, e.collectEach, i, tx('hadiah untuk {n}', { n: p.name }));
       });
     if (e.payEach != null)
       activeIdx(S).forEach(j => {
-        if (j !== i) charge(S, i, e.payEach, j, 'traktiran untuk ' + PL(S, j).name);
+        if (j !== i) charge(S, i, e.payEach, j, tx('traktiran untuk {n}', { n: PL(S, j).name }));
       });
     if (e.repairs != null) {
       const n = buildingLevels(S, i);
-      if (n) charge(S, i, n * e.repairs, -1, 'servis bangunan');
-      else log(S, p.name + ' belum punya bangunan. Aman!', 'dot', i);
+      if (n) charge(S, i, n * e.repairs, -1, tx('servis bangunan'));
+      else log(S, tx('{n} belum punya bangunan. Aman!', { n: p.name }), 'dot', i);
     }
     if (e.moveTo != null) {
       advanceTo(S, i, e.moveTo);
@@ -296,11 +297,16 @@ function applyFx(S, i, fx) {
     if (e.goIsland) sendToIsland(S, i, 'kartu');
     if (e.skipTurn) {
       p.skip += e.skipTurn;
-      log(S, p.name + ' akan kehilangan giliran berikutnya.', 'pause', i);
+      log(S, tx('{n} akan kehilangan giliran berikutnya.', { n: p.name }), 'pause', i);
     }
     if (e.discount) {
       p.discount = Math.max(p.discount, e.discount);
-      log(S, p.name + ' punya voucher diskon ' + Math.round(e.discount * 100) + '% untuk beli/bangun berikutnya.', 'ticket', i);
+      log(
+        S,
+        tx('{n} punya voucher diskon {d}% untuk beli/bangun berikutnya.', { n: p.name, d: Math.round(e.discount * 100) }),
+        'ticket',
+        i
+      );
     }
     if (e.target) offerTarget(S, i, e.target, 'card');
     if (e.challenge) qadd(S, chItem(S, i, e.challenge, 'card'));
@@ -311,9 +317,9 @@ function applyFx(S, i, fx) {
       const rich = act[0],
         poor = act[act.length - 1];
       if (rich !== poor && PL(S, rich).cash > PL(S, poor).cash) {
-        charge(S, rich, e.richToPoor, poor, 'traktiran untuk ' + PL(S, poor).name);
-        log(S, PL(S, rich).name + ' (uang terbanyak) mentraktir ' + PL(S, poor).name + '.', 'coins', rich);
-      } else log(S, 'Uang semua pemain setara. Tidak ada traktiran.', 'dot', i);
+        charge(S, rich, e.richToPoor, poor, tx('traktiran untuk {n}', { n: PL(S, poor).name }));
+        log(S, tx('{a} (uang terbanyak) mentraktir {b}.', { a: PL(S, rich).name, b: PL(S, poor).name }), 'coins', rich);
+      } else log(S, tx('Uang semua pemain setara. Tidak ada traktiran.'), 'dot', i);
     }
   }
 }

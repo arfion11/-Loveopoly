@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { defineConfig } from 'vite';
 
-// service worker: daftar precache = semua berkas hasil build (tanpa source map) + berkas public yang dipakai halaman.
+// service worker: daftar precache = semua berkas hasil build (tanpa source map) + berkas public yang dipakai halaman,
+// kecuali kamus bahasa (chunk en-*): dimuat & di-cache saat dipakai saja, supaya pemain Indonesia tidak ikut mengunduhnya.
 // Versi = hash daftar & isi index.html, jadi tiap deploy memasang service worker baru dan membuang cache lama.
 function serviceWorker() {
   return {
@@ -13,7 +14,7 @@ function serviceWorker() {
     enforce: 'post',
     generateBundle(_, bundle) {
       const built = Object.keys(bundle)
-        .filter(f => !f.endsWith('.map') && f !== 'index.html')
+        .filter(f => !f.endsWith('.map') && f !== 'index.html' && !(bundle[f].type === 'chunk' && bundle[f].name === 'en'))
         .map(f => '/' + f)
         .sort();
       const list = ['/', ...built, '/manifest.webmanifest', '/icon.svg', '/icon-32.png', '/icon-192.png', '/apple-touch-icon.png'];

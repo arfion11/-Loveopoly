@@ -24,10 +24,22 @@ Cadangan Paspor · Hemat baterai.
 - **Error**: apa yang salah + cara memperbaiki, tanpa minta maaf: "Isi nama kamu dulu.", "Tautan ini rusak atau sudah
   kedaluwarsa. Minta pasanganmu mengirim ulang."
 - **Kosong**: ajakan bertindak: "Belum ada foto bukti. Selesaikan tantangan Foto Bukti untuk memajang di sini."
-- **Angka**: `fmt()` (titik ribuan `id-ID`), desimal pakai koma ("×1,5", "1,6 dtk").
+- **Angka**: `fmt()` / parameter angka di `t()` (Indonesia `2.500`, "×1,5"; English `2,500`, "×1.5"); jangan menulis angka jadi
+  di dalam teks kunci bila nilainya dari aturan.
 - **Privasi**: jujur & spesifik tentang apa yang disimpan dan di mana; jangan menjanjikan yang belum berlaku.
 - **Nama orang** dari pengguna selalu `esc()`; sapaan pakai nama bila ada ("Serahkan ke Nadia").
 
 ## Panjang
 
 Label tombol ≤ 3 kata bila bisa; pilihan Pertanyaan Hari Ini ≤ 30 karakter; kartu beranda satu baris di HP (potong "…").
+
+## English
+
+Semua teks punya padanan English (`src/i18n/en/*.js`), dengan nada yang sama: hangat, santai, singkat, kata kerja di
+tombol ("Play again", "Send the photo to Nadia"). Istilah baku: Love Card (Kartu Cinta), Longing Island (Pulau Rindu),
+Missing-You Tax (Pajak Rindu), Longing Storm (Badai Rindu), Love Festival, World Tour, Merpi News (Kabar Merpi), Peak
+Season (Musim Puncak), Together Moment (Momen Berdua), Meet-up! (Ketemuan!), Color Trio / Lane King / Attraction
+Collector, Love Passport, Flight Hours (Jam Terbang), Love Flame (Api Cinta), Longing Umbrella (Payung Rindu), city
+stamps, Memory Card, Question of the Day, Battery saver; tingkat Love: Crush → Dating → Smitten → Soulmate. Jamak lewat
+`{n|round|rounds}`. Nama tempat yang punya nama English memakai `TILES[].en` (Rome, Prague, Venice…). Pilihan
+Pertanyaan Hari Ini tetap ≤ 30 karakter dalam English.

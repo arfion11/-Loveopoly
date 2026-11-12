@@ -1,7 +1,9 @@
 /* LOVEOPOLY — layar › masuk/keluar game, undian giliran, jeda, setelah state stabil (dikumpulkan lewat src/ui/screens.js) */
 import { Net } from '../../net/net.js';
 import { track } from '../../analytics.js';
-import { App, D, E, SND, ART, KEYS, esc, ic, $, $$, store, toast } from '../core.js';
+import { App, D, E, SND, ART, KEYS, esc, ic, $, $$, store, toast, t } from '../core.js';
+
+const T = x => esc(t(x));
 import { UI } from '../ns.js';
 import { show } from './base.js';
 import { renderHome } from './home.js';
@@ -76,8 +78,11 @@ function drawReveal(S) {
       '</span>' +
       '<div class="draw-k">' +
       ic('dice') +
-      'Undian giliran</div>' +
-      '<h2 class="draw-t" id="drawT">Siapa jalan duluan?</h2>' +
+      T('Undian giliran') +
+      '</div>' +
+      '<h2 class="draw-t" id="drawT">' +
+      T('Siapa jalan duluan?') +
+      '</h2>' +
       '<div class="draw-row" aria-hidden="true">' +
       S.players
         .map(
@@ -92,15 +97,20 @@ function drawReveal(S) {
             esc(p.name) +
             '</b><span class="dp-tag">' +
             ic('crown') +
-            'Duluan!</span></span>'
+            T('Duluan!') +
+            '</span></span>'
         )
         .join('') +
       '</div>' +
       '<p class="draw-res" role="status" aria-live="polite"></p>' +
-      '<div class="draw-order" hidden><span class="do-k">Urutan main</span><ol>' +
+      '<div class="draw-order" hidden><span class="do-k">' +
+      T('Urutan main') +
+      '</span><ol>' +
       order.map((p, k) => '<li style="--c:' + p.color + '"><b>' + (k + 1) + '</b>' + esc(p.avatar) + ' ' + esc(p.name) + '</li>').join('') +
       '</ol></div>' +
-      '<button type="button" class="btn primary" id="drawGo"><span>Lewati</span></button>' +
+      '<button type="button" class="btn primary" id="drawGo"><span>' +
+      T('Lewati') +
+      '</span></button>' +
       '</div>';
     document.body.appendChild(ov);
     const chips = $$('.draw-p', ov),
@@ -117,11 +127,13 @@ function drawReveal(S) {
       chips[win].classList.add('dp-win');
       ov.classList.add('dw-done');
       $('.draw-merpi', ov).innerHTML = ART.merpi('is-love');
-      $('#drawT', ov).textContent = S.players[win].name + ' jalan duluan!';
-      $('.draw-res', ov).textContent =
-        'Undian giliran: ' + S.players[win].name + ' jalan duluan. Urutan main: ' + order.map(p => p.name).join(', ') + '.';
+      $('#drawT', ov).textContent = t('{n} jalan duluan!', { n: S.players[win].name });
+      $('.draw-res', ov).textContent = t('Undian giliran: {n} jalan duluan. Urutan main: {o}.', {
+        n: S.players[win].name,
+        o: order.map(p => p.name).join(', '),
+      });
       $('.draw-order', ov).hidden = n < 3;
-      go.querySelector('span').textContent = 'Ayo main!';
+      go.querySelector('span').textContent = t('Ayo main!');
       if (!rm)
         chips[win].insertAdjacentHTML(
           'beforeend',
@@ -171,16 +183,16 @@ function drawReveal(S) {
     }
     // langkah sorotan: berakhir tepat di pemenang; jeda membesar (cepat → pelan) supaya terasa mendebarkan
     const base = 3 * n + 4,
-      T = base + ((((win - base) % n) + n) % n);
+      steps = base + ((((win - base) % n) + n) % n);
     let k = 0;
     const step = () => {
       mark(k % n);
       SND.play('step');
-      if (k >= T) {
+      if (k >= steps) {
         timer = setTimeout(finish, 380);
         return;
       }
-      const x = k / T;
+      const x = k / steps;
       k++;
       timer = setTimeout(step, 55 + 360 * Math.pow(x, 2.6));
     };
@@ -280,7 +292,7 @@ function enterGame(mode, seat, S) {
         UI.renderTokens(App.S);
         UI.renderStage(App.S);
         UI.renderTicker(App.S);
-        UI.merpiSay(S.players[S.start || 0].name + ' jalan duluan~ Semangat!', 'happy', 2400);
+        UI.merpiSay(t('{n} jalan duluan~ Semangat!', { n: S.players[S.start || 0].name }), 'happy', 2400);
         if (App.tourPending) setTimeout(startTour, UI.reduceMotion() ? 50 : 350);
         else UI.scheduleAI();
       });
@@ -345,11 +357,19 @@ function renderPause() {
     el.innerHTML =
       '<div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pauseT">' +
       ART.merpi('is-think') +
-      '<h2 id="pauseT">Istirahat dulu</h2><p class="muted">Minum air, kirim stiker ke pasangan. Permainan menunggu.</p><button type="button" class="btn go" id="pResume">' +
+      '<h2 id="pauseT">' +
+      T('Istirahat dulu') +
+      '</h2><p class="muted">' +
+      T('Minum air, kirim stiker ke pasangan. Permainan menunggu.') +
+      '</p><button type="button" class="btn go" id="pResume">' +
       ic('play') +
-      '<span>Lanjutkan</span></button><button type="button" class="btn ghost" id="pExit">' +
+      '<span>' +
+      T('Lanjutkan') +
+      '</span></button><button type="button" class="btn ghost" id="pExit">' +
       ic('exit') +
-      '<span>Keluar ke menu</span></button></div>';
+      '<span>' +
+      T('Keluar ke menu') +
+      '</span></button></div>';
     root.appendChild(el);
     $('#pResume', el).onclick = togglePause;
     $('#pExit', el).onclick = UI.openExit;
@@ -392,7 +412,7 @@ function onLetter(p) {
     toast('Pesanmu terkirim dan tersimpan sampai akhir permainan.', { icon: 'letter', kind: 'good' });
     return;
   }
-  toast(l.text, { title: 'Surat cinta dari ' + S.players[p].name, icon: 'letter', kind: 'love', ms: 6500 });
+  toast(l.text, { title: t('Surat cinta dari {n}', { n: S.players[p].name }), icon: 'letter', kind: 'love', ms: 6500 });
 }
 
 export { afterSettle, enterGame, exitToHome, onLetter, togglePause };

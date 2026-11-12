@@ -1,5 +1,5 @@
 /* LOVEOPOLY — dialog permainan › pilih petak (festival, bangun, kartu aksi, World Tour) (dikumpulkan lewat src/ui/modals.js) */
-import { App, E, TILES, RULES, fmt, pname, act } from '../core.js';
+import { App, E, TILES, RULES, pname, act, t as tr, tile } from '../core.js';
 import { UI } from '../ns.js';
 import { head } from './base.js';
 
@@ -34,8 +34,8 @@ function pTarget(key) {
     key,
     sel: [],
     art: META.art,
-    title: META.title,
-    skipLabel: META.skip,
+    title: tr(META.title),
+    skipLabel: tr(META.skip),
     can: i => (it.kind === 'swap' ? (def.sel.length === 0 ? cand.has(i) : theirs.has(i) || i === def.sel[0]) : cand.has(i)),
     tap: i => {
       if (it.kind === 'swap') {
@@ -48,21 +48,25 @@ function pTarget(key) {
     hint: () => {
       if (it.kind === 'swap')
         return def.sel.length === 0
-          ? 'Langkah 1: ketuk kotamu yang mau diberikan.'
+          ? tr('Langkah 1: ketuk kotamu yang mau diberikan.')
           : def.sel.length === 1
-            ? 'Langkah 2: ketuk kota lawan yang mau diambil (' + TILES[def.sel[0]].name + ' akan diberikan).'
-            : TILES[def.sel[0]].name + ' ↔ ' + TILES[def.sel[1]].name;
+            ? tr('Langkah 2: ketuk kota lawan yang mau diambil ({c} akan diberikan).', { c: tile(def.sel[0]) })
+            : tile(def.sel[0]) + ' ↔ ' + tile(def.sel[1]);
       if (def.sel.length) {
-        const t = TILES[def.sel[0]];
-        if (it.kind === 'festival') return t.name + ': tol jadi ' + fmt(festPreview(S, def.sel[0])) + '.';
+        const c = { tile: def.sel[0] };
+        if (it.kind === 'festival') return tr('{c}: tol jadi {n}.', { c, n: festPreview(S, def.sel[0]) });
         if (it.kind === 'storm')
-          return t.name + ' milik ' + pname(S.tiles[def.sel[0]].owner) + ' turun jadi ' + E.LEVEL_NAME[S.tiles[def.sel[0]].level - 1] + '.';
-        if (it.kind === 'renov') return t.name + ' naik jadi ' + E.LEVEL_NAME[E.upgradeLevels(S, p, def.sel[0])[0]] + '.';
-        return t.name + ' dipilih.';
+          return tr('{c} milik {o} turun jadi {l}.', {
+            c,
+            o: pname(S.tiles[def.sel[0]].owner),
+            l: { t: E.LEVEL_NAME[S.tiles[def.sel[0]].level - 1] },
+          });
+        if (it.kind === 'renov') return tr('{c} naik jadi {l}.', { c, l: { t: E.LEVEL_NAME[E.upgradeLevels(S, p, def.sel[0])[0]] } });
+        return tr('{c} dipilih.', { c });
       }
-      return META.hint;
+      return tr(META.hint);
     },
-    okLabel: () => META.ok,
+    okLabel: () => tr(META.ok),
     confirm: () =>
       act(
         it.kind === 'swap' ? { type: 'TARGET_PICK', p, tile: def.sel[0], tile2: def.sel[1] } : { type: 'TARGET_PICK', p, tile: def.sel[0] }
@@ -87,35 +91,37 @@ function pTour(key) {
     key,
     sel: [],
     art: 'plane',
-    title: 'World Tour',
-    skipLabel: 'Lempar dadu biasa',
+    title: tr('World Tour'),
+    skipLabel: tr('Lempar dadu biasa'),
     can: i => i !== E.TRAVEL && i !== E.ISLAND && P.cash >= E.travelFee(App.S),
     tap: i => {
       def.sel = [i];
     },
     ready: () => def.sel.length === 1,
     hint: () => {
-      if (P.cash < E.travelFee(App.S)) return 'Uangmu kurang untuk tiket ' + E.travelFee(App.S) + '. Lempar dadu biasa.';
+      if (P.cash < E.travelFee(App.S)) return tr('Uangmu kurang untuk tiket {f}. Lempar dadu biasa.', { f: E.travelFee(App.S) });
       if (!def.sel.length)
         return (
-          'Ketuk petak tujuan mana pun. ' +
-          (E.travelFee(App.S) ? 'Tiket ' + E.travelFee(App.S) : 'Tiket gratis (Promo Maskapai)') +
-          '. Lewat START tetap dapat gaji.'
+          tr('Ketuk petak tujuan mana pun.') +
+          ' ' +
+          (E.travelFee(App.S) ? tr('Tiket {f}', { f: E.travelFee(App.S) }) : tr('Tiket gratis (Promo Maskapai)')) +
+          '. ' +
+          tr('Lewat START tetap dapat gaji.')
         );
       const t = TILES[def.sel[0]],
         st = S.tiles[def.sel[0]];
-      let s = 'Terbang ke ' + t.name + '. ';
+      let s = tr('Terbang ke {c}.', { c: tile(t.i) }) + ' ';
       if (t.price)
         s +=
           st.owner < 0
-            ? 'Bisa dibeli (' + fmt(E.buyCost(S, p, t.i, 0)) + ').'
+            ? tr('Bisa dibeli ({n}).', { n: E.buyCost(S, p, t.i, 0) })
             : st.owner === p
-              ? 'Kotamu: bisa dibangun.'
-              : 'Milik ' + pname(st.owner) + ': tol ' + fmt(E.rentFor(S, t.i, p)) + '!';
-      else s += t.desc || '';
+              ? tr('Kotamu: bisa dibangun.')
+              : tr('Milik {o}: tol {n}!', { o: pname(st.owner), n: E.rentFor(S, t.i, p) });
+      else s += tr(t.desc || '');
       return s;
     },
-    okLabel: () => (def.sel.length ? 'Terbang · ' + (E.travelFee(App.S) || 'gratis') : 'Pilih tujuan'),
+    okLabel: () => (def.sel.length ? tr('Terbang · {f}', { f: E.travelFee(App.S) || { t: 'gratis' } }) : tr('Pilih tujuan')),
     confirm: () => act({ type: 'TOUR_GO', p, tile: def.sel[0] }),
     skip: () => act({ type: 'TOUR_SKIP', p }),
   };

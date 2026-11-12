@@ -3,7 +3,7 @@ import { ART } from '../../assets/art.js';
 import { SND } from '../../assets/audio.js';
 import { D } from '../../engine/data.js';
 import { E } from '../../engine/engine.js';
-import { $, App, esc, ic, pulse, reduceMotion, restart } from './base.js';
+import { $, App, esc, ic, pulse, reduceMotion, restart, t } from './base.js';
 import { camInsets } from './layout.js';
 import { is3d } from './camera.js';
 import { tileAnchor, tokSize } from './pieces.js';
@@ -29,7 +29,7 @@ function merpiSay(text, mood, ms) {
   else if (mood === 'wow') mascotAct('cheer', 800);
   else if (mood === 'sad') mascotAct('droop', 1000);
   if (text) {
-    bub.innerHTML = '<span>' + esc(text) + '</span>';
+    bub.innerHTML = '<span>' + esc(t(text)) + '</span>';
     restart(bub, 'show');
     trackBubble();
   }
@@ -406,7 +406,7 @@ function mascotLook(tile) {
   m.style.setProperty('--lx', lx.toFixed(2));
   m.style.setProperty('--ly', ly.toFixed(2));
 }
-const fill = (s, S) => s.replace('{n}', S && S.players[S.turn.p] ? S.players[S.turn.p].name : '');
+const fill = (s, S) => t(s).replace('{n}', S && S.players[S.turn.p] ? S.players[S.turn.p].name : '');
 
 export {
   EMOTES,

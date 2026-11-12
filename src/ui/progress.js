@@ -117,8 +117,9 @@ function gameXp(o) {
     st = int(o.newStamps);
   const parts = [['Selesai main', XP.game]];
   if (o.won) parts.push(['Menang', XP.win]);
-  if (ch) parts.push([ch + ' tantangan lulus', ch * XP.challenge]);
-  if (st) parts.push([st + ' cap kota baru', st * XP.stamp]);
+  // [label (templat kunci kamus), XP, data templat] — UI menerjemahkan label dengan datanya
+  if (ch) parts.push(['{n} tantangan lulus', ch * XP.challenge, { n: ch }]);
+  if (st) parts.push(['{n} cap kota baru', st * XP.stamp, { n: st }]);
   return { total: parts.reduce((s, p) => s + p[1], 0), parts };
 }
 

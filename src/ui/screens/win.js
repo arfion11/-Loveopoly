@@ -1,7 +1,7 @@
 /* LOVEOPOLY — layar › layar menang (dikumpulkan lewat src/ui/screens.js) */
 import { Icons } from '../../assets/icons.js';
 import { Net } from '../../net/net.js';
-import { App, D, E, SND, ART, fmt, esc, ic, $, coin, avatarHTML, buzz } from '../core.js';
+import { App, D, E, SND, ART, fmt, esc, ic, $, coin, avatarHTML, buzz, t } from '../core.js';
 import { UI } from '../ns.js';
 import { passport, recordPassport, xpBar } from './passport.js';
 import { TIER_NAMES } from '../progress.js';
@@ -19,7 +19,11 @@ function progPanel(r) {
       ? ''
       : '<div class="panel jt-hint">' +
           ic('book') +
-          '<span>Buat <b>Paspor Cinta</b> di beranda untuk mengumpulkan Jam Terbang, Api Cinta & lencana dari tiap game.</span></div>';
+          '<span>' +
+          t('Buat {p} di beranda untuk mengumpulkan Jam Terbang, Api Cinta & lencana dari tiap game.', {
+            p: '<b>' + esc(t('Paspor Cinta')) + '</b>',
+          }) +
+          '</span></div>';
   const up = r.to.L > r.from.L;
   const chips = [];
   const w = r.week;
@@ -28,43 +32,38 @@ function progPanel(r) {
       w && w.kind === 'saved' ? 'umbrella' : 'flame',
       w
         ? w.kind === 'saved'
-          ? 'Payung Rindu menyelamatkan Api Cinta: ' + w.n + ' minggu'
+          ? t('Payung Rindu menyelamatkan Api Cinta: {n} minggu', { n: w.n })
           : w.kind === 'up'
-            ? 'Api Cinta naik: ' + w.n + ' minggu'
-            : 'Api Cinta menyala: ' + w.n + ' minggu'
-        : 'Api Cinta ' + r.streak.n + ' minggu',
+            ? t('Api Cinta naik: {n} minggu', { n: w.n })
+            : t('Api Cinta menyala: {n} minggu', { n: w.n })
+        : t('Api Cinta {n} minggu', { n: r.streak.n }),
       'fire'
     )
   );
-  if (w && w.earned) chips.push(chip('umbrella', 'Dapat Payung Rindu'));
-  r.badges.forEach(b => chips.push(chip('medal', 'Lencana ' + b.name + ' · ' + TIER_NAMES[b.tier - 1], 'gold')));
-  (r.themes || []).forEach(t => chips.push(chip('sparkle', 'Tema papan ' + t.name + ' terbuka', 'gold')));
-  if (r.fresh) chips.push(chip('map', r.fresh + ' cap kota baru'));
+  if (w && w.earned) chips.push(chip('umbrella', t('Dapat Payung Rindu')));
+  r.badges.forEach(b => chips.push(chip('medal', t('Lencana {n} · {k}', { n: { t: b.name }, k: { t: TIER_NAMES[b.tier - 1] } }), 'gold')));
+  (r.themes || []).forEach(x => chips.push(chip('sparkle', t('Tema papan {n} terbuka', { n: { t: x.name } }), 'gold')));
+  if (r.fresh) chips.push(chip('map', t('{n} cap kota baru', { n: r.fresh })));
   return (
     '<div class="panel jt"><h3>' +
     ic('book') +
-    'Paspor Cinta · Jam Terbang</h3>' +
+    esc(t('Paspor Cinta · Jam Terbang')) +
+    '</h3>' +
     '<div class="jt-head"><span class="jt-gain">+' +
     r.xp +
     ' XP</span><span class="jt-lv' +
     (up ? ' up' : '') +
     '">' +
-    (up ? 'Naik ke ' : '') +
-    'Lv ' +
-    r.to.L +
+    esc(up ? t('Naik ke Lv {l}', { l: r.to.L }) : 'Lv ' + r.to.L) +
     ' · ' +
-    esc(r.to.title) +
+    esc(t(r.to.title)) +
     '</span></div>' +
     xpBar(r.to.pct, 'jt-bar', null, up ? 0 : r.from.pct) +
     '<div class="jt-next">' +
-    r.to.cur +
-    '/' +
-    r.to.need +
-    ' XP ke Level ' +
-    (r.to.L + 1) +
+    esc(t('{a}/{b} XP ke Level {l}', { a: r.to.cur, b: r.to.need, l: r.to.L + 1 })) +
     '</div>' +
     '<ul class="jt-parts">' +
-    r.parts.map(([t, v]) => '<li>' + esc(t) + ' <b>+' + v + '</b></li>').join('') +
+    r.parts.map(([lb, v, d]) => '<li>' + esc(t(lb, d)) + ' <b>+' + v + '</b></li>').join('') +
     '</ul>' +
     '<div class="jt-chips">' +
     chips.join('') +
@@ -89,27 +88,46 @@ function celebrate(r) {
     ART.merpi('is-wow') +
     '</span>' +
     (up
-      ? '<div class="cb-k">Naik level!</div><div class="cb-lv"><span class="cb-from">Lv ' +
+      ? '<div class="cb-k">' +
+        esc(t('Naik level!')) +
+        '</div><div class="cb-lv"><span class="cb-from">Lv ' +
         r.from.L +
         '</span>' +
         ic('chevron') +
         '<b class="cb-to">Lv ' +
         r.to.L +
         '</b></div><div class="cb-title">' +
-        esc(r.to.title) +
+        esc(t(r.to.title)) +
         '</div>'
-      : '<div class="cb-k">Lencana baru!</div>') +
+      : '<div class="cb-k">' + esc(t('Lencana baru!')) + '</div>') +
     ((r.themes || []).length
-      ? '<p class="cb-gift">' + ic('sparkle') + '<span>Hadiah: tema papan ' + esc(r.themes.map(t => t.name).join(' & ')) + '</span></p>'
+      ? '<p class="cb-gift">' +
+        ic('sparkle') +
+        '<span>' +
+        esc(t('Hadiah: tema papan {n}', { n: r.themes.map(x => t(x.name)).join(' & ') })) +
+        '</span></p>'
       : '') +
     (r.badges.length
       ? '<ul class="cb-badges">' +
         r.badges
-          .map(b => '<li class="t' + b.tier + '">' + ic(b.icon) + '<span>' + esc(b.name) + ' · ' + TIER_NAMES[b.tier - 1] + '</span></li>')
+          .map(
+            b =>
+              '<li class="t' +
+              b.tier +
+              '">' +
+              ic(b.icon) +
+              '<span>' +
+              esc(t(b.name)) +
+              ' · ' +
+              esc(t(TIER_NAMES[b.tier - 1])) +
+              '</span></li>'
+          )
           .join('') +
         '</ul>'
       : '') +
-    '<span class="cb-skip">Ketuk untuk lanjut</span></div>';
+    '<span class="cb-skip">' +
+    esc(t('Ketuk untuk lanjut')) +
+    '</span></div>';
   document.body.appendChild(el);
   SND.play('achieve');
   buzz('level');
@@ -117,7 +135,7 @@ function celebrate(r) {
   const close = () => {
     if (done) return;
     done = true;
-    clearTimeout(t);
+    clearTimeout(timer);
     document.removeEventListener('keydown', key, true);
     UI.leave(el, 300);
   };
@@ -134,7 +152,7 @@ function celebrate(r) {
     close();
   });
   document.addEventListener('keydown', key, true);
-  const t = setTimeout(close, UI.reduceMotion() ? 2600 : 2400);
+  const timer = setTimeout(close, UI.reduceMotion() ? 2600 : 2400);
 }
 
 // ---------- layar menang ----------
@@ -226,18 +244,22 @@ function showWin() {
     track('game_end', { mode: App.mode, reason: o.reason, rounds: o.round, players: S.players.length, winner_ai: w.kind === 'ai' });
   }
   const reason =
-    {
-      bankrupt: 'Semua lawan bangkrut',
-      rounds: 'Aset terbesar saat batas ronde',
-      manual: 'Aset terbesar saat permainan diakhiri',
-      resign: 'Lawan menyerah',
-      triple: 'Trio Warna: menguasai 3 grup warna',
-      line: 'Raja Jalur: menguasai seluruh ' + (o.detail ? E.sideName(o.detail.side) : 'jalur'),
-      spots: 'Kolektor Wisata: menguasai 5 tempat wisata',
-    }[o.reason] || '';
+    o.reason === 'line'
+      ? t('Raja Jalur: menguasai seluruh {s}', { s: { t: o.detail ? E.sideName(o.detail.side) : 'jalur' } })
+      : t(
+          {
+            bankrupt: 'Semua lawan bangkrut',
+            rounds: 'Aset terbesar saat batas ronde',
+            manual: 'Aset terbesar saat permainan diakhiri',
+            resign: 'Lawan menyerah',
+            triple: 'Trio Warna: menguasai 3 grup warna',
+            spots: 'Kolektor Wisata: menguasai 5 tempat wisata',
+          }[o.reason] || ''
+        );
   // pesan romantis dari Paspor Cinta: milik pemenang, atau pemain lain yang menulisnya; game lama: settings.winMessage
   const author = w.msg ? w : S.players.find(p => p.msg && !p.bankrupt) || S.players.find(p => p.msg);
-  const msg = author ? author.msg : S.settings.winMessage || D.WIN_MESSAGES[S.seed % D.WIN_MESSAGES.length];
+  // pesan pemain apa adanya; pesan bawaan game diterjemahkan
+  const msg = author ? author.msg : S.settings.winMessage || t(D.WIN_MESSAGES[S.seed % D.WIN_MESSAGES.length]);
   const rows = o.ranking
     .map((i, k) => {
       const p = S.players[i];
@@ -253,8 +275,8 @@ function showWin() {
         '<span class="rk-name"><b>' +
         esc(p.name) +
         '</b><small>' +
-        esc(o.titles[i] || '') +
-        (p.bankrupt ? ' · bangkrut ronde ' + p.stats.bankruptRound : '') +
+        esc(t(o.titles[i] || '')) +
+        (p.bankrupt ? ' · ' + esc(t('bangkrut ronde {r}', { r: p.stats.bankruptRound })) : '') +
         '</small></span><span class="rk-worth">' +
         coin +
         fmt(o.worth ? o.worth[i] : E.netWorth(S, i)) +
@@ -291,10 +313,11 @@ function showWin() {
         (p.achievements.length
           ? p.achievements
               .map(
-                id => '<span class="ach">' + ic(E.ACH[id].icon in Icons.paths ? E.ACH[id].icon : 'trophy') + esc(E.ACH[id].name) + '</span>'
+                id =>
+                  '<span class="ach">' + ic(E.ACH[id].icon in Icons.paths ? E.ACH[id].icon : 'trophy') + esc(t(E.ACH[id].name)) + '</span>'
               )
               .join('')
-          : '<span class="tiny muted">Belum ada achievement.</span>') +
+          : '<span class="tiny muted">' + esc(t('Belum ada achievement.')) + '</span>') +
         '</div></div>'
     )
     .join('');
@@ -307,17 +330,15 @@ function showWin() {
           l =>
             '<div class="letter"><span class="from">' +
             ic('letter') +
-            ' Dari ' +
-            esc(S.players[l.p].name) +
-            ' · ronde ' +
-            l.r +
+            ' ' +
+            esc(t('Dari {n} · ronde {r}', { n: S.players[l.p].name, r: l.r })) +
             '</span>' +
             esc(l.text) +
             '</div>'
         )
         .join('') +
       '</div>'
-    : '<div class="empty">' + ic('letter') + 'Belum ada surat cinta di permainan ini.</div>';
+    : '<div class="empty">' + ic('letter') + esc(t('Belum ada surat cinta di permainan ini.')) + '</div>';
   const proofsPanel = S => {
     const ph = S.photos || [],
       pr = S.proofs || [];
@@ -325,7 +346,8 @@ function showWin() {
     return (
       '<div class="panel stack"><h3>' +
       ic('polaroid') +
-      'Bukti tantangan</h3>' +
+      esc(t('Bukti tantangan')) +
+      '</h3>' +
       (ph.length
         ? '<div class="proof-grid">' +
           ph
@@ -337,16 +359,16 @@ function showWin() {
                 (x.ok ? '' : ' no') +
                 '"><img src="' +
                 UI.safeImg(x.img) +
-                '" alt="Foto bukti ' +
-                esc(S.players[x.p].name) +
+                '" alt="' +
+                esc(t('Foto bukti {n}', { n: S.players[x.p].name })) +
                 '"><figcaption><span class="pc-who"><b>' +
                 esc(S.players[x.p].name) +
-                '</b> · ronde ' +
-                x.r +
+                '</b> · ' +
+                esc(t('ronde {r}', { r: x.r })) +
                 '</span><span class="' +
                 (x.ok ? 'ok' : 'bad') +
                 '">' +
-                (x.ok ? 'Disahkan' : 'Ditolak') +
+                esc(t(x.ok ? 'Disahkan' : 'Ditolak')) +
                 '</span></figcaption></figure>'
             )
             .join('') +
@@ -367,9 +389,9 @@ function showWin() {
                 '<span><b>' +
                 esc(S.players[x.p].name) +
                 '</b> · ' +
-                esc(x.label) +
+                esc(t(x.label)) +
                 '<small>' +
-                esc(x.proof) +
+                esc(x.pt ? t(x.pt.k, x.pt.a) : t(x.proof)) +
                 '</small></span></li>'
             )
             .join('') +
@@ -387,9 +409,9 @@ function showWin() {
   el.innerHTML =
     '<canvas id="confetti" aria-hidden="true"></canvas><div class="win-card">' +
     '<div class="win-hero"><div class="eyebrow">' +
-    (instant ? 'Menang instan' : 'Pemenang') +
-    ' · ronde ' +
-    o.round +
+    esc(t(instant ? 'Menang instan' : 'Pemenang')) +
+    ' · ' +
+    esc(t('ronde {r}', { r: o.round })) +
     '</div>' +
     '<div class="win-stage"><span class="rays" aria-hidden="true"></span><span class="win-merpi">' +
     ART.merpi('is-love') +
@@ -401,7 +423,7 @@ function showWin() {
     '<div class="win-name" id="winName">' +
     esc(w.name) +
     '</div><div class="win-title">' +
-    esc(o.titles[o.winner] || 'Juragan Cinta') +
+    esc(t(o.titles[o.winner] || 'Juragan Cinta')) +
     '</div><div class="win-reason">' +
     esc(reason) +
     '</div>' +
@@ -411,38 +433,54 @@ function showWin() {
     (author ? '<span class="win-msg-by">' + esc(author.name) + '</span>' : '') +
     '</p><button type="button" class="btn go win-share" id="wShare">' +
     ic('share') +
-    '<span>Bagikan Kenangan</span></button></div>' +
+    '<span>' +
+    esc(t('Bagikan Kenangan')) +
+    '</span></button></div>' +
     progPanel(prog) +
     '<div class="panel"><h3>' +
     ic('trophy') +
-    'Peringkat</h3><div class="rank-list">' +
+    esc(t('Peringkat')) +
+    '</h3><div class="rank-list">' +
     rows +
     '</div></div>' +
     '<div class="panel"><h3>' +
     ic('level') +
-    'Statistik</h3><div class="stats-wrap" tabindex="0" role="region" aria-label="Tabel statistik (bisa digulir)"><table class="stats"><thead><tr><th>Pemain</th><th>Kota</th><th>Landmark</th><th>Tol masuk</th><th>Ambil alih</th><th>Tantangan</th><th>Love</th></tr></thead><tbody>' +
+    esc(t('Statistik')) +
+    '</h3><div class="stats-wrap" tabindex="0" role="region" aria-label="' +
+    esc(t('Tabel statistik (bisa digulir)')) +
+    '"><table class="stats"><thead><tr>' +
+    ['Pemain', 'Kota', 'Landmark§kolom', 'Tol masuk', 'Ambil alih§kolom', 'Tantangan', 'Love']
+      .map(h => '<th>' + esc(t(h)) + '</th>')
+      .join('') +
+    '</tr></thead><tbody>' +
     statRows +
     '</tbody></table></div></div>' +
     '<div class="panel stack"><h3>' +
     ic('sparkle') +
-    'Achievement</h3>' +
+    esc(t('Achievement')) +
+    '</h3>' +
     ach +
     '</div>' +
     '<div class="panel stack"><h3>' +
     ic('letter') +
-    'Surat cinta selama permainan</h3>' +
+    esc(t('Surat cinta selama permainan')) +
+    '</h3>' +
     letters +
     '</div>' +
     proofsPanel(S) +
     '<div class="setup-foot"><button type="button" class="btn ghost" id="wBoard">' +
     ic('map') +
-    '<span>Lihat Papan</span></button>' +
+    '<span>' +
+    esc(t('Lihat Papan')) +
+    '</span></button>' +
     (App.mode === 'online' && !Net.isHost()
       ? ''
-      : '<button type="button" class="btn soft" id="wAgain">' + ic('refresh') + '<span>Main Lagi</span></button>') +
+      : '<button type="button" class="btn soft" id="wAgain">' + ic('refresh') + '<span>' + esc(t('Main Lagi')) + '</span></button>') +
     '<button type="button" class="btn primary" id="wHome">' +
     ic('home') +
-    '<span>Menu Utama</span></button></div>' +
+    '<span>' +
+    esc(t('Menu Utama')) +
+    '</span></button></div>' +
     '</div>';
   root.appendChild(el);
   SND.play('win');

@@ -1,5 +1,5 @@
 /* LOVEOPOLY — layar › beranda (dikumpulkan lewat src/ui/screens.js) */
-import { D, ART, TILES, KEYS, esc, ic, $, store } from '../core.js';
+import { D, ART, TILES, KEYS, esc, ic, $, store, t } from '../core.js';
 import { UI } from '../ns.js';
 import { validSave } from './base.js';
 import { dismissKangen, kangenNote, openPassport, passport, passportCard } from './passport.js';
@@ -48,11 +48,17 @@ function renderHome() {
     resume +=
       '<div class="resume-card"><span class="rc-ic">' +
       ic('play') +
-      '</span><div class="grow"><b>Lanjutkan permainan</b><div class="tiny">' +
+      '</span><div class="grow"><b>' +
+      esc(t('Lanjutkan permainan')) +
+      '</b><div class="tiny">' +
       esc(S.players.map(p => p.avatar + ' ' + p.name).join(' · ')) +
-      ' · Ronde ' +
-      S.round +
-      '</div></div><button type="button" class="btn primary sm" id="hResume"><span>Lanjut</span></button><button type="button" class="icon-btn" id="hDiscard" aria-label="Hapus simpanan">' +
+      ' · ' +
+      esc(t('Ronde {r}', { r: S.round })) +
+      '</div></div><button type="button" class="btn primary sm" id="hResume"><span>' +
+      esc(t('Lanjut§main')) +
+      '</span></button><button type="button" class="icon-btn" id="hDiscard" aria-label="' +
+      esc(t('Hapus simpanan')) +
+      '">' +
       ic('x') +
       '</button></div>';
   } else {
@@ -63,9 +69,17 @@ function renderHome() {
       resume +=
         '<div class="resume-card quick-card"><span class="rc-ic">' +
         ic('refresh') +
-        '</span><div class="grow"><b>Main lagi</b><div class="tiny">' +
+        '</span><div class="grow"><b>' +
+        esc(t('Main lagi')) +
+        '</b><div class="tiny">' +
         esc(lastSetupText(last)) +
-        '</div></div><button type="button" class="btn primary sm" id="hQuick"><span>Main</span><span class="sr-only"> lagi dengan setelan terakhir</span></button><button type="button" class="icon-btn" id="hQuickEdit" aria-label="Ubah setelan">' +
+        '</div></div><button type="button" class="btn primary sm" id="hQuick"><span>' +
+        esc(t('Main')) +
+        '</span><span class="sr-only"> ' +
+        esc(t('lagi dengan setelan terakhir')) +
+        '</span></button><button type="button" class="icon-btn" id="hQuickEdit" aria-label="' +
+        esc(t('Ubah setelan')) +
+        '">' +
         ic('sliders') +
         '</button></div>';
   }
@@ -73,9 +87,15 @@ function renderHome() {
     resume +=
       '<div class="resume-card"><span class="rc-ic">' +
       ic('globe') +
-      '</span><div class="grow"><b>Kembali ke room <span class="mono">' +
-      esc(online.code) +
-      '</span></b><div class="tiny">Sambung ulang ke permainan online terakhir.</div></div><button type="button" class="btn primary sm" id="hRejoin"><span>Masuk</span></button><button type="button" class="icon-btn" id="hForget" aria-label="Lupakan room">' +
+      '</span><div class="grow"><b>' +
+      t('Kembali ke room {c}', { c: '<span class="mono">' + esc(online.code) + '</span>' }) +
+      '</b><div class="tiny">' +
+      esc(t('Sambung ulang ke permainan online terakhir.')) +
+      '</div></div><button type="button" class="btn primary sm" id="hRejoin"><span>' +
+      esc(t('Masuk')) +
+      '</span></button><button type="button" class="icon-btn" id="hForget" aria-label="' +
+      esc(t('Lupakan room')) +
+      '">' +
       ic('x') +
       '</button></div>';
   // pengguna lama (punya paspor / simpanan): beranda ringkas, tombol main langsung terlihat di layar pertama HP
@@ -90,14 +110,21 @@ function renderHome() {
     '<div class="home-copy">' +
     '<div class="eyebrow">' +
     ic('heart') +
-    'Board game pasangan LDR</div>' +
+    esc(t('Board game pasangan LDR')) +
+    '</div>' +
     '<h1 class="home-title" aria-label="Loveopoly"><span class="ht-word">' +
     'Loveopoly'
       .split('')
       .map((ch, k) => '<span aria-hidden="true" style="--i:' + k + '">' + ch + '</span>')
       .join('') +
     '</span></h1>' +
-    '<p class="home-sub">Keliling dunia berdua: beli kota romantis, bangun sampai landmark, adakan festival, dan rebut kota pasanganmu. Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata!</p>' +
+    '<p class="home-sub">' +
+    esc(
+      t(
+        'Keliling dunia berdua: beli kota romantis, bangun sampai landmark, adakan festival, dan rebut kota pasanganmu. Menang instan dengan Trio Warna, Raja Jalur, atau Kolektor Wisata!'
+      )
+    ) +
+    '</p>' +
     kangenHTML() +
     passportCard() +
     // Pertanyaan Hari Ini: pengguna lama di atas (kebiasaan harian), pengguna baru di bawah tombol main
@@ -107,39 +134,58 @@ function renderHome() {
     // Online = kartu utama (paling atas & paling besar); dua mode lain lebih ringkas di bawahnya
     '<button type="button" class="mode-card mc-online mc-hero" id="hOnline"><span class="mc-badge">' +
     ic('heart') +
-    'Paling seru buat LDR</span><span class="mc-art">' +
+    esc(t('Paling seru buat LDR')) +
+    '</span><span class="mc-art">' +
     ART.art('plane') +
-    '</span><span class="mc-txt"><b>Main Online</b><span>Beda kota? Main bareng pasangan pakai kode room</span></span><span class="mc-go" aria-hidden="true"><span class="mc-go-t">Mulai</span>' +
+    '</span><span class="mc-txt"><b>' +
+    esc(t('Main Online')) +
+    '</b><span>' +
+    esc(t('Beda kota? Main bareng pasangan pakai kode room')) +
+    '</span></span><span class="mc-go" aria-hidden="true"><span class="mc-go-t">' +
+    esc(t('Mulai')) +
+    '</span>' +
     ic('chevron') +
     '</span></button>' +
     '<div class="mc-row">' +
     '<button type="button" class="mode-card mc-ai mc-sm" id="hAI"><span class="mc-art">' +
     ART.art('bot') +
-    '</span><span class="mc-txt"><b>Lawan AI</b><span>Easy, Normal, atau Hard</span></span>' +
+    '</span><span class="mc-txt"><b>' +
+    esc(t('Lawan AI')) +
+    '</b><span>' +
+    esc(t('Easy, Normal, atau Hard')) +
+    '</span></span>' +
     ic('chevron') +
     '</button>' +
     '<button type="button" class="mode-card mc-local mc-sm" id="hLocal"><span class="mc-art">' +
     ART.art('festival') +
-    '</span><span class="mc-txt"><b>Main Bareng</b><span>2–4 orang, satu perangkat</span></span>' +
+    '</span><span class="mc-txt"><b>' +
+    esc(t('Main Bareng')) +
+    '</b><span>' +
+    esc(t('2–4 orang, satu perangkat')) +
+    '</span></span>' +
     ic('chevron') +
     '</button>' +
     '</div></div>' +
     (returning ? '' : dailyCard()) +
     '<div class="home-secondary"><button type="button" class="btn soft" id="hHow">' +
     ic('book') +
-    '<span>Buku Panduan</span></button><button type="button" class="btn ghost sm" id="hPrivacy">' +
+    '<span>' +
+    esc(t('Buku Panduan')) +
+    '</span></button><button type="button" class="btn ghost sm" id="hPrivacy">' +
     ic('shield') +
-    '<span>Privasi</span></button><span class="tiny muted">' +
-    TILES.length +
-    ' petak · ' +
-    TILES.filter(t => t.type === 'city').length +
-    ' kota romantis · ' +
-    TILES.filter(t => t.type === 'spot').length +
-    ' wisata · ' +
-    D.CARDS.length +
-    ' Kartu Cinta · ' +
-    D.CHALLENGES.length +
-    ' tantangan</span></div>' +
+    '<span>' +
+    esc(t('Privasi')) +
+    '</span></button><span class="tiny muted">' +
+    esc(
+      t('{a} petak · {b} kota romantis · {c} wisata · {d} Kartu Cinta · {e} tantangan', {
+        a: TILES.length,
+        b: TILES.filter(x => x.type === 'city').length,
+        c: TILES.filter(x => x.type === 'spot').length,
+        d: D.CARDS.length,
+        e: D.CHALLENGES.length,
+      })
+    ) +
+    '</span></div>' +
     '</div></div>';
   const on = (id, f) => {
     const el = $('#' + id);

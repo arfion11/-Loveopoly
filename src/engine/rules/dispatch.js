@@ -121,7 +121,7 @@ function dispatch(S0, action) {
     postProcess(S);
     S.queue = S._new.concat(S.queue);
   } catch (e) {
-    if (e instanceof RuleError) return { ok: false, error: e.message };
+    if (e instanceof RuleError) return e.t ? { ok: false, error: e.message, errorT: e.t } : { ok: false, error: e.message };
     throw e;
   }
   const events = S._ev;
@@ -134,7 +134,7 @@ function dispatch(S0, action) {
 }
 function check(S, action) {
   const r = dispatch(S, action);
-  return r.ok ? { ok: true } : { ok: false, error: r.error };
+  return r.ok ? { ok: true } : r.errorT ? { ok: false, error: r.error, errorT: r.errorT } : { ok: false, error: r.error };
 }
 
 export const E = {

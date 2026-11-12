@@ -2,7 +2,9 @@
 import { backend } from '../../net/backend.js';
 import { Net } from '../../net/net.js';
 import { track } from '../../analytics.js';
-import { D, RULES, KEYS, fmt, esc, ic, $, $$, store, toast, avatarHTML } from '../core.js';
+import { D, RULES, KEYS, fmt, esc, ic, $, $$, store, toast, avatarHTML, t } from '../core.js';
+
+const T = x => esc(t(x));
 import { activeScreen, seg, show } from './base.js';
 import { passport } from './passport.js';
 import { renderHome } from './home.js';
@@ -25,7 +27,11 @@ async function openOnline(autoRejoin) {
   onlineSettings = onlineSettings || { startCash: RULES.startCash, roundLimit: 25, rules: 'seru' };
   onlineErr = '';
   $('#scrOnline').innerHTML =
-    '<div class="empty big"><div class="spinner"></div><b>Menyiapkan koneksi online…</b><span>Menghubungkan ke server game.</span></div>';
+    '<div class="empty big"><div class="spinner"></div><b>' +
+    T('Menyiapkan koneksi online…') +
+    '</b><span>' +
+    T('Menghubungkan ke server game.') +
+    '</span></div>';
   const ok = await Net.init();
   if (!ok) {
     renderOnlineUnavailable();
@@ -47,22 +53,36 @@ function renderOnlineUnavailable() {
   $('#scrOnline').innerHTML =
     '<div class="online"><div class="panel wide"><h3>' +
     ic('globe') +
-    'Mode online belum bisa dipakai</h3><p class="muted">' +
-    esc(Net.initErr || 'Koneksi online tidak tersedia.') +
+    T('Mode online belum bisa dipakai') +
+    '</h3><p class="muted">' +
+    esc(Net.initErr || t('Koneksi online tidak tersedia.')) +
     '</p>' +
     '<div class="note">' +
     ic('info') +
-    '<div><b>Cara main online</b><ol class="note-steps">' +
-    '<li>Pastikan internet kalian berdua aktif.</li>' +
-    '<li>Bagikan link game ini ke pasangan.</li>' +
-    '<li>Satu orang membuat room, yang lain bergabung dengan kodenya.</li></ol></div></div>' +
+    '<div><b>' +
+    T('Cara main online') +
+    '</b><ol class="note-steps">' +
+    [
+      'Pastikan internet kalian berdua aktif.',
+      'Bagikan link game ini ke pasangan.',
+      'Satu orang membuat room, yang lain bergabung dengan kodenya.',
+    ]
+      .map(x => '<li>' + T(x) + '</li>')
+      .join('') +
+    '</ol></div></div>' +
     '<div class="setup-foot"><button type="button" class="btn ghost" id="oBack">' +
     ic('back') +
-    '<span>Kembali</span></button><button type="button" class="btn ghost" id="oRetry">' +
+    '<span>' +
+    T('Kembali') +
+    '</span></button><button type="button" class="btn ghost" id="oRetry">' +
     ic('globe') +
-    '<span>Coba lagi</span></button><button type="button" class="btn primary" id="oLocal">' +
+    '<span>' +
+    T('Coba lagi') +
+    '</span></button><button type="button" class="btn primary" id="oLocal">' +
     ic('users') +
-    '<span>Main Bareng Saja</span></button></div></div></div>';
+    '<span>' +
+    T('Main Bareng Saja') +
+    '</span></button></div></div></div>';
   $('#oBack').onclick = () => {
     show('scrHome', 'online');
     renderHome();
@@ -82,17 +102,25 @@ function profileFields(prefix) {
     avatarHTML(p, 'lg') +
     '<div class="field grow"><label for="' +
     prefix +
-    'Name">Nama kamu</label><input class="input" id="' +
+    'Name">' +
+    T('Nama kamu') +
+    '</label><input class="input" id="' +
     prefix +
     'Name" maxlength="16" value="' +
     esc(p.name) +
-    '" placeholder="mis. Arfi"></div></div>' +
-    '<div class="pick-row" aria-label="Avatar">' +
+    '" placeholder="' +
+    T('mis. Arfi') +
+    '"></div></div>' +
+    '<div class="pick-row" aria-label="' +
+    T('Avatar') +
+    '">' +
     D.AVATARS.map(
       a => '<button type="button" class="avbtn" data-pav="' + a + '" aria-pressed="' + (p.avatar === a) + '">' + a + '</button>'
     ).join('') +
     '</div>' +
-    '<div class="pick-row swatches" aria-label="Warna pion">' +
+    '<div class="pick-row swatches" aria-label="' +
+    T('Warna pion') +
+    '">' +
     D.TOKEN_COLORS.map(
       c =>
         '<button type="button" class="swatch" style="--sw:' +
@@ -101,8 +129,8 @@ function profileFields(prefix) {
         c +
         '" aria-pressed="' +
         (p.color === c) +
-        '" aria-label="Warna ' +
-        c +
+        '" aria-label="' +
+        esc(t('Warna {c}', { c })) +
         '"></button>'
     ).join('') +
     '</div>'
@@ -117,20 +145,28 @@ function renderLobby() {
     host.innerHTML =
       '<div class="setup-head"><button type="button" class="btn ghost" id="oBack">' +
       ic('back') +
-      '<span>Kembali</span></button><h2>Main Online</h2></div>' +
+      '<span>' +
+      T('Kembali') +
+      '</span></button><h2>' +
+      T('Main Online') +
+      '</h2></div>' +
       (onlineErr ? '<div class="note warn page">' + ic('alert') + ' ' + esc(onlineErr) + '</div>' : '') +
       '<div class="online">' +
       '<div class="panel"><h3>' +
       ic('user') +
-      'Profilmu</h3><div class="seat-card" style="--c:' +
+      T('Profilmu') +
+      '</h3><div class="seat-card" style="--c:' +
       onlineProfile.color +
       '">' +
       profileFields('o') +
       '</div></div>' +
       '<div class="panel stack"><div class="form-sec"><h3>' +
       ic('plus') +
-      'Buat room baru</h3><div class="opt-list">' +
-      '<div class="opt"><span class="label">Durasi</span>' +
+      T('Buat room baru') +
+      '</h3><div class="opt-list">' +
+      '<div class="opt"><span class="label">' +
+      T('Durasi') +
+      '</span>' +
       seg(
         'orounds',
         [
@@ -142,18 +178,18 @@ function renderLobby() {
         st.roundLimit
       ) +
       '</div>' +
-      '<div class="opt"><span class="label">Uang awal</span>' +
+      '<div class="opt"><span class="label">' +
+      T('Uang awal') +
+      '</span>' +
       seg(
         'ocash',
-        [
-          [2000, '2.000'],
-          [2500, '2.500'],
-          [3000, '3.000'],
-        ],
+        [2000, 2500, 3000].map(v => [v, fmt(v)]),
         st.startCash
       ) +
       '</div>' +
-      '<div class="opt"><span class="label">Aturan</span>' +
+      '<div class="opt"><span class="label">' +
+      T('Aturan') +
+      '</span>' +
       seg(
         'orules',
         [
@@ -163,25 +199,41 @@ function renderLobby() {
         st.rules
       ) +
       '<div class="tiny muted">' +
-      (st.rules === 'seru'
-        ? 'Ambil alih, menang instan, dan kontrol dadu aktif.'
-        : 'Tanpa ambil alih dan menang instan: aset terbesar menang.') +
+      T(
+        st.rules === 'seru'
+          ? 'Ambil alih, menang instan, dan kontrol dadu aktif.'
+          : 'Tanpa ambil alih dan menang instan: aset terbesar menang.'
+      ) +
       '</div></div>' +
       '<button type="button" class="btn primary" id="oCreate"' +
       (onlineBusy ? ' disabled' : '') +
       '>' +
       ic('heart') +
-      '<span>Buat Room</span></button></div></div>' +
+      '<span>' +
+      T('Buat Room') +
+      '</span></button></div></div>' +
       '<div class="form-sec"><h3>' +
       ic('globe') +
-      'Gabung dengan kode</h3><div class="field"><label for="oCode">Kode room (6 karakter)</label><input class="input mono code-in" id="oCode" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Contoh: AB12CD"></div>' +
+      T('Gabung dengan kode') +
+      '</h3><div class="field"><label for="oCode">' +
+      T('Kode room (6 karakter)') +
+      '</label><input class="input mono code-in" id="oCode" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="' +
+      esc(t('Contoh: {c}', { c: 'AB12CD' })) +
+      '"></div>' +
       '<button type="button" class="btn lilac" id="oJoin"' +
       (onlineBusy ? ' disabled' : '') +
       '>' +
       ic('chevron') +
-      '<span>Gabung Room</span></button><div class="err" id="oErr" hidden></div></div></div>' +
+      '<span>' +
+      T('Gabung Room') +
+      '</span></button><div class="err" id="oErr" hidden></div></div></div>' +
       (window.LOVE_FIREBASE && window.LOVE_FIREBASE.appCheckSiteKey
-        ? '<p class="tiny muted rc-note">Main online dilindungi reCAPTCHA; berlaku <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Kebijakan Privasi</a> dan <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Persyaratan Layanan</a> Google.</p>'
+        ? '<p class="tiny muted rc-note">' +
+          t('Main online dilindungi reCAPTCHA; berlaku {p} dan {s} Google.', {
+            p: '<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">' + T('Kebijakan Privasi') + '</a>',
+            s: '<a href="https://policies.google.com/terms" target="_blank" rel="noopener">' + T('Persyaratan Layanan') + '</a>',
+          }) +
+          '</p>'
         : '') +
       '</div>';
     bindProfile(host);
@@ -207,7 +259,7 @@ function renderLobby() {
       const n = onlineProfile.name.trim();
       if (!n) {
         err.hidden = false;
-        err.textContent = 'Isi nama kamu dulu.';
+        err.textContent = t('Isi nama kamu dulu.');
         $('#oName').classList.add('invalid');
         return false;
       }
@@ -226,7 +278,7 @@ function renderLobby() {
         track('room_create', { rules: st.rules || 'santai', rounds: st.roundLimit || 0 });
         onlineErr = '';
       } catch (e) {
-        onlineErr = 'Gagal membuat room: ' + (e && e.message ? e.message : e);
+        onlineErr = t('Gagal membuat room: {m}', { m: String(e && e.message ? e.message : e) });
       }
       onlineBusy = false;
       renderLobby();
@@ -236,7 +288,7 @@ function renderLobby() {
       const code = $('#oCode').value.trim().toUpperCase();
       if (!/^[A-Z0-9]{6}$/.test(code)) {
         err.hidden = false;
-        err.textContent = 'Kode room terdiri dari 6 huruf/angka.';
+        err.textContent = t('Kode room terdiri dari 6 huruf/angka.');
         $('#oCode').classList.add('invalid');
         return;
       }
@@ -273,8 +325,8 @@ function renderLobby() {
         '<div class="grow"><b>' +
         esc(s.name) +
         '</b>' +
-        (i === 0 ? ' <span class="chip">Host</span>' : '') +
-        (i === me ? ' <span class="chip lilac">Kamu</span>' : '') +
+        (i === 0 ? ' <span class="chip">' + T('Host') + '</span>' : '') +
+        (i === me ? ' <span class="chip lilac">' + T('Kamu') + '</span>' : '') +
         (s.bot ? ' <span class="chip plain">' + ic('bot') + 'AI</span>' : '') +
         '</div>' +
         (s.bot && isHost
@@ -290,12 +342,12 @@ function renderLobby() {
           : '') +
         (on == null || s.bot
           ? ''
-          : '<span class="online-dot' + (on ? ' on' : '') + '" title="' + (on ? 'Online' : 'Offline') + '"></span>') +
+          : '<span class="online-dot' + (on ? ' on' : '') + '" title="' + T(on ? 'Online' : 'Offline') + '"></span>') +
         (isHost && i > 0
           ? '<button type="button" class="icon-btn" data-rmseat="' +
             i +
-            '" aria-label="Keluarkan ' +
-            esc(s.name) +
+            '" aria-label="' +
+            esc(t('Keluarkan {n}', { n: s.name })) +
             '">' +
             ic('x') +
             '</button>'
@@ -309,45 +361,67 @@ function renderLobby() {
   host.innerHTML =
     '<div class="setup-head"><button type="button" class="btn ghost" id="oLeave">' +
     ic('back') +
-    '<span>Keluar Room</span></button><h2>Lobby Room</h2></div>' +
+    '<span>' +
+    T('Keluar Room') +
+    '</span></button><h2>' +
+    T('Lobby Room') +
+    '</h2></div>' +
     (onlineErr ? '<div class="note warn page">' + ic('alert') + ' ' + esc(onlineErr) + '</div>' : '') +
     '<div class="online"><div class="panel stack"><h3>' +
     ic('globe') +
-    'Kode room</h3><div class="code-box" id="codeBox">' +
+    T('Kode room') +
+    '</h3><div class="code-box" id="codeBox">' +
     esc(Net.code) +
     '</div>' +
     '<button type="button" class="btn soft" id="oCopy">' +
     ic('copy') +
-    '<span>Salin kode</span></button>' +
+    '<span>' +
+    T('Salin kode') +
+    '</span></button>' +
     '<div class="note">' +
     ic('info') +
-    '<span>Kirim kode ini ke pasanganmu. Minta dia buka <b>' +
-    esc(location.host || 'Loveopoly') +
-    '</b>, pilih <b>Main Online</b>, ketik kodenya di <b>Gabung dengan kode</b>, lalu tekan Gabung Room. Tanpa daftar akun, langsung main!</span></div>' +
-    '<div class="tiny muted">Uang awal ' +
-    fmt(st.startCash || RULES.startCash) +
-    (st.roundLimit ? ' · ' + st.roundLimit + ' ronde' : ' · tanpa batas ronde') +
-    ' · aturan ' +
-    (st.takeover ? 'lengkap' : 'santai') +
+    '<span>' +
+    t(
+      'Kirim kode ini ke pasanganmu. Minta dia buka {h}, pilih {m}, ketik kodenya di {g}, lalu tekan Gabung Room. Tanpa daftar akun, langsung main!',
+      {
+        h: '<b>' + esc(location.host || 'Loveopoly') + '</b>',
+        m: '<b>' + T('Main Online') + '</b>',
+        g: '<b>' + T('Gabung dengan kode') + '</b>',
+      }
+    ) +
+    '</span></div>' +
+    '<div class="tiny muted">' +
+    esc(t('Uang awal {c}', { c: st.startCash || RULES.startCash })) +
+    ' · ' +
+    esc(st.roundLimit ? t('{n} ronde', { n: st.roundLimit }) : t('tanpa batas ronde')) +
+    ' · ' +
+    esc(t(st.takeover ? 'aturan lengkap' : 'aturan santai')) +
     '</div></div>' +
     '<div class="panel stack"><h3>' +
     ic('users') +
-    'Pemain <span class="muted">' +
+    T('Pemain') +
+    ' <span class="muted">' +
     d.seats.length +
     '/4</span></h3>' +
     seats +
-    (pending ? '<div class="note">' + ic('clock') + ' Menunggu host menerima kamu…</div>' : '') +
+    (pending ? '<div class="note">' + ic('clock') + ' ' + T('Menunggu host menerima kamu…') + '</div>' : '') +
     (isHost
       ? '<div class="add-row">' +
-        (d.seats.length < 4 ? '<button type="button" class="btn soft" id="oBot">' + ic('bot') + '<span>Tambah Bot</span></button>' : '') +
+        (d.seats.length < 4
+          ? '<button type="button" class="btn soft" id="oBot">' + ic('bot') + '<span>' + T('Tambah Bot') + '</span></button>'
+          : '') +
         '<button type="button" class="btn go" id="oStart"' +
         (d.seats.length < 2 ? ' disabled' : '') +
         '>' +
         ic('heart') +
-        '<span>Mulai</span></button></div>' +
-        (d.seats.length < 2 ? '<div class="tiny muted">Butuh minimal 2 pemain. Tunggu pasanganmu bergabung atau tambah bot.</div>' : '')
+        '<span>' +
+        T('Mulai') +
+        '</span></button></div>' +
+        (d.seats.length < 2
+          ? '<div class="tiny muted">' + T('Butuh minimal 2 pemain. Tunggu pasanganmu bergabung atau tambah bot.') + '</div>'
+          : '')
       : me >= 0
-        ? '<div class="note">' + ic('clock') + ' Menunggu host memulai permainan…</div>'
+        ? '<div class="note">' + ic('clock') + ' ' + T('Menunggu host memulai permainan…') + '</div>'
         : '') +
     '</div></div>';
   $('#oLeave').onclick = async () => {

@@ -41,7 +41,7 @@
 
 /**
  * Hasil dispatch: ok → state baru + events (untuk animasi UI); gagal → pesan error untuk pemain.
- * @typedef {{ ok: boolean, state?: GameState, events?: any[], error?: string }} DispatchResult
+ * @typedef {{ ok: boolean, state?: GameState, events?: any[], error?: string, errorT?: { k: string, a: any } }} DispatchResult
  */
 
 /**

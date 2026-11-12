@@ -1,5 +1,5 @@
 /* LOVEOPOLY — dialog permainan › infrastruktur dialog & kepala kartu kota (dikumpulkan lewat src/ui/modals.js) */
-import { App, E, ART, TILES, GROUPS, RULES, fmt, esc, ic, $, $$, viewer, coin, avatarHTML } from '../core.js';
+import { App, E, ART, TILES, GROUPS, RULES, fmt, esc, ic, $, $$, viewer, coin, avatarHTML, t, tile } from '../core.js';
 import { UI } from '../ns.js';
 
 // ---------- infrastruktur modal ----------
@@ -42,11 +42,13 @@ function paint(def, first) {
     '<div class="modal-head"><div class="mh-txt">' +
     (v.kicker ? '<div class="kicker">' + v.kicker + '</div>' : '') +
     '<h2 id="mTitle">' +
-    esc(v.title) +
+    esc(t(v.title)) +
     '</h2>' +
     (v.who ? '<div class="who">' + v.who + '</div>' : '') +
     '</div>' +
-    (def.closable !== false ? '<button type="button" class="icon-btn" data-x aria-label="Tutup">' + ic('x') + '</button>' : '') +
+    (def.closable !== false
+      ? '<button type="button" class="icon-btn" data-x aria-label="' + esc(t('Tutup')) + '">' + ic('x') + '</button>'
+      : '') +
     '</div>' +
     '<div class="modal-body" tabindex="0">' +
     v.body +
@@ -147,22 +149,28 @@ const btn = (attrs, cls, icon, label, disabled) =>
   '>' +
   (icon ? ic(icon) : '') +
   '<span>' +
-  esc(label) +
+  esc(t(label)) +
   '</span></button>';
 const whoLine = (i, extra) => {
   const p = App.S.players[i];
-  return avatarHTML(p, 'xs') + '<span>' + esc(p.name) + (extra ? ' · ' + extra : '') + '</span>';
+  return avatarHTML(p, 'xs') + '<span>' + esc(p.name) + (extra ? ' · ' + t(extra) : '') + '</span>';
 };
+// terjemahan untuk fungsi yang memakai nama t sebagai petak lokal
+const T = (x, p) => t(x, p);
 // koin + angka satu unit (tidak menempel, tidak terpisah baris)
 const money = n => '<span class="amt">' + coin + '<b>' + fmt(n) + '</b></span>';
 // ringkasan "Uangmu [koin 2.500] → sisa [koin 2.340]"
 const sumRow = (cash, cost, can) =>
-  '<div class="sum-row"><span class="sr-side"><span class="sr-label">Uangmu</span>' +
+  '<div class="sum-row"><span class="sr-side"><span class="sr-label">' +
+  esc(t('Uangmu')) +
+  '</span>' +
   money(cash) +
   '</span>' +
   '<span class="arrow" aria-hidden="true">→</span>' +
   '<span class="sr-side">' +
-  (can ? '<span class="sr-label sub">sisa</span>' + money(cash - cost) : '<em>kurang ' + fmt(cost - cash) + '</em>') +
+  (can
+    ? '<span class="sr-label sub">' + esc(t('sisa')) + '</span>' + money(cash - cost)
+    : '<em>' + esc(t('kurang {n}', { n: cost - cash })) + '</em>') +
   '</span></div>';
 const head = () => App.S.queue[0];
 
@@ -188,18 +196,17 @@ function cityHero(S, ti, opts) {
       : '') +
     '</span>' +
     '<span class="ch-txt"><span class="ch-kind">' +
-    esc(kind) +
-    (t.type === 'city' ? ' · ' + E.GROUP_TILES[t.group].length + ' kota' : '') +
+    esc(T(kind)) +
+    (t.type === 'city' ? ' · ' + esc(T('{n} kota', { n: E.GROUP_TILES[t.group].length })) : '') +
     '</span><b class="ch-name">' +
-    esc(t.name) +
+    esc(tile(t.i)) +
     '</b>' +
-    (t.blurb ? '<span class="ch-blurb">' + esc(t.blurb) + '</span>' : '') +
+    (t.blurb ? '<span class="ch-blurb">' + esc(T(t.blurb)) + '</span>' : '') +
     (opts.owner !== false && owner
       ? '<span class="ch-owner">' +
         avatarHTML(owner, 'xs') +
-        'Milik ' +
-        esc(owner.name) +
-        (t.type === 'city' ? ' · ' + E.LEVEL_NAME[st.level] : '') +
+        esc(T('Milik {n}', { n: owner.name })) +
+        (t.type === 'city' ? ' · ' + esc(T(E.LEVEL_NAME[st.level])) : '') +
         '</span>'
       : '') +
     '</span></div>'
@@ -232,8 +239,8 @@ function groupProgress(S, p, ti) {
     })
     .join('');
   const txt = spots
-    ? mine + '/' + tiles.length + ' wisata' + (S.settings.instantWin ? ' · 5 = menang!' : '')
-    : mine + '/' + tiles.length + ' ' + GROUPS[t.group].name + ' · grup penuh = tol ×2';
+    ? T('{a}/{b} wisata', { a: mine, b: tiles.length }) + (S.settings.instantWin ? ' · ' + T('5 = menang!') : '')
+    : T('{a}/{b} {g} · grup penuh = tol ×2', { a: mine, b: tiles.length, g: { t: GROUPS[t.group].name } });
   return '<div class="progress-row">' + dots + '<span class="pg-txt">' + esc(who + txt) + '</span></div>';
 }
 // tol bila kota ti dimiliki p pada tingkat k
@@ -251,7 +258,7 @@ function levelCards(S, p, ti, from, sel, allowed, costFn) {
   const P = S.players[p];
   const cap = E.capLevel(S, p);
   const maxShow = from === 3 || from === 4 ? 4 : 3;
-  let h = '<div class="lv-cards" role="radiogroup" aria-label="Pilih tingkat bangunan">';
+  let h = '<div class="lv-cards" role="radiogroup" aria-label="' + esc(T('Pilih tingkat bangunan')) + '">';
   for (let k = 0; k <= maxShow; k++) {
     const done = k <= from;
     const ok = allowed.includes(k);
@@ -259,8 +266,8 @@ function levelCards(S, p, ti, from, sel, allowed, costFn) {
     const afford = ok && cost <= P.cash;
     const locked = !done && !ok;
     let note;
-    if (done) note = 'Sudah ada';
-    else if (locked) note = k === 3 && cap < 3 ? 'Setelah 1 putaran' : k === 4 ? 'Butuh Hotel' : '—';
+    if (done) note = T('Sudah ada');
+    else if (locked) note = k === 3 && cap < 3 ? T('Setelah 1 putaran') : k === 4 ? T('Butuh Hotel') : '—';
     else note = fmt(E.levelCost(ti, k) * (1 - (P.discount || 0)));
     const isSel = !done && ok && k <= sel;
     h +=
@@ -280,13 +287,13 @@ function levelCards(S, p, ti, from, sel, allowed, costFn) {
       '<span class="lv-art">' +
       ART.art(LV_ART[k]) +
       '</span><b>' +
-      E.LEVEL_NAME[k] +
+      esc(T(E.LEVEL_NAME[k])) +
       '</b><span class="lv-cost">' +
       (done ? ic('check') : locked ? ic('lock') : coin) +
       esc(note) +
       '</span>' +
-      '<span class="lv-toll">Tol ' +
-      fmt(tollIf(S, p, ti, k)) +
+      '<span class="lv-toll">' +
+      esc(T('Tol {n}', { n: tollIf(S, p, ti, k) })) +
       '</span>' +
       (isSel ? '<span class="lv-check">' + ic('check') + '</span>' : '') +
       '</button>';

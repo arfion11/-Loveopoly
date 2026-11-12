@@ -1,6 +1,8 @@
 /* LOVEOPOLY — dialog permainan › info petak, aset pemain, riwayat (dikumpulkan lewat src/ui/modals.js) */
 import { Icons } from '../../assets/icons.js';
-import { App, D, E, ART, TILES, GROUPS, RULES, fmt, esc, ic, $$, viewer, coin, avatarHTML } from '../core.js';
+import { App, D, E, ART, TILES, GROUPS, RULES, fmt, esc, ic, $$, viewer, coin, avatarHTML, t as tr, tile, tLog } from '../core.js';
+
+const T = x => esc(tr(x));
 import { UI } from '../ns.js';
 import { LV_ART, btn, cityHero, closeModal, groupProgress, on, showModal, tollIf } from './base.js';
 
@@ -31,26 +33,30 @@ function onTileClick(i) {
                 '"><span class="ld-art">' +
                 ART.art(LV_ART[k]) +
                 '</span><b>' +
-                E.LEVEL_NAME[k] +
+                T(E.LEVEL_NAME[k]) +
                 '</b><span class="ld-cost">' +
-                (k === 0 ? 'Harga ' : '+') +
+                (k === 0 ? T('Harga') + ' ' : '+') +
                 fmt(E.levelCost(i, k)) +
-                '</span><span class="ld-toll">Tol ' +
-                fmt(toll) +
+                '</span><span class="ld-toll">' +
+                esc(tr('Tol {n}', { n: toll })) +
                 '</span></div>'
               );
             })
             .join('') +
           '</div>';
         body +=
-          '<div class="tiny muted">Grup penuh: tol ×' +
-          RULES.groupMult +
-          '. Festival: ×2/×3. Hotel setelah 1 putaran, Landmark saat mampir ke kota ber-Hotel.</div>';
+          '<div class="tiny muted">' +
+          esc(
+            tr('Grup penuh: tol ×{m}. Festival: ×2/×3. Hotel setelah 1 putaran, Landmark saat mampir ke kota ber-Hotel.', {
+              m: RULES.groupMult,
+            })
+          ) +
+          '</div>';
         if (owner >= 0 && S.settings.takeover)
           body +=
             st.level === 4
-              ? '<div class="note gold">' + ic('crown') + ' Landmark: kebal diambil alih.</div>'
-              : '<div class="kv"><span>Harga ambil alih</span><b>' + fmt(E.takeoverPrice(S, i)) + '</b></div>';
+              ? '<div class="note gold">' + ic('crown') + ' ' + T('Landmark: kebal diambil alih.') + '</div>'
+              : '<div class="kv"><span>' + T('Harga ambil alih') + '</span><b>' + fmt(E.takeoverPrice(S, i)) + '</b></div>';
         body += groupProgress(S, owner >= 0 ? owner : v, i);
       } else if (t.type === 'spot') {
         body +=
@@ -62,42 +68,47 @@ function onTileClick(i) {
                 '<span class="' +
                 (st.owner >= 0 && k === E.spotsOf(S, st.owner).length - 1 ? 'cur' : '') +
                 '"><b>' +
-                (k + 1) +
-                ' wisata</b>Tol ' +
-                fmt(r) +
+                esc(tr('{n} wisata', { n: k + 1 })) +
+                '</b>' +
+                esc(tr('Tol {n}', { n: r })) +
                 '</span>'
             )
             .join('') +
           '</div>' +
           '<div class="note">' +
           ic('shield') +
-          ' Wisata tidak bisa diambil alih.' +
-          (S.settings.instantWin ? ' Kuasai kelima wisata untuk menang instan!' : '') +
+          ' ' +
+          T('Wisata tidak bisa diambil alih.') +
+          (S.settings.instantWin ? ' ' + T('Kuasai kelima wisata untuk menang instan!') : '') +
           '</div>' +
           groupProgress(S, st.owner >= 0 ? st.owner : v, i);
       } else {
         body +=
-          '<div class="special-hero"><span class="hero-art">' +
-          ART.art(t.art) +
-          '</span><p class="lead">' +
-          esc(t.desc || '') +
-          '</p></div>';
+          '<div class="special-hero"><span class="hero-art">' + ART.art(t.art) + '</span><p class="lead">' + T(t.desc || '') + '</p></div>';
         if (t.type === 'start')
           body +=
-            '<div class="kv"><span>Gaji dasar</span><b>' +
-            RULES.salary +
-            '</b></div><div class="tiny muted">+10 sampai +40 sesuai Love Meter.</div>';
-        if (t.type === 'travel') body += '<div class="kv"><span>Tiket terbang</span><b>' + (E.travelFee(S) || 'Gratis') + '</b></div>';
-        if (t.type === 'island') body += '<div class="kv"><span>Biaya perahu</span><b>' + RULES.islandFee + '</b></div>';
+            '<div class="kv"><span>' +
+            T('Gaji dasar') +
+            '</span><b>' +
+            fmt(RULES.salary) +
+            '</b></div><div class="tiny muted">' +
+            T('+10 sampai +40 sesuai Love Meter.') +
+            '</div>';
+        if (t.type === 'travel')
+          body +=
+            '<div class="kv"><span>' +
+            T('Tiket terbang') +
+            '</span><b>' +
+            (E.travelFee(S) ? fmt(E.travelFee(S)) : T('Gratis')) +
+            '</b></div>';
+        if (t.type === 'island') body += '<div class="kv"><span>' + T('Biaya perahu') + '</span><b>' + fmt(RULES.islandFee) + '</b></div>';
         if (t.type === 'fest' && S.festival.tile >= 0)
           body +=
             '<div class="note">' +
             ic('party') +
-            ' Festival sedang di ' +
-            esc(TILES[S.festival.tile].name) +
-            ' (tol ×' +
-            S.festival.mult +
-            ').</div>';
+            ' ' +
+            esc(tr('Festival sedang di {c} (tol ×{m}).', { c: { tile: S.festival.tile }, m: S.festival.mult })) +
+            '</div>';
       }
       E.winThreats(S)
         .filter(x => x.tile === i)
@@ -106,16 +117,20 @@ function onTileClick(i) {
             '<div class="note warn">' +
             ic('alert') +
             ' ' +
-            esc(S.players[x.p].name) +
-            ' butuh petak ini untuk ' +
-            esc(UI.winLabel(x)) +
-            '.</div>';
+            esc(tr('{n} butuh petak ini untuk {w}.', { n: S.players[x.p].name, w: UI.winLabel(x) })) +
+            '</div>';
         });
       if (here.length)
-        body += '<div class="tiny muted here">Di sini: ' + here.map(p => avatarHTML(p, 'xs') + esc(p.name)).join(' ') + '</div>';
+        body +=
+          '<div class="tiny muted here">' + T('Di sini:') + ' ' + here.map(p => avatarHTML(p, 'xs') + esc(p.name)).join(' ') + '</div>';
       return {
-        title: t.name,
-        kicker: t.type === 'city' ? ic('house') + 'Kota' : t.type === 'spot' ? ic('ferris') + 'Wisata' : ic('sparkle') + 'Petak spesial',
+        title: tile(i),
+        kicker:
+          t.type === 'city'
+            ? ic('house') + T('Kota§petak')
+            : t.type === 'spot'
+              ? ic('ferris') + T('Wisata')
+              : ic('sparkle') + T('Petak spesial'),
         body,
         foot: '<span class="grow"></span>' + btn('id="tdClose"', 'primary', 'check', 'Tutup'),
       };
@@ -155,18 +170,18 @@ function openPortfolio(pi) {
                 ART.art(tl.art) +
                 (tl.type === 'city' && st.level ? '<span class="pf-bld">' + ART.art(LV_ART[st.level]) + '</span>' : '') +
                 '</span><b>' +
-                esc(tl.name) +
+                esc(tile(t)) +
                 '</b><span>' +
-                (tl.type === 'city' ? E.LEVEL_NAME[st.level] : 'Wisata') +
+                T(tl.type === 'city' ? E.LEVEL_NAME[st.level] : 'Wisata') +
                 (S.festival.tile === t ? ' · ×' + S.festival.mult : '') +
-                '</span><span class="pf-toll">Tol ' +
-                fmt(E.rentInfo(S, t).amount) +
+                '</span><span class="pf-toll">' +
+                esc(tr('Tol {n}', { n: E.rentInfo(S, t).amount })) +
                 '</span></button>'
               );
             })
             .join('') +
           '</div>'
-        : '<div class="empty">' + ic('house') + 'Belum punya kota. Mendarat di petak kosong untuk membeli.</div>';
+        : '<div class="empty">' + ic('house') + T('Belum punya kota. Mendarat di petak kosong untuk membeli.') + '</div>';
       const held = p.cards.length
         ? '<div class="held">' +
           p.cards
@@ -176,15 +191,17 @@ function openPortfolio(pi) {
                 '<div class="held-card">' +
                 ic(D.POWER[k].icon) +
                 '<div><b>' +
-                esc(D.POWER[k].name) +
+                T(D.POWER[k].name) +
                 '</b><span>' +
-                esc(D.POWER[k].desc) +
+                T(D.POWER[k].desc) +
                 '</span></div></div>'
               );
             })
             .join('') +
           '</div>'
-        : '<div class="tiny muted">Belum ada kartu simpanan. Kartu Malaikat, Kupon, dan Tiket Pulang didapat dari Kartu Cinta.</div>';
+        : '<div class="tiny muted">' +
+          T('Belum ada kartu simpanan. Kartu Malaikat, Kupon, dan Tiket Pulang didapat dari Kartu Cinta.') +
+          '</div>';
       const groups = E.fullGroups(S, pi);
       const ach =
         '<div class="ach-list">' +
@@ -193,43 +210,55 @@ function openPortfolio(pi) {
             '<span class="ach' +
             (p.achievements.includes(a.id) ? '' : ' locked') +
             '" title="' +
-            esc(a.text) +
+            T(a.text) +
             '">' +
             ic(a.icon in Icons.paths ? a.icon : 'trophy') +
-            esc(a.name) +
+            T(a.name) +
             '</span>'
         ).join('') +
         '</div>';
       return {
         title: p.name,
-        kicker: ic('briefcase') + 'Aset pemain',
+        kicker: ic('briefcase') + T('Aset pemain'),
         who:
           avatarHTML(p, 'xs') +
           '<span>' +
-          (p.kind === 'ai' ? 'AI ' + p.ai : 'Pemain') +
+          (p.kind === 'ai' ? 'AI ' + esc(p.ai) : T('Pemain')) +
           ' · ' +
-          esc(tier.name) +
+          T(tier.name) +
           ' (Love ' +
           p.love +
           ')</span>',
         body:
-          '<div class="pf-stats"><div><span>Uang</span><b>' +
+          '<div class="pf-stats"><div><span>' +
+          T('Uang') +
+          '</span><b>' +
           coin +
           fmt(p.cash) +
-          '</b></div><div><span>Total aset</span><b>' +
+          '</b></div><div><span>' +
+          T('Total aset') +
+          '</span><b>' +
           fmt(E.netWorth(S, pi)) +
-          '</b></div><div><span>Tol diterima</span><b>' +
+          '</b></div><div><span>' +
+          T('Tol diterima') +
+          '</span><b>' +
           fmt(p.stats.tollIn) +
-          '</b></div><div><span>Grup penuh</span><b>' +
+          '</b></div><div><span>' +
+          T('Grup penuh') +
+          '</span><b>' +
           groups.length +
           '</b></div></div>' +
-          '<div class="sec-title">Kota & wisata (' +
-          own.length +
-          ')</div>' +
+          '<div class="sec-title">' +
+          esc(tr('Kota & wisata ({n})', { n: own.length })) +
+          '</div>' +
           list +
-          '<div class="sec-title">Kartu simpanan</div>' +
+          '<div class="sec-title">' +
+          T('Kartu simpanan') +
+          '</div>' +
           held +
-          '<div class="sec-title">Achievement</div>' +
+          '<div class="sec-title">' +
+          T('Achievement') +
+          '</div>' +
           ach,
         foot: '<span class="grow"></span>' + btn('id="pfClose"', 'primary', 'check', 'Tutup'),
       };
@@ -257,15 +286,15 @@ function openHistory() {
             '">' +
             ic(l.icon in Icons.paths ? l.icon : 'dot') +
             '</span><span>' +
-            esc(l.text) +
-            '<small>Ronde ' +
-            l.r +
+            esc(tLog(l)) +
+            '<small>' +
+            esc(tr('Ronde {r}', { r: l.r })) +
             '</small></span></li>'
         )
         .join('');
       return {
         title: 'Riwayat',
-        kicker: ic('history') + 'Semua kejadian',
+        kicker: ic('history') + T('Semua kejadian'),
         body: '<ul class="log full">' + items + '</ul>',
         foot: '<span class="grow"></span>' + btn('id="hClose"', 'primary', 'check', 'Tutup'),
       };

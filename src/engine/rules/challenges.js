@@ -21,6 +21,8 @@ import {
   momentReward,
   rint,
   shuffle,
+  tx,
+  sub,
 } from './base.js';
 import { release } from './move.js';
 import { actor } from './turns.js';
@@ -120,6 +122,8 @@ function triviaAnswer(q) {
     });
   return -1;
 }
+// teks soal: t = kalimat Indonesia (save lama & uji), tt = templat untuk UI yang diterjemahkan
+const qt = (o, x) => Object.assign(o, { t: x.text, tt: { k: x.k, a: x.a } });
 function genTrivia(S, n) {
   const kinds = shuffle(S, ['max', 'group', 'next', 'side', 'price', 'odd', 'next']).slice(0, n);
   const used = new Set();
@@ -152,29 +156,29 @@ function genTrivia(S, n) {
           opts.push(TILES[t].name);
         }
       });
-      return { k, s: -1, t: 'Mana yang harga belinya paling mahal?', o: opts };
+      return qt({ k, s: -1, o: opts }, tx('Mana yang harga belinya paling mahal?'));
     }
     if (k === 'group') {
       const t = subj(cities);
-      return {
-        k,
-        s: t,
-        t: TILES[t].name + ' termasuk grup warna apa?',
-        o: withAns(
-          GROUPS[TILES[t].group].name,
-          Object.values(GROUPS).map(g => g.name)
-        ),
-      };
+      return qt(
+        {
+          k,
+          s: t,
+          o: withAns(
+            GROUPS[TILES[t].group].name,
+            Object.values(GROUPS).map(g => g.name)
+          ),
+        },
+        tx('{k} termasuk grup warna apa?', { k: { tile: t } })
+      );
     }
     if (k === 'next') {
       const t = subj(TILES.map(x => x.i).filter(i => TILES[i].type !== 'card' && TILES[(i + 1) % N].type !== 'card'));
       const names = [...new Set(TILES.map(x => x.name))];
-      return {
-        k,
-        s: t,
-        t: 'Petak apa yang tepat sesudah ' + TILES[t].name + ' (searah langkah pion)?',
-        o: withAns(TILES[(t + 1) % N].name, names),
-      };
+      return qt(
+        { k, s: t, o: withAns(TILES[(t + 1) % N].name, names) },
+        tx('Petak apa yang tepat sesudah {k} (searah langkah pion)?', { k: { tile: t } })
+      );
     }
     if (k === 'odd') {
       const sd = SIDES[rint(S, SIDES.length)],
@@ -186,26 +190,28 @@ function genTrivia(S, n) {
           .concat([out[rint(S, out.length)]])
           .map(t => TILES[t].name)
       );
-      return { k, s: -1, side: sd.name, t: 'Mana yang BUKAN bagian dari ' + sd.name + '?', o };
+      return qt({ k, s: -1, side: sd.name, o }, tx('Mana yang BUKAN bagian dari {s}?', { s: { t: sd.name } }));
     }
     if (k === 'side') {
       const t = subj(sideT);
-      return {
-        k,
-        s: t,
-        t: TILES[t].name + ' ada di jalur mana?',
-        o: withAns(
-          sideOf(t),
-          SIDES.map(d => d.name)
-        ),
-      };
+      return qt(
+        {
+          k,
+          s: t,
+          o: withAns(
+            sideOf(t),
+            SIDES.map(d => d.name)
+          ),
+        },
+        tx('{k} ada di jalur mana?', { k: { tile: t } })
+      );
     }
     const t = subj(PRICED);
     const near = [...new Set(PRICED.map(i => TILES[i].price))]
       .filter(v => v !== TILES[t].price)
       .sort((a, b) => Math.abs(a - TILES[t].price) - Math.abs(b - TILES[t].price))
       .slice(0, 5);
-    return { k: 'price', s: t, t: 'Berapa harga beli ' + TILES[t].name + '?', o: withAns(fmt(TILES[t].price), near.map(fmt)) };
+    return qt({ k: 'price', s: t, o: withAns(fmt(TILES[t].price), near.map(fmt)) }, tx('Berapa harga beli {k}?', { k: { tile: t } }));
   });
 }
 function genMath(S, n) {
@@ -216,22 +222,22 @@ function genMath(S, n) {
       const a = P(),
         m = 2 + rint(S, 2),
         b = P();
-      return { k, n: [a, m, b], t: 'Tol ' + fmt(a) + ' × ' + m + ' (festival) + tol ' + fmt(b) + ' = ?' };
+      return qt({ k, n: [a, m, b] }, tx('Tol {a} × {m} (festival) + tol {b} = ?', { a, m, b }));
     }
     if (k === 'trip') {
       const a = P(),
         b = P(),
         c = P();
-      return { k, n: [a, b, c], t: 'Beli ' + fmt(a) + ' + ' + fmt(b) + ' − jual ' + fmt(c) + ' = ?' };
+      return qt({ k, n: [a, b, c] }, tx('Beli {a} + {b} − jual {c} = ?', { a, b, c }));
     }
     if (k === 'tax') {
       const a = (120 + rint(S, 380)) * 10;
-      return { k, n: [a], t: 'Pajak Rindu 10% dari aset ' + fmt(a) + ' = ?' };
+      return qt({ k, n: [a] }, tx('Pajak Rindu 10% dari aset {a} = ?', { a }));
     }
     const a = 1000 + rint(S, 20) * 50,
       b = P(),
       c = P();
-    return { k: 'change', n: [a, b, c], t: 'Uang ' + fmt(a) + ', bayar tol ' + fmt(b) + ' dan ' + fmt(c) + '. Sisa = ?' };
+    return qt({ k: 'change', n: [a, b, c] }, tx('Uang {a}, bayar tol {b} dan {c}. Sisa = ?', { a, b, c }));
   });
 }
 function mathAnswer(q) {
@@ -431,7 +437,13 @@ function gradeAuto(it, ans) {
       (n, q, k) => n + (A[k] !== '' && A[k] != null && Number(String(A[k]).replace(/[^\d-]/g, '')) === mathAnswer(q) ? 1 : 0),
       0
     );
-  if (ch.type === 'scramble') return z.items.reduce((n, x, k) => n + (normWord(A[k]) === normWord(TILES[x.s].name) ? 1 : 0), 0);
+  // nama tempat diterima dalam bahasa Indonesia maupun English (TILES[].en), pemain beda bahasa sama-sama bisa menjawab
+  if (ch.type === 'scramble')
+    return z.items.reduce(
+      (n, x, k) =>
+        n + (normWord(A[k]) === normWord(TILES[x.s].name) || (TILES[x.s].en && normWord(A[k]) === normWord(TILES[x.s].en)) ? 1 : 0),
+      0
+    );
   if (ch.type === 'emoji') return z.qs.reduce((n, q, k) => n + (Number(A[k]) === q.o.indexOf(TILES[q.s].name) ? 1 : 0), 0);
   return 0;
 }
@@ -450,33 +462,35 @@ function messageChecks(rule, text) {
       ok:
         lines.length === rule.acrostic.length &&
         rule.acrostic.split('').every((c, k) => lines[k] && normWord(lines[k])[0] === c.toLowerCase()),
-      label: rule.acrostic.length + ' baris diawali ' + rule.acrostic.split('').join('-'),
+      label: tx('{n} baris diawali {x}', { n: rule.acrostic.length, x: rule.acrostic.split('').join('-') }),
     });
   if (rule.cities) {
     const found = new Set(
       TILES.filter(x => x.type === 'city' || x.type === 'spot')
-        .filter(x => normWord(t).includes(normWord(x.name)))
+        // nama Indonesia atau English (TILES[].en): surat dalam bahasa mana pun dihitung sama
+        .filter(x => normWord(t).includes(normWord(x.name)) || (!!x.en && normWord(t).includes(normWord(x.en))))
         .map(x => x.name)
     );
-    out.push({ ok: found.size >= rule.cities, label: 'Memuat ' + rule.cities + ' nama kota di papan (' + found.size + ')' });
+    out.push({ ok: found.size >= rule.cities, label: tx('Memuat {n} nama kota di papan ({f})', { n: rule.cities, f: found.size }) });
   }
   if (rule.noLetter)
-    out.push({ ok: t.length > 0 && !t.toLowerCase().includes(rule.noLetter), label: 'Tanpa huruf "' + rule.noLetter + '"' });
-  if (rule.minWords) out.push({ ok: words.length >= rule.minWords, label: 'Minimal ' + rule.minWords + ' kata (' + words.length + ')' });
-  if (rule.lines) out.push({ ok: lines.length === rule.lines, label: 'Tepat ' + rule.lines + ' baris (' + lines.length + ')' });
+    out.push({ ok: t.length > 0 && !t.toLowerCase().includes(rule.noLetter), label: tx('Tanpa huruf "{x}"', { x: rule.noLetter }) });
+  if (rule.minWords)
+    out.push({ ok: words.length >= rule.minWords, label: tx('Minimal {n} kata ({f})', { n: rule.minWords, f: words.length }) });
+  if (rule.lines) out.push({ ok: lines.length === rule.lines, label: tx('Tepat {n} baris ({f})', { n: rule.lines, f: lines.length }) });
   if (rule.wordsPerLine)
     out.push({
       ok: lines.length > 0 && lines.every(l => l.split(/\s+/).filter(Boolean).length >= rule.wordsPerLine),
-      label: 'Tiap baris minimal ' + rule.wordsPerLine + ' kata',
+      label: tx('Tiap baris minimal {n} kata', { n: rule.wordsPerLine }),
     });
   if (rule.rhyme === 'abab') {
     const end = k => {
       const w = normWord((lines[k] || '').split(/\s+/).pop());
       return w.slice(-2);
     };
-    out.push({ ok: lines.length === 4 && end(0) && end(0) === end(2) && end(1) === end(3), label: 'Rima a-b-a-b' });
+    out.push({ ok: lines.length === 4 && end(0) && end(0) === end(2) && end(1) === end(3), label: tx('Rima a-b-a-b') });
   }
-  out.push({ ok: t.trim().length <= 400, label: 'Maksimal 400 karakter' });
+  out.push({ ok: t.trim().length <= 400, label: tx('Maksimal 400 karakter') });
   return out;
 }
 const cleanText = (x, max) =>
@@ -487,17 +501,22 @@ const cleanText = (x, max) =>
     .replace(/\n{2,}/g, '\n')
     .trim()
     .slice(0, max);
+// proof = teks atau tx(...): disimpan teks Indonesia (proof) + templat (pt) supaya galeri bukti bisa diterjemahkan
 function chProof(S, it, ok, proof) {
   const ch = CH[it.ch];
   S.proofs = S.proofs || [];
-  S.proofs.push({ p: it.p, type: ch.type, label: CH_TYPES[ch.type].label, ok, proof, judge: it.judge, r: S.round });
+  const o = proof && typeof proof === 'object' ? proof : null;
+  const e = { p: it.p, type: ch.type, label: CH_TYPES[ch.type].label, ok, proof: o ? o.text : proof, judge: it.judge, r: S.round };
+  if (o) e.pt = { k: o.k, a: o.a };
+  S.proofs.push(e);
   if (S.proofs.length > 40) S.proofs.shift();
 }
+// beri hadiah; kembalikan tx ringkasannya ('+150, Love +3') atau null bila tidak ada
 function rewardTo(S, i, rw) {
-  if (!rw) return '';
+  if (!rw || (!rw.gain && !rw.love)) return null;
   if (rw.gain) cashAdd(S, i, rw.gain);
   if (rw.love) loveAdd(S, i, rw.love);
-  return [rw.gain ? '+' + fmt(rw.gain) : '', rw.love ? 'Love +' + rw.love : ''].filter(Boolean).join(', ');
+  return tx(rw.gain && rw.love ? '+{g}, Love +{l}' : rw.gain ? '+{g}' : 'Love +{l}', { g: rw.gain || 0, l: rw.love || 0 });
 }
 // akhir tantangan: ok = pemilik lulus. judgeWin = penilai yang dapat hadiah (Dua Fakta Satu Bohong)
 function chFinish(S, it, ok, proof, judgeShare) {
@@ -511,16 +530,28 @@ function chFinish(S, it, ok, proof, judgeShare) {
   if (ok) {
     const got = rewardTo(S, it.p, mom ? momentReward(S) : def.reward);
     p.stats.challenges++;
-    log(S, p.name + ' lulus ' + def.label + ' (' + got + '). Bukti: ' + proof + '.', 'heart', it.p);
+    log(
+      S,
+      got
+        ? tx('{n} lulus {c} ({g}). Bukti: {b}.', { n: p.name, c: { t: def.label }, g: sub(got), b: sub(proof) })
+        : tx('{n} lulus {c}. Bukti: {b}.', { n: p.name, c: { t: def.label }, b: sub(proof) }),
+      'heart',
+      it.p
+    );
     if (it.source === 'island' && p.island) {
-      release(S, it.p, 'lewat Rindu Challenge');
+      release(S, it.p, tx('lewat Rindu Challenge'));
       p.stats.escapes++;
     }
   } else {
     p.stats.failed++;
     log(
       S,
-      p.name + ' gagal ' + def.label + '. Bukti: ' + proof + '.' + (it.source === 'island' && p.island ? ' Tetap di Pulau Rindu.' : ''),
+      tx('{n} gagal {c}. Bukti: {b}.{x}', {
+        n: p.name,
+        c: { t: def.label },
+        b: sub(proof),
+        x: it.source === 'island' && p.island ? { t: ' Tetap di Pulau Rindu.' } : '',
+      }),
       'dot',
       it.p
     );
@@ -531,7 +562,7 @@ function chFinish(S, it, ok, proof, judgeShare) {
   sharers.forEach(j => {
     if (j < 0 || !PL(S, j) || PL(S, j).bankrupt) return;
     const g = rewardTo(S, j, mom ? momentReward(S) : def.judgeReward);
-    if (g) log(S, PL(S, j).name + ' ikut dapat hadiah (' + g + ').', 'heart', j);
+    if (g) log(S, tx('{n} ikut dapat hadiah ({g}).', { n: PL(S, j).name, g: sub(g) }), 'heart', j);
   });
   ev(S, { t: 'challenge', p: it.p, ok, proof, label: def.label, judge: it.judge });
 }

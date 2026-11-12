@@ -487,6 +487,16 @@
 .proof-photo.no img {
   filter: grayscale(0.8);
 }
+/* penampil satu foto (diketuk dari polaroid di papan) */
+.proof-photo.proof-big {
+  rotate: 0deg;
+  width: min(100%, 460px);
+  margin: 0 auto;
+  padding: 12px 12px 14px;
+}
+.proof-photo.proof-big figcaption {
+  font-size: 15px;
+}
 .proof-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -526,7 +536,7 @@
   margin: 14px 0 6px;
   font-size: 15px;
 }
-/* polaroid foto bukti terakhir di papan (rebah di bidang papan) */
+/* polaroid foto bukti di papan (rebah di bidang papan); sampai 4 sekaligus, slot 0 = terbaru (depan kanan) */
 .proof-pin {
   position: absolute;
   right: 7%;
@@ -562,19 +572,37 @@
   text-overflow: ellipsis;
   padding: 0 0.6cqw;
 }
-.pp-n {
-  position: absolute;
-  right: 0.3cqw;
-  top: 0.3cqw;
-  display: grid;
-  place-items: center;
-  min-width: 3.4cqw;
-  height: 3.4cqw;
-  padding: 0 0.6cqw;
-  border-radius: 99px;
-  background: var(--brand);
-  color: #fff;
-  font: 700 1.9cqw var(--fd);
+/* papan datar: pita atas area tengah (di atas Merpi & tombol aksi), dua di kanan, dua di kiri, sedikit miring
+   berlawanan supaya terasa ditempel tangan */
+.board:not(.b3d) .proof-pin {
+  right: 3%;
+  top: 3%;
+  width: 12cqw;
+}
+.proof-pin[data-slot='1'] {
+  z-index: 3;
+  transform: rotate(-4deg);
+}
+.board:not(.b3d) .proof-pin[data-slot='1'] {
+  right: 17%;
+  top: 5%;
+}
+.proof-pin[data-slot='2'] {
+  z-index: 2;
+  transform: rotate(-6deg);
+}
+.board:not(.b3d) .proof-pin[data-slot='2'] {
+  right: auto;
+  left: 3%;
+}
+.proof-pin[data-slot='3'] {
+  z-index: 1;
+  transform: rotate(4deg);
+}
+.board:not(.b3d) .proof-pin[data-slot='3'] {
+  right: auto;
+  left: 17%;
+  top: 5%;
 }
 /* papan 3D: polaroid BERDIRI menghadap layar (billboard seperti kartu kota). Rebah di papan miring membuat
    fotonya tampak gepeng ±20%. Diletakkan di kanan depan area tengah, jauh dari Merpi & gelembung katanya */
@@ -586,6 +614,23 @@
   translate: 0 0 2px;
   rotate: x calc(var(--tilt, 0deg) * -1);
   transform-origin: 50% 100%;
+}
+/* papan 3D: terbaru di depan kanan, lebih lama berdiri di belakangnya (makin jauh = makin ke belakang papan) */
+.board.b3d .proof-pin[data-slot='1'] {
+  bottom: 19%;
+  right: 21%;
+}
+.board.b3d .proof-pin[data-slot='2'] {
+  top: auto;
+  bottom: 64%;
+  left: 7%;
+  right: auto;
+}
+.board.b3d .proof-pin[data-slot='3'] {
+  top: auto;
+  bottom: 42%;
+  left: 5%;
+  right: auto;
 }
 @keyframes pinDrop {
   0% {

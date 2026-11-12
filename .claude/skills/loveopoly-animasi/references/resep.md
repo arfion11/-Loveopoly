@@ -23,10 +23,13 @@ Pola yang dipakai sekarang — sinkron, langsung bisa disentuh:
 
 ## 2. Kamera sinematik di momen besar (sudah dipakai: `camCinema(tile, opt)` di `src/ui/core/camera.js`)
 
-- `App.cam.cine = { fx, fy, k, rz }` didahulukan `apply3d()`: skala `fit + (1 − fit)·k`, fokus ke petak (null = tengah
-  papan), titik fokus di 70% tinggi area (di bawah banner momen yang ada di 34–40%), `rotateZ(rz)` setelah `rotateX`
-  (papan berputar seperti meja putar). Panggilan kamera lain tetap jalan; setelah `inMs + hold` cine dilepas & kamera
-  kembali ke keadaan terkini. `camCinemaStop()` saat masuk/keluar game.
+- Zoom in & out modern, **tanpa putaran** (Nov 2026: meja putar `rotateZ` diganti atas permintaan pemilik produk).
+  `App.cam.cine = { fx, fy, k }` didahulukan `apply3d(anim, ms, ease)`: skala `fit + (1 − fit)·k`, fokus ke petak
+  (null = tengah papan), titik fokus di 70% tinggi area (di bawah banner momen yang ada di 34–40%). Tiga fase:
+  masuk `inMs` dengan pegas `CINE_IN` (`linear()` sedikit lewat ±4% lalu diam; cadangan `cubic-bezier(.22,1.2,.36,1)`),
+  tahan `hold` sambil `k += drift` (0,06) linear (dorongan ala Ken Burns), keluar `outMs` dengan `CINE_OUT`
+  (`cubic-bezier(.65,0,.35,1)`). Struktur fungsi transform sama di semua fase, jadi interpolasi per komponen (mulus).
+  Panggilan kamera lain tetap jalan; timer fase di `App.cam.cineTimers`, `camCinemaStop()` saat masuk/keluar game.
 - Dipicu di `flow.js` hanya bila `fresh`: landmark (`build` level 4), `takeover`, menang instan (`gameover`: tengah
   jalur untuk Raja Jalur, pion juara untuk lainnya), `moment`. Durasi ikut `SPD()`.
 - Mati: papan 2D, gerak dikurangi, Hemat baterai, tab tersembunyi. Biaya terukur (CPU 4×): main thread ±1,0 dtk dari

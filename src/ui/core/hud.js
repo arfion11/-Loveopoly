@@ -187,8 +187,13 @@ function renderPlayers(S, force) {
       el._h = '';
     }
   });
-  const strip = $('#strip');
+  const strip = $('#strip'),
+    mid = $('#slotML');
   if (compact) {
+    if (mid && mid.innerHTML) {
+      mid.innerHTML = '';
+      mid._h = '';
+    }
     if (force)
       order.forEach(id => {
         const el = $('#' + id);
@@ -211,6 +216,14 @@ function renderPlayers(S, force) {
       freeR = $('#slotBR');
     if (S.players.length === 2 && freeL) setHTML(freeL, infoCardHTML(S));
     if (S.players.length <= 3 && freeR) setHTML(freeR, logCardHTML(S));
+    // 4 pemain: keempat sudut terpakai kartu pemain → "Kabar terbaru" di tengah kolom kiri (menyusut lebih dulu)
+    if (mid) {
+      if (S.players.length === 4) setHTML(mid, logCardHTML(S));
+      else if (mid.innerHTML) {
+        mid.innerHTML = '';
+        mid._h = '';
+      }
+    }
   }
   $$('.pcard').forEach(el => {
     el.onclick = () => UI.openPortfolio(Number(el.dataset.p));
@@ -670,37 +683,52 @@ function describeItem(S, it, mine) {
   }
 }
 
-// polaroid foto bukti terakhir: rebah di bidang papan (seperti foto di meja); ketuk = galeri bukti
+// polaroid foto bukti (maks 4 = S.photos): semua ditempel di area tengah papan, terbaru di depan kanan (slot 0).
+// Ketuk satu polaroid = buka foto itu (bisa geser ke foto lain & ke galeri). Polaroid yang sudah ada tidak dibuat ulang
+// (animasi jatuh hanya untuk foto baru); terbaru memakai id #proofPin.
+const pinKey = x => x.p + ':' + x.r + ':' + (x.ch || '') + ':' + String(x.img || '').length;
 function renderProofPin(S) {
   const c = $('#board .center');
   if (!c) return;
-  const ph = S && S.photos && S.photos[S.photos.length - 1];
-  let pin = $('#proofPin', c);
-  if (!ph) {
-    if (pin) pin.remove();
-    return;
-  }
-  if (!pin) {
-    pin = document.createElement('button');
-    pin.type = 'button';
-    pin.id = 'proofPin';
-    pin.className = 'proof-pin';
-    pin.addEventListener('click', () => UI.openProofs && UI.openProofs());
-    c.appendChild(pin);
-  }
-  const k = S.photos.length + ':' + ph.r + ':' + ph.p;
-  if (pin.dataset.k === k) return;
-  pin.dataset.k = k;
-  pin.setAttribute('aria-label', t('Galeri foto bukti ({n})', { n: S.photos.length }));
-  pin.innerHTML =
-    '<img src="' +
-    safeImg(ph.img) +
-    '" alt=""><span class="pp-cap">' +
-    esc(S.players[ph.p].name) +
-    ' ' +
-    (ph.ok ? '✓' : '✗') +
-    '</span>' +
-    (S.photos.length > 1 ? '<b class="pp-n">' + S.photos.length + '</b>' : '');
+  const ph = (S && S.photos) || [];
+  const shown = ph.slice(-4);
+  const keys = shown.map(pinKey);
+  c.querySelectorAll('.proof-pin').forEach(el => {
+    if (!keys.includes(el.dataset.k)) el.remove();
+  });
+  shown.forEach((x, j) => {
+    const idx = ph.length - shown.length + j,
+      slot = shown.length - 1 - j,
+      k = keys[j];
+    let pin = [...c.querySelectorAll('.proof-pin')].find(el => el.dataset.k === k);
+    if (!pin) {
+      pin = document.createElement('button');
+      pin.type = 'button';
+      pin.className = 'proof-pin';
+      pin.dataset.k = k;
+      pin.addEventListener('click', () => UI.openProofs && UI.openProofs(Number(pin.dataset.i)));
+      pin.innerHTML =
+        '<img src="' +
+        safeImg(x.img) +
+        '" alt=""><span class="pp-cap">' +
+        esc(S.players[x.p] ? S.players[x.p].name : '') +
+        ' ' +
+        (x.ok ? '✓' : '✗') +
+        '</span>';
+      c.appendChild(pin);
+    }
+    pin.dataset.i = idx;
+    pin.dataset.slot = slot;
+    pin.id = slot === 0 ? 'proofPin' : '';
+    if (!pin.id) pin.removeAttribute('id');
+    pin.setAttribute(
+      'aria-label',
+      t('Foto bukti {n} · ronde {r}', { n: S.players[x.p] ? S.players[x.p].name : '', r: x.r }) +
+        ' (' +
+        t(x.ok ? 'Disahkan' : 'Ditolak') +
+        ')'
+    );
+  });
 }
 // foto bukti baru muncul besar di atas papan sebentar, lalu "jatuh" ke polaroid di papan
 function showPhotoPop(ph, S) {

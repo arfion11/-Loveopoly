@@ -290,6 +290,19 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
         await p.waitForTimeout(150);
       }
       await audit(p, tag + ' tantangan: penilai foto', '#modalRoot');
+      // 4 pemain + 4 foto bukti: polaroid di papan, "Kabar terbaru" di tengah kolom kiri, penampil satu foto
+      await newGame(
+        p,
+        'S.photos = []; for (let k = 0; k < 4; k++) S.photos.push({ p: k, img: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=", text: "Foto", ok: k !== 1, r: k + 1, ch: "ph1", judge: (k + 1) % 4 });',
+        4
+      );
+      await settle(p);
+      await p.evaluate(() => window.LoveUI.closeModal(true));
+      await audit(p, tag + ' papan 4P: polaroid & kabar terbaru', '#game');
+      await p.evaluate(() => window.LoveUI.openProofs(1));
+      await p.waitForSelector('#modalRoot .proof-big');
+      await audit(p, tag + ' foto bukti: penampil satu foto', '#modalRoot');
+      await p.evaluate(() => window.LoveUI.closeModal(true));
       // tantangan 4 pemain: voting penilai, tebak bersama (pilih penebak), dua fakta satu bohong banyak penebak
       const gate = async () => {
         if (await p.$('#modalRoot #bGate')) {

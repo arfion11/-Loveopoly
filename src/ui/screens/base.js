@@ -20,7 +20,9 @@ const titleOf = (id, shared) => {
   return el && el.getClientRects().length ? el : null;
 };
 // from/to = kotak judul asal & tujuan (diukur SEBELUM layar baru diberi animasi naik, supaya tidak ikut tergeser)
+let flyDone = null; // judul yang sedang terbang: diselesaikan dulu bila pindah layar lagi sebelum mendarat (tidak dobel)
 function flyTitle(from, dst, to) {
+  if (flyDone) flyDone();
   if (!to.width || !to.height) return;
   const cs = getComputedStyle(dst);
   const g = dst.cloneNode(true);
@@ -35,7 +37,9 @@ function flyTitle(from, dst, to) {
   const done = () => {
     g.remove();
     dst.style.opacity = '';
+    if (flyDone === done) flyDone = null;
   };
+  flyDone = done;
   const a = g.animate(
     [
       { transform: 'translate(' + (from.left - to.left) + 'px,' + (from.top - to.top) + 'px) scale(' + k + ')', opacity: 0.85 },

@@ -27,6 +27,27 @@
 .seat-col .seat:last-child {
   justify-content: flex-end;
 }
+/* tengah kolom kiri: "Kabar terbaru" saat 4 pemain (keempat sudut terpakai kartu pemain). Kosong = tidak ada; saat
+   layar pendek kotak ini yang menyusut & bisa digulir, kartu pemain tidak pernah terdorong */
+.seat-mid {
+  flex: 0 1 auto;
+  justify-content: center;
+}
+.seat-mid:empty {
+  display: none;
+}
+.seat-col:has(> .seat-mid:not(:empty)) > .seat:not(.seat-mid) {
+  flex: none;
+}
+.seat-mid .log-card {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.seat-mid .log-card .log {
+  max-height: 230px;
+  min-height: 0;
+}
 .board-col {
   position: relative;
   display: flex;

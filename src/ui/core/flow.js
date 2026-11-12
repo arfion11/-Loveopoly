@@ -38,7 +38,8 @@ import { endPick } from './pick.js';
 
 // ---------- alur commit & animasi ----------
 // durasi kamera sinematik ikut kecepatan animasi (Cepat = lebih singkat)
-const cine = (k, turn, hold) => ({ k, turn, hold: hold * SPD(), inMs: 760 * SPD(), outMs: 950 * SPD() });
+// kamera sinematik: seberapa dekat (k), lama tahan; masuk pegas ±0,6 dtk, keluar ±0,9 dtk (ikut kecepatan animasi)
+const cine = (k, hold) => ({ k, hold: hold * SPD(), inMs: 620 * SPD(), outMs: 900 * SPD() });
 async function animateEvents(prev, ns) {
   const evs = ns.lastEvents || [];
   if (!prev || ns.evSeq !== ns.seq || prev.seq >= ns.seq) return;
@@ -107,7 +108,7 @@ async function animateEvents(prev, ns) {
         if (e.level === 4) {
           if (fresh) {
             burst(e.tile, ['#FFD93D', '#FFF3B0', '#FFFFFF'], 16);
-            camCinema(e.tile, cine(0.42, 5, 1200));
+            camCinema(e.tile, cine(0.42, 1200));
           }
           banner(
             'LANDMARK!',
@@ -132,7 +133,7 @@ async function animateEvents(prev, ns) {
           from = ns.players[e.from];
         if (fresh) {
           stampDrop(e.tile, taker.color, t('DIAMBIL ALIH'));
-          camCinema(e.tile, cine(0.34, 4, 1000));
+          camCinema(e.tile, cine(0.34, 1000));
         }
         banner(
           'AMBIL ALIH!',
@@ -249,7 +250,7 @@ async function animateEvents(prev, ns) {
           // kamera menyorot jalur yang dikuasai (Raja Jalur) atau pion sang juara
           if (fresh) {
             const sd = o.reason === 'line' && o.detail && D.SIDES.find(x => x.id === o.detail.side);
-            camCinema(sd ? Math.round((sd.from + sd.to) / 2) : ns.players[o.winner].pos, cine(0.5, 6, 1500));
+            camCinema(sd ? Math.round((sd.from + sd.to) / 2) : ns.players[o.winner].pos, cine(0.5, 1500));
           }
           banner(
             { triple: 'TRIO WARNA!', line: 'RAJA JALUR!', spots: 'KOLEKTOR WISATA!' }[o.reason],
@@ -329,7 +330,7 @@ async function animateEvents(prev, ns) {
           'card'
         );
         if (fresh) {
-          camCinema(null, cine(0.3, 6, 1300));
+          camCinema(null, cine(0.3, 1300));
           merpiSay(pick(['Momen berdua! Kompakan, ya~', 'Waktunya kerja sama!', 'Bukan lawan dulu, sekarang tim!']), 'love', 2400);
           mascotAct('hop', 700);
           mascotEmote(ic('heart'), 2000);

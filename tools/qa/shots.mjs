@@ -32,6 +32,17 @@ const HUMANS = [
   { name: 'Arfi', avatar: '🐻', color: '#FF4F8B' },
   { name: 'Nadia', avatar: '🐰', color: '#7B61FF' },
 ];
+const FOUR = HUMANS.concat([
+  { name: 'Dimas', avatar: '🦊', color: '#12B5A6' },
+  { name: 'Sinta', avatar: '🐱', color: '#FF8A3D' },
+]);
+// foto bukti contoh (digambar di browser: JPEG kecil berwarna dengan nomor)
+const PHOTOS = n =>
+  'const mk = (c, k) => { const cv = document.createElement("canvas"); cv.width = 160; cv.height = 120; const x = cv.getContext("2d"); x.fillStyle = c; x.fillRect(0, 0, 160, 120); x.fillStyle = "#fff"; x.font = "bold 64px sans-serif"; x.fillText(String(k + 1), 58, 84); return cv.toDataURL("image/jpeg", 0.7); };' +
+  'S.photos = S.photos || [];' +
+  '["#FF4F8B", "#7B61FF", "#12B5A6", "#FF8A3D"].slice(0, ' +
+  n +
+  ').forEach((c, k) => S.photos.push({ p: k % S.players.length, img: mk(c, k), text: "Foto ekspresi paling dramatis #" + (k + 1), ok: k !== 2, r: k + 1, ch: "ph" + (k + 1) }));';
 // tiap preset: profil paspor awal + langkah di halaman (berjalan di browser lewat page.evaluate)
 const PRESETS = {
   home: { profile: { skipped: true } },
@@ -41,6 +52,9 @@ const PRESETS = {
   },
   paspor: { profile: PASSPORT, run: async p => (await p.click('#hPass'), p.waitForTimeout(1500)) },
   game: { profile: { skipped: true }, game: 'S.round = 3;' },
+  game4: { profile: { skipped: true }, game: 'S.round = 3;', players: FOUR },
+  bukti: { profile: { skipped: true }, game: 'S.round = 5;' + PHOTOS(4), players: FOUR },
+  'bukti-2d': { profile: { skipped: true }, game: 'S.round = 5;' + PHOTOS(4), players: FOUR, prefs: { view3d: false } },
   momen: {
     profile: { skipped: true },
     game: 'S.round = 6; S.moment = 6; S.queue.push({ type: "CHALLENGE", p: 0, ch: "dr1", cat: "duo", source: "moment", redraws: 0 }); E.migrate(S);',
@@ -73,13 +87,13 @@ for (const [bt, theme, w, h, tag] of runs) {
   page.on('pageerror', e => errs.push(e.message));
   page.on('console', m => m.type() === 'error' && errs.push(m.text()));
   await page.addInitScript(
-    ([prof, last]) => {
-      localStorage.setItem('loveopoly.v1.prefs', JSON.stringify({ sound: false }));
+    ([prof, last, prefs]) => {
+      localStorage.setItem('loveopoly.v1.prefs', JSON.stringify(Object.assign({ sound: false }, prefs)));
       localStorage.setItem('loveopoly.v2.tour', '"done"');
       localStorage.setItem('loveopoly.v1.profile', JSON.stringify(prof));
       if (last) localStorage.setItem('loveopoly.v2.last', JSON.stringify(last));
     },
-    [pre.profile, pre.last || null]
+    [pre.profile, pre.last || null, pre.prefs || {}]
   );
   await page.goto(URL);
   await page.waitForSelector('#hLocal');
@@ -92,7 +106,7 @@ for (const [bt, theme, w, h, tag] of runs) {
         window.LoveUI.enterGame('local', -1, S);
         window.LoveUI.syncModal(true);
       },
-      [pre.game, HUMANS]
+      [pre.game, pre.players || HUMANS]
     );
     await page.waitForFunction(() => !window.LoveUI.App.animating && !window.LoveUI.App.pending.length, null, { timeout: 15000 });
   }

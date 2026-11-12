@@ -1303,8 +1303,35 @@ function photoText(S, x) {
     .replace(/\{j\}/g, x.judge >= 0 && S.players[x.judge] ? S.players[x.judge].name : tr('lawanmu'))
     .replace(/\{n\}/g, S.players[x.p] ? S.players[x.p].name : '');
 }
-// galeri foto bukti (dibuka dari polaroid di papan & layar akhir)
-function openProofs() {
+// satu foto bukti dalam bingkai polaroid + keterangan (dipakai galeri & penampil satu foto)
+const photoFig = (S, x, cls) =>
+  '<figure class="proof-photo' +
+  (cls ? ' ' + cls : '') +
+  (x.ok ? '' : ' no') +
+  '"><img src="' +
+  safeImg(x.img) +
+  '" alt="' +
+  esc(tr('Foto bukti {n}', { n: S.players[x.p] ? S.players[x.p].name : '' })) +
+  '"><figcaption><span class="pc-who"><b>' +
+  esc(S.players[x.p] ? S.players[x.p].name : '') +
+  '</b> · ' +
+  esc(tr('ronde {r}', { r: x.r })) +
+  '</span><span class="' +
+  (x.ok ? 'ok' : 'bad') +
+  '">' +
+  ic(x.ok ? 'check' : 'x') +
+  esc(tr(x.ok ? 'Disahkan' : 'Ditolak')) +
+  (x.judge >= 0 && S.players[x.judge] ? ' ' + esc(S.players[x.judge].name) : '') +
+  '</span><small>' +
+  esc(photoText(S, x)) +
+  '</small></figcaption></figure>';
+// galeri foto bukti (dibuka dari layar akhir & penampil foto). focus = indeks S.photos → buka foto itu saja
+function openProofs(focus) {
+  const ph = (App.S && App.S.photos) || [];
+  if (Number.isInteger(focus) && ph[focus]) {
+    openPhoto(focus);
+    return;
+  }
   showModal({
     key: 'proofs',
     size: 'mid',
@@ -1317,28 +1344,7 @@ function openProofs() {
           ph
             .slice()
             .reverse()
-            .map(
-              x =>
-                '<figure class="proof-photo' +
-                (x.ok ? '' : ' no') +
-                '"><img src="' +
-                safeImg(x.img) +
-                '" alt="' +
-                esc(tr('Foto bukti {n}', { n: S.players[x.p].name })) +
-                '"><figcaption><span class="pc-who"><b>' +
-                esc(S.players[x.p].name) +
-                '</b> · ' +
-                esc(tr('ronde {r}', { r: x.r })) +
-                '</span><span class="' +
-                (x.ok ? 'ok' : 'bad') +
-                '">' +
-                ic(x.ok ? 'check' : 'x') +
-                esc(tr(x.ok ? 'Disahkan' : 'Ditolak')) +
-                (x.judge >= 0 ? ' ' + esc(S.players[x.judge].name) : '') +
-                '</span><small>' +
-                esc(photoText(S, x)) +
-                '</small></figcaption></figure>'
-            )
+            .map(x => photoFig(S, x))
             .join('') +
           '</div>'
         : '<div class="empty">' + ic('polaroid') + esc(tr('Belum ada foto bukti. Kartu Foto Bukti membuka kamera.')) + '</div>';
@@ -1373,6 +1379,48 @@ function openProofs() {
       };
     },
     mount: m => on(m, '#bPfClose', () => closeModal()),
+  });
+}
+
+// penampil satu foto bukti (diketuk dari polaroid di papan): foto besar + keterangan, geser ke foto lain, ke galeri
+function openPhoto(i) {
+  const go = j => {
+    const ph = (App.S && App.S.photos) || [];
+    if (ph[j]) openPhoto(j);
+  };
+  showModal({
+    key: 'photo' + i,
+    size: 'mid',
+    build: () => {
+      const S = App.S,
+        ph = (S && S.photos) || [],
+        x = ph[i] || ph[ph.length - 1];
+      const n = ph.length,
+        at = ph.indexOf(x);
+      return {
+        kicker: ic('polaroid') + esc(tr('Foto bukti {a} dari {b}', { a: at + 1, b: n })),
+        title: tr('Foto bukti {n}', { n: S.players[x.p] ? S.players[x.p].name : '' }),
+        body: photoFig(S, x, 'proof-big'),
+        foot:
+          (n > 1
+            ? btn('id="bPhPrev" aria-label="' + esc(tr('Foto sebelumnya')) + '"', 'ghost', 'back', '', at <= 0) +
+              btn('id="bPhNext" aria-label="' + esc(tr('Foto berikutnya')) + '"', 'ghost', 'chevron', '', at >= n - 1)
+            : '') +
+          '<span class="grow"></span>' +
+          btn('id="bPhAll"', 'soft', 'polaroid', 'Semua bukti') +
+          btn('id="bPhClose" data-focus', 'primary', 'check', 'Tutup'),
+      };
+    },
+    mount: m => {
+      on(m, '#bPhPrev', () => go(i - 1));
+      on(m, '#bPhNext', () => go(i + 1));
+      on(m, '#bPhAll', () => openProofs());
+      on(m, '#bPhClose', () => closeModal());
+      m.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft') go(i - 1);
+        else if (e.key === 'ArrowRight') go(i + 1);
+      });
+    },
   });
 }
 

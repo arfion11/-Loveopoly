@@ -135,5 +135,10 @@ export default {
     'Proof Photos are shrunk (±20 KB) and only seen by players in the same game. When playing online, the photo is stored in the room with the game. Details: Settings → Privacy & data.',
   'Privasi foto': 'Photo privacy',
   'Galeri Bukti': 'Proof Gallery',
+  'Foto bukti {a} dari {b}': 'Proof photo {a} of {b}',
+  'Foto bukti {n} · ronde {r}': "{n}'s proof photo · round {r}",
+  'Foto sebelumnya': 'Previous photo',
+  'Foto berikutnya': 'Next photo',
+  'Semua bukti': 'All proof',
   'Galeri foto bukti': 'Proof photo gallery',
 };

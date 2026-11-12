@@ -426,7 +426,8 @@ const URL = (await serveDist()).url + '/';
   await newGame('S.round = 5; S.turn.p = 1; S.turn.rolled = true;');
   await act({ type: 'END_TURN', p: 1 });
   const mom = await page.evaluate(() => ({
-    cine: /rotateZ\(/.test(document.querySelector('#board').style.transform),
+    // kamera sinematik: zoom in (skala di atas skala muat papan), tanpa putaran
+    cine: !!window.LoveUI.App.cam.cine && !/rotateZ\(/.test(document.querySelector('#board').style.transform),
     banner: (document.querySelector('#boardVP .banner') || {}).textContent || '',
     pill: (document.querySelector('.news-pill.moment') || {}).textContent || '',
     q: window.LoveUI.App.S.queue.map(x => x.type + ':' + x.source),
@@ -529,6 +530,45 @@ const URL = (await serveDist()).url + '/';
     'photos=' + (st.photos || []).length
   );
   await shot('15b-photo-proof');
+  // beberapa foto bukti: semua ditempel di papan (maks 4), ketuk satu = foto itu sendiri, bisa digeser & ke galeri
+  await newGame(
+    'S.photos = []; ["#FF4F8B", "#7B61FF", "#12B5A6", "#FF8A3D"].forEach((c, k) => { const cv = document.createElement("canvas"); cv.width = 40; cv.height = 30; const x = cv.getContext("2d"); x.fillStyle = c; x.fillRect(0, 0, 40, 30); S.photos.push({ p: k % 2, img: cv.toDataURL("image/jpeg", 0.7), text: "Foto " + (k + 1), ok: k !== 2, r: k + 1, ch: "ph" + (k + 1), judge: (k + 1) % 2 }); });'
+  );
+  await page.waitForTimeout(300);
+  const pins = await page.$$eval('#board .proof-pin', els => els.map(e => ({ i: e.dataset.i, slot: e.dataset.slot, id: e.id })));
+  const pinImgs = await page.$$eval('#board .proof-pin img', els => new Set(els.map(e => e.src)).size);
+  await page.$eval('#board .proof-pin[data-i="1"]', b => b.click());
+  await page.waitForSelector('#modalRoot #bPhNext');
+  const v1 = await page.evaluate(() => ({
+    txt: document.querySelector('#modalRoot .modal').textContent,
+    src: document.querySelector('#modalRoot .proof-big img').src,
+  }));
+  const want1 = await page.evaluate(() => window.LoveUI.App.S.photos[1].img);
+  await page.$eval('#modalRoot #bPhNext', b => b.click());
+  await page.waitForTimeout(250);
+  const v2 = await page.evaluate(() => ({
+    txt: document.querySelector('#modalRoot .modal').textContent,
+    src: document.querySelector('#modalRoot .proof-big img').src,
+  }));
+  const want2 = await page.evaluate(() => window.LoveUI.App.S.photos[2].img);
+  await page.$eval('#modalRoot #bPhAll', b => b.click());
+  await page.waitForTimeout(250);
+  const galleryN = await page.$$eval('#modalRoot .proof-grid .proof-photo', els => els.length);
+  ok(
+    'foto bukti: 4 foto ditempel di papan, ketuk satu → foto itu (bukan yang sama), geser → foto berikutnya, Semua bukti → galeri',
+    pins.length === 4 &&
+      pinImgs === 4 &&
+      pins.filter(x => x.id === 'proofPin').length === 1 &&
+      /2 dari 4/.test(v1.txt) &&
+      v1.src === want1 &&
+      /3 dari 4/.test(v2.txt) &&
+      v2.src === want2 &&
+      v2.src !== v1.src &&
+      galleryN === 4,
+    JSON.stringify({ pins, pinImgs, t1: v1.txt.slice(0, 40), t2: v2.txt.slice(0, 40), galleryN })
+  );
+  await shot('15c-photo-pins');
+  await page.evaluate(() => window.LoveUI.closeModal(true));
 
   // 16. Pajak Rindu
   await newGame('own(1, 0, 2); S.players[0].pos = 28;');

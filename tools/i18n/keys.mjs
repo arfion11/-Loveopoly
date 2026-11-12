@@ -105,7 +105,7 @@ function looksText(v, lexicon) {
   const s = v.trim();
   if (!s) return false;
   // potongan CSS / transform / daftar kelas
-  if (/cubic-bezier|(rotate|translate|scale)[XYZ3d]*\(|\bpx\b|deg\)|^[),]|\($|^--/.test(s)) return false;
+  if (/cubic-bezier|linear\(|(rotate|translate|scale)[XYZ3d]*\(|\bpx\b|deg\)|^[),]|\($|^--/.test(s)) return false;
   if (/^[a-z0-9 _-]+$/.test(s) && (/[a-z]-[a-z]|-$/.test(s) || !s.split(/[\s-]+/).some(w => lexicon.has(w)))) return false;
   if (/^[#.]/.test(s) || /-$/.test(s)) return false;
   // nama font, CSS sisipan, format kabel online (error:…), merek yang tidak diterjemahkan, pesan teknis konsol
